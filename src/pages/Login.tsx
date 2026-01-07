@@ -33,12 +33,15 @@ const Login = () => {
           </div>
           
           {/* Tagline */}
-          <div className="max-w-sm">
-            <h2 className="font-display text-4xl font-bold text-white leading-tight mb-4">
-              Design smarter,<br />launch faster.
+          <div className="max-w-md">
+            <p className="text-white/70 text-sm font-medium uppercase tracking-wider mb-3">
+              Your AI-Powered Visual Specialist
+            </p>
+            <h2 className="text-4xl font-semibold text-white leading-tight mb-4">
+              Beautiful visuals for<br />business challenges.
             </h2>
             <p className="text-white/70 text-lg">
-              AI-powered creative tools for modern marketers.
+              Designed by creatives, made by AI.
             </p>
           </div>
           
