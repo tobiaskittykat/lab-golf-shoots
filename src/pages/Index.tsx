@@ -240,7 +240,18 @@ const Index = () => {
     return () => mainContent.removeEventListener("scroll", updateActiveSection);
   }, [updateActiveSection]);
 
-  const { messages: chatMessages, isLoading: isChatLoading, sendMessage } = useChat();
+  const scrollToSection = useCallback((sectionId: string) => {
+    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
+      brand: brandRef,
+      campaign: campaignRef,
+      image: imageRef,
+      edit: imageRef,
+      batch: imageRef,
+    };
+    refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const { messages: chatMessages, isLoading: isChatLoading, sendMessage } = useChat(scrollToSection);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const handleStarterPrompt = (promptText: string) => {
@@ -270,26 +281,15 @@ const Index = () => {
 
   const currentContext = sidebarContextConfig[activeSection];
 
-  const scrollToSection = (sectionId: string) => {
-    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
-      brand: brandRef,
-      campaign: campaignRef,
-      image: imageRef,
-      edit: imageRef,
-      batch: imageRef,
-    };
-    refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const handleQuickAction = (actionId: string) => {
     scrollToSection(actionId);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      scrollToSection("image");
-      setImagePrompt(prompt);
+    if (prompt.trim() && !isChatLoading) {
+      sendMessage(prompt.trim(), activeSection);
+      setPrompt("");
     }
   };
 

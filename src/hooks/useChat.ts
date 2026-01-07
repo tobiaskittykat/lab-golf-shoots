@@ -4,7 +4,7 @@ type Message = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-export function useChat() {
+export function useChat(onNavigate?: (section: string) => void) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -93,6 +93,21 @@ export function useChat() {
           } catch { /* ignore */ }
         }
       }
+
+      // Check for navigation directive in final response
+      const navMatch = assistantSoFar.match(/\[NAV:(\w+)\]/);
+      if (navMatch && onNavigate) {
+        const section = navMatch[1];
+        // Remove the directive from the displayed message
+        const cleanedContent = assistantSoFar.replace(/\[NAV:\w+\]/g, '').trim();
+        setMessages(prev => 
+          prev.map((m, i) => 
+            i === prev.length - 1 ? { ...m, content: cleanedContent } : m
+          )
+        );
+        // Delay navigation slightly so user sees the response
+        setTimeout(() => onNavigate(section), 800);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [
@@ -102,7 +117,7 @@ export function useChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages]);
+  }, [messages, onNavigate]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
