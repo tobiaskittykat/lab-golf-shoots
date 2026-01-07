@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Image, 
@@ -129,6 +129,55 @@ const moodboardImages = [
   "/placeholder.svg", "/placeholder.svg", "/placeholder.svg", "/placeholder.svg",
 ];
 
+// Context-aware sidebar configuration
+type ActiveSection = "hero" | "brand" | "campaign" | "image";
+
+const sidebarContextConfig: Record<ActiveSection, {
+  title: string;
+  description: string;
+  starterPrompts: { label: string; prompt: string }[];
+}> = {
+  hero: {
+    title: "Creative Assistant",
+    description: "I can help you create stunning visuals, manage your brand, and run campaigns.",
+    starterPrompts: [
+      { label: "🎨 Generate a new image", prompt: "Help me generate a new product image" },
+      { label: "📢 Plan a campaign", prompt: "I want to create a new marketing campaign" },
+      { label: "🏷️ Update my brand", prompt: "Help me refine my brand guidelines" },
+    ],
+  },
+  brand: {
+    title: "Brand Assistant",
+    description: "I can help you refine your brand identity, colors, typography, and personas.",
+    starterPrompts: [
+      { label: "🎨 Suggest new colors", prompt: "Suggest complementary colors for my brand palette" },
+      { label: "✍️ Improve tagline", prompt: "Help me improve my brand tagline" },
+      { label: "👤 Create a persona", prompt: "Help me create a new target audience persona" },
+      { label: "📝 Refine mission", prompt: "Help me refine my brand mission statement" },
+    ],
+  },
+  campaign: {
+    title: "Campaign Assistant",
+    description: "I can help you plan campaigns, select moodboards, and craft messaging.",
+    starterPrompts: [
+      { label: "📅 Plan launch", prompt: "Help me plan a product launch campaign" },
+      { label: "💡 Generate ideas", prompt: "Give me creative campaign ideas for this brand" },
+      { label: "🎯 Target audience", prompt: "Help me define the target audience for this campaign" },
+      { label: "📊 Campaign strategy", prompt: "Suggest a multi-channel campaign strategy" },
+    ],
+  },
+  image: {
+    title: "Image Assistant",
+    description: "I can help you generate, edit, and refine images for your brand.",
+    starterPrompts: [
+      { label: "✨ Enhance prompt", prompt: "Help me improve this image prompt" },
+      { label: "🔄 Create variations", prompt: "Suggest variations of my current image concept" },
+      { label: "📐 Adjust composition", prompt: "How can I improve the composition of this image?" },
+      { label: "🎭 Style transfer", prompt: "Apply a different visual style to my image" },
+    ],
+  },
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
@@ -139,6 +188,11 @@ const Index = () => {
   const brandRef = useRef<HTMLDivElement>(null);
   const campaignRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  // Context-aware sidebar state
+  const [activeSection, setActiveSection] = useState<ActiveSection>("hero");
 
   // Campaign state
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
@@ -148,6 +202,51 @@ const Index = () => {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [imageCount, setImageCount] = useState("1x");
   const [generationMode, setGenerationMode] = useState<"image" | "edit" | "video">("image");
+
+  // Track scroll position to update active section
+  const updateActiveSection = useCallback(() => {
+    const mainContent = mainContentRef.current;
+    if (!mainContent) return;
+
+    const scrollTop = mainContent.scrollTop;
+    const offset = 200; // Offset to trigger section change earlier
+
+    const sections = [
+      { ref: imageRef, id: "image" as ActiveSection },
+      { ref: campaignRef, id: "campaign" as ActiveSection },
+      { ref: brandRef, id: "brand" as ActiveSection },
+      { ref: heroRef, id: "hero" as ActiveSection },
+    ];
+
+    for (const section of sections) {
+      if (section.ref.current) {
+        const rect = section.ref.current.getBoundingClientRect();
+        const mainRect = mainContent.getBoundingClientRect();
+        const relativeTop = rect.top - mainRect.top;
+        
+        if (relativeTop <= offset) {
+          setActiveSection(section.id);
+          return;
+        }
+      }
+    }
+    
+    setActiveSection("hero");
+  }, []);
+
+  useEffect(() => {
+    const mainContent = mainContentRef.current;
+    if (!mainContent) return;
+
+    mainContent.addEventListener("scroll", updateActiveSection);
+    return () => mainContent.removeEventListener("scroll", updateActiveSection);
+  }, [updateActiveSection]);
+
+  const handleStarterPrompt = (promptText: string) => {
+    setChatMessage(promptText);
+  };
+
+  const currentContext = sidebarContextConfig[activeSection];
 
   const scrollToSection = (sectionId: string) => {
     const refs: Record<string, React.RefObject<HTMLDivElement>> = {
@@ -234,9 +333,9 @@ const Index = () => {
       {/* Main Layout: Content + Chat Sidebar */}
       <div className="flex-1 flex">
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto">
           {/* Hero Section */}
-          <section className="px-8 py-16 max-w-4xl mx-auto">
+          <section ref={heroRef} className="px-8 py-16 max-w-4xl mx-auto">
             <div className="text-center mb-10 animate-fade-in">
               <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
                 What would you like to <span className="text-gradient">create</span> today?
@@ -752,23 +851,44 @@ const Index = () => {
           </section>
         </main>
 
-        {/* Right Chat Sidebar */}
+        {/* Right Chat Sidebar - Context Aware */}
         <aside className="w-[400px] border-l border-border bg-card flex flex-col">
-          {/* Toggle */}
+          {/* Context Header */}
           <div className="p-4 border-b border-border">
-            <button className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <ChevronDown className="w-4 h-4 rotate-90" />
-            </button>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <span className="font-semibold text-sm">{currentContext.title}</span>
+              </div>
+              <button className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center">
+                <ChevronDown className="w-4 h-4 rotate-90 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">{currentContext.description}</p>
+          </div>
+
+          {/* Starter Prompts */}
+          <div className="p-4 border-b border-border">
+            <p className="text-xs text-muted-foreground mb-3">Quick suggestions:</p>
+            <div className="flex flex-wrap gap-2">
+              {currentContext.starterPrompts.map((starter, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleStarterPrompt(starter.prompt)}
+                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-primary/30"
+                >
+                  {starter.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="p-4 rounded-xl bg-primary/10 text-sm">
-              <p>...image generation, ensuring it is fully aligned with the provided brand persona.</p>
-            </div>
-            
-            <div className="p-4 rounded-xl bg-secondary text-sm">
-              <p>A poised young woman in her mid-20s stands confidently solo in an urban Northeast city setting, dressed in elevated minimal or soft feminine chic business attire. She is posed in a focused, aspirational manner—perhaps near a sleek office desk or with a cityscape backdrop—her look enhanced by elegant, affordable jewelry that subtly signifies accomplishment and ambition.</p>
+              <p>I'm ready to help with your {activeSection === "hero" ? "creative needs" : activeSection} work. What would you like to do?</p>
             </div>
           </div>
 
@@ -778,7 +898,7 @@ const Index = () => {
               <textarea
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Type your message here..."
+                placeholder={`Ask about ${activeSection === "hero" ? "anything" : activeSection}...`}
                 rows={3}
                 className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
