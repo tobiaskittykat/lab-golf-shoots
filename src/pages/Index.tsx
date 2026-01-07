@@ -671,14 +671,13 @@ const Index = () => {
                   {/* Right side - Main content */}
                   <div className="flex-1">
                     {/* Prompt Input */}
-                    <div className="flex items-start gap-3 mb-4">
-                      <ImageIcon className="w-5 h-5 text-muted-foreground mt-0.5" />
+                    <div className="mb-4">
                       <input
                         type="text"
                         value={imagePrompt}
                         onChange={(e) => setImagePrompt(e.target.value)}
                         placeholder="Describe what you want to see ..."
-                        className="flex-1 bg-transparent border-none focus:outline-none text-foreground placeholder:text-muted-foreground"
+                        className="w-full bg-transparent border-none focus:outline-none text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
 
