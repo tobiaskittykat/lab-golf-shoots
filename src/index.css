@@ -6,59 +6,76 @@
 
 @layer base {
   :root {
-    /* Dark sophisticated theme */
-    --background: 220 20% 6%;
-    --foreground: 210 20% 95%;
+    /* KittyKat - Clean white with purple accents */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 10%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
 
-    --popover: 220 18% 10%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
 
-    /* Coral/Peach accent */
-    --primary: 16 85% 65%;
-    --primary-foreground: 220 20% 6%;
+    /* Purple accent */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 15%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 260 20% 96%;
+    --secondary-foreground: 240 10% 10%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 260 20% 96%;
+    --muted-foreground: 240 5% 46%;
 
-    --accent: 16 85% 65%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 15%;
-    --ring: 16 85% 65%;
+    --border: 260 20% 90%;
+    --input: 260 20% 94%;
+    --ring: 262 83% 58%;
 
     --radius: 0.75rem;
 
     /* Custom tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(16, 85%, 65%) 0%, hsl(35, 90%, 60%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(220, 18%, 12%) 0%, hsl(220, 20%, 6%) 100%);
-    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
-    --shadow-glow: 0 0 60px rgba(251, 146, 114, 0.15);
-    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --gradient-primary: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(280, 80%, 65%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(260, 30%, 98%) 0%, hsl(0, 0%, 100%) 100%);
+    --shadow-glow: 0 0 60px rgba(124, 58, 237, 0.15);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --shadow-elevated: 0 8px 32px rgba(124, 58, 237, 0.1);
     
     /* Sidebar */
-    --sidebar-background: 220 18% 8%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 16 85% 65%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 15% 15%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 16 85% 65%;
+    --sidebar-background: 260 30% 98%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 260 20% 94%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 260 20% 92%;
+    --sidebar-ring: 262 83% 58%;
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 210 20% 95%;
+    --background: 240 10% 6%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 15% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 260 15% 18%;
+    --muted-foreground: 260 10% 55%;
+    --accent: 262 83% 65%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 260 15% 18%;
+    --input: 260 15% 15%;
+    --ring: 262 83% 65%;
   }
 }
 
@@ -79,45 +96,48 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl;
-    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    @apply bg-card border border-border rounded-2xl;
+    box-shadow: var(--shadow-card);
   }
 
   .command-input {
-    @apply w-full bg-secondary/50 border border-white/10 rounded-2xl px-6 py-5 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-300;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+    @apply w-full bg-secondary border border-border rounded-2xl px-6 py-5 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-300;
   }
 
   .action-chip {
-    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-secondary/60 border border-white/10 rounded-full text-sm font-medium text-foreground/80 hover:bg-primary/20 hover:border-primary/30 hover:text-foreground transition-all duration-200 cursor-pointer;
+    @apply inline-flex items-center gap-2 px-4 py-2.5 bg-secondary border border-border rounded-full text-sm font-medium text-foreground/80 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-200 cursor-pointer;
   }
 
   .action-chip:hover {
-    box-shadow: 0 0 20px rgba(251, 146, 114, 0.1);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.1);
   }
 
   .btn-primary {
     @apply bg-primary text-primary-foreground font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-all duration-200;
-    background: linear-gradient(135deg, hsl(16, 85%, 65%) 0%, hsl(35, 90%, 60%) 100%);
+    background: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(280, 80%, 65%) 100%);
   }
 
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground font-medium rounded-xl px-6 py-3 border border-white/10 hover:bg-secondary/80 transition-all duration-200;
+    @apply bg-secondary text-secondary-foreground font-medium rounded-xl px-6 py-3 border border-border hover:bg-primary/5 hover:border-primary/30 transition-all duration-200;
   }
 
   .input-field {
-    @apply w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200;
+    @apply w-full bg-secondary border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200;
   }
 
   .card-elevated {
-    @apply bg-card border border-white/5 rounded-2xl p-6;
+    @apply bg-card border border-border rounded-2xl p-6;
     box-shadow: var(--shadow-card);
+  }
+
+  .card-elevated:hover {
+    box-shadow: var(--shadow-elevated);
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, hsl(16, 85%, 65%) 0%, hsl(35, 90%, 60%) 100%);
+    background: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(280, 80%, 65%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

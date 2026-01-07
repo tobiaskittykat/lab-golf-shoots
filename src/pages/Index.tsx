@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ArrowRight, Image, Megaphone, Wand2, Zap } from "lucide-react";
+import { Cat, ArrowRight, Image, Megaphone, Wand2, Zap } from "lucide-react";
 
 const features = [
   {
@@ -30,13 +30,13 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
+              <Cat className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold">AdCraft</span>
+            <span className="font-display text-lg font-bold">KittyKat</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -59,12 +59,12 @@ const Index = () => {
       {/* Hero */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl animate-float" />
+        <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/3 rounded-full blur-3xl animate-float" />
 
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-fade-in">
-            <Sparkles className="w-4 h-4" />
+            <Cat className="w-4 h-4" />
             AI-powered ad creative generation
           </div>
 
@@ -95,7 +95,7 @@ const Index = () => {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-6 bg-secondary/30">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-4">
             Everything you need to create
@@ -129,7 +129,7 @@ const Index = () => {
       <section className="py-20 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="glass-card p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
             <div className="relative z-10">
               <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
                 Ready to transform your ads?
@@ -150,15 +150,15 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 px-6">
+      <footer className="border-t border-border py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-primary-foreground" />
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
+              <Cat className="w-3 h-3 text-primary-foreground" />
             </div>
-            <span>AdCraft</span>
+            <span>KittyKat</span>
           </div>
-          <p>© 2025 AdCraft. All rights reserved.</p>
+          <p>© 2025 KittyKat. All rights reserved.</p>
         </div>
       </footer>
     </div>

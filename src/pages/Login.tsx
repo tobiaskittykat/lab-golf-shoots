@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Cat } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,24 +10,23 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to brand setup or dashboard
     navigate("/brand-setup");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background gradient orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-float" />
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/3 rounded-full blur-3xl animate-float" />
       
       <div className="relative z-10 w-full max-w-md px-6">
         {/* Logo/Brand */}
         <div className="text-center mb-10 animate-fade-in">
           <div className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
+              <Cat className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold">AdCraft</span>
+            <span className="font-display text-2xl font-bold">KittyKat</span>
           </div>
           <h1 className="font-display text-3xl font-bold mb-2">Welcome back</h1>
           <p className="text-muted-foreground">Sign in to continue creating stunning campaigns</p>
@@ -69,7 +68,7 @@ const Login = () => {
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-white/20 bg-secondary" />
+                <input type="checkbox" className="rounded border-border bg-secondary accent-primary" />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
               <a href="#" className="text-primary hover:underline">Forgot password?</a>

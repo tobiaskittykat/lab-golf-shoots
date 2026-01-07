@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   ArrowLeft, 
-  Sparkles, 
+  Cat, 
   Image, 
   Target, 
   Palette,
@@ -45,7 +45,7 @@ const CreateCampaign = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-white/5 px-6 py-4">
+      <header className="border-b border-border px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button 
             onClick={() => navigate("/dashboard")}
@@ -56,10 +56,10 @@ const CreateCampaign = () => {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
+              <Cat className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold">AdCraft</span>
+            <span className="font-display text-lg font-bold">KittyKat</span>
           </div>
         </div>
       </header>

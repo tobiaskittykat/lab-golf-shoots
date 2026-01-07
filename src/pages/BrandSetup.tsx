@@ -15,7 +15,7 @@ const BrandSetup = () => {
     name: "",
     tagline: "",
     industry: "",
-    primaryColor: "#fb9272",
+    primaryColor: "#7c3aed",
     secondaryColor: "#1a1a2e",
     tone: "",
   });
@@ -31,7 +31,7 @@ const BrandSetup = () => {
   return (
     <div className="min-h-screen flex">
       {/* Sidebar Progress */}
-      <div className="w-80 bg-card/50 border-r border-white/5 p-8 hidden lg:block">
+      <div className="w-80 bg-secondary/30 border-r border-border p-8 hidden lg:block">
         <div className="mb-10">
           <h2 className="font-display text-xl font-bold mb-1">Set up your brand</h2>
           <p className="text-sm text-muted-foreground">This helps us create on-brand content</p>

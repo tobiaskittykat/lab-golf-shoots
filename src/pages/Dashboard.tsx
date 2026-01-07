@@ -6,7 +6,7 @@ import {
   Wand2, 
   Layers, 
   Send,
-  Sparkles,
+  Cat,
   History,
   Settings,
   ChevronRight
@@ -14,7 +14,7 @@ import {
 
 const quickActions = [
   { id: "create-image", label: "Create an image", icon: Image, color: "from-pink-500 to-rose-500" },
-  { id: "create-campaign", label: "Create a campaign", icon: Megaphone, color: "from-primary to-orange-400" },
+  { id: "create-campaign", label: "Create a campaign", icon: Megaphone, color: "from-primary to-purple-400" },
   { id: "edit-image", label: "Edit an image", icon: Wand2, color: "from-blue-500 to-cyan-400" },
   { id: "batch-generate", label: "Batch generate", icon: Layers, color: "from-violet-500 to-purple-400" },
 ];
@@ -43,13 +43,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b border-white/5 px-6 py-4">
+      <header className="border-b border-border px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
+              <Cat className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold">AdCraft</span>
+            <span className="font-display text-lg font-bold">KittyKat</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -59,8 +59,8 @@ const Dashboard = () => {
             <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
               <Settings className="w-5 h-5 text-muted-foreground" />
             </button>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-primary-foreground font-medium text-sm">
-              A
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center text-primary-foreground font-medium text-sm">
+              K
             </div>
           </div>
         </div>
