@@ -147,6 +147,7 @@ const Index = () => {
   const [imagePrompt, setImagePrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [imageCount, setImageCount] = useState("1x");
+  const [generationMode, setGenerationMode] = useState<"image" | "edit" | "video">("image");
 
   const scrollToSection = (sectionId: string) => {
     const refs: Record<string, React.RefObject<HTMLDivElement>> = {
@@ -603,101 +604,167 @@ const Index = () => {
           {/* Image Generation Section */}
           <section ref={imageRef} className="px-8 py-16 border-t border-border bg-secondary/20">
             <div className="max-w-5xl mx-auto">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
-                  <ImageIcon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="font-display text-2xl font-bold">Image Generation</h2>
-                  <p className="text-sm text-muted-foreground">Create stunning visuals with AI</p>
-                </div>
-              </div>
-
               <div className="glass-card p-6">
-                {/* Controls Row */}
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-border">
-                  <div className="flex items-center gap-2">
-                    <button className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+                {/* Top right actions */}
+                <div className="flex justify-end gap-2 mb-4">
+                  <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </button>
+                  <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex gap-6">
+                  {/* Left side - Mode toggles */}
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => setGenerationMode("image")}
+                      className={`p-3 rounded-lg transition-colors ${
+                        generationMode === "image" 
+                          ? "bg-primary/10 text-primary" 
+                          : "hover:bg-secondary text-muted-foreground"
+                      }`}
+                      title="Image Generation"
+                    >
                       <ImageIcon className="w-5 h-5" />
                     </button>
-                    <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                      <Play className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {["1:1", "4:5", "16:9"].map((ratio) => (
-                      <button
-                        key={ratio}
-                        onClick={() => setAspectRatio(ratio)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          aspectRatio === ratio
-                            ? "bg-primary text-white"
-                            : "bg-secondary hover:bg-secondary/80"
-                        }`}
-                      >
-                        {ratio}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {["1x", "2x", "4x"].map((count) => (
-                      <button
-                        key={count}
-                        onClick={() => setImageCount(count)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          imageCount === count
-                            ? "bg-primary text-white"
-                            : "bg-secondary hover:bg-secondary/80"
-                        }`}
-                      >
-                        {count}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="ml-auto flex items-center gap-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">Model</span>
-                      <select className="bg-secondary border border-border rounded-lg px-3 py-1.5">
-                        <option>🌐 GPT Image 1</option>
-                        <option>🎨 DALL-E 3</option>
-                        <option>✨ Midjourney</option>
-                      </select>
-                    </div>
-                    <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-500 text-white font-medium hover:opacity-90 transition-all">
-                      Generate (1,700 tokens)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Prompt Input */}
-                <div className="mb-6">
-                  <div className="flex items-start gap-3">
-                    <ImageIcon className="w-5 h-5 text-muted-foreground mt-1" />
-                    <textarea
-                      value={imagePrompt}
-                      onChange={(e) => setImagePrompt(e.target.value)}
-                      placeholder="Describe what you want to see ..."
-                      rows={3}
-                      className="flex-1 bg-transparent border-none resize-none focus:outline-none text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                </div>
-
-                {/* Image Grid */}
-                <div className="grid grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div 
-                      key={i}
-                      className="aspect-square rounded-xl bg-secondary/50 border border-border flex items-center justify-center"
+                    <button 
+                      onClick={() => setGenerationMode("edit")}
+                      className={`p-3 rounded-lg transition-colors ${
+                        generationMode === "edit" 
+                          ? "bg-primary/10 text-primary" 
+                          : "hover:bg-secondary text-muted-foreground"
+                      }`}
+                      title="Image Editing"
                     >
-                      <div className="text-center text-muted-foreground">
-                        <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => setGenerationMode("video")}
+                      className={`p-3 rounded-lg transition-colors ${
+                        generationMode === "video" 
+                          ? "bg-primary/10 text-primary" 
+                          : "hover:bg-secondary text-muted-foreground"
+                      }`}
+                      title="Video Generation"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Right side - Main content */}
+                  <div className="flex-1">
+                    {/* Prompt Input */}
+                    <div className="flex items-start gap-3 mb-4">
+                      <ImageIcon className="w-5 h-5 text-muted-foreground mt-0.5" />
+                      <input
+                        type="text"
+                        value={imagePrompt}
+                        onChange={(e) => setImagePrompt(e.target.value)}
+                        placeholder="Describe what you want to see ..."
+                        className="flex-1 bg-transparent border-none focus:outline-none text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+
+                    {/* Reference image link */}
+                    <div className="flex items-center gap-3 mb-4 text-muted-foreground">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    </div>
+
+                    {/* Batch/Grid toggle */}
+                    <div className="flex items-center gap-3 mb-6 text-muted-foreground">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                    </div>
+
+                    {/* Controls Row */}
+                    <div className="flex items-center gap-3 mb-6">
+                      {/* Left controls */}
+                      <div className="flex items-center gap-2">
+                        <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => setAspectRatio("1:1")}
+                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            aspectRatio === "1:1"
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-border hover:bg-secondary"
+                          }`}
+                        >
+                          1:1
+                        </button>
+                        <button 
+                          onClick={() => setImageCount("1x")}
+                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            imageCount === "1x"
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-border hover:bg-secondary"
+                          }`}
+                        >
+                          1x
+                        </button>
+                        <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
+                          <Settings2 className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Right controls */}
+                      <div className="ml-auto flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Model</span>
+                          <select className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm">
+                            <option>🌐 GPT Image 1</option>
+                            <option>🎨 DALL-E 3</option>
+                            <option>✨ Midjourney</option>
+                          </select>
+                        </div>
+                        <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
+                          <Wand2 className="w-5 h-5" />
+                        </button>
+                        <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all">
+                          Generate (1,700 tokens)
+                        </button>
                       </div>
                     </div>
-                  ))}
+
+                    {/* Image Grid */}
+                    <div className="grid grid-cols-3 gap-1">
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div 
+                          key={i}
+                          className={`bg-secondary/50 border-r border-b border-border ${i <= 3 ? 'aspect-[4/3]' : 'aspect-[4/2]'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
