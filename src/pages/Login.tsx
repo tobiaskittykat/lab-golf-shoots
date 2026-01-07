@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Cat, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Cat, Sparkles, ArrowRight, Star } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -8,6 +8,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,50 +16,97 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Gradient */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden">
-        <div className="absolute inset-4 rounded-3xl bg-gradient-to-br from-primary/80 via-purple-400/70 to-primary/60 overflow-hidden">
-          {/* Animated gradient orbs */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-300/20 rounded-full blur-3xl animate-float" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
+    <div className="min-h-screen flex bg-background">
+      {/* Left Panel - Gradient with Glass Elements */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-purple-500 to-primary">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-0 w-full h-full" style={{
+            backgroundImage: `radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.15) 0%, transparent 40%),
+                              radial-gradient(circle at 40% 80%, rgba(255,255,255,0.1) 0%, transparent 45%)`
+          }} />
+        </div>
+        
+        {/* Floating Orbs */}
+        <div className="absolute top-20 right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-32 left-16 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-white/5 rounded-full blur-2xl animate-pulse-slow" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between h-full p-12 xl:p-16">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-lg">
+              <Cat className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-display text-2xl font-bold text-white tracking-tight">KittyKat</span>
+          </div>
           
-          {/* Content overlay */}
-          <div className="relative z-10 flex flex-col justify-between h-full p-12">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Cat className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-display text-xl font-bold text-white">KittyKat</span>
+          {/* Main Content */}
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+              <Sparkles className="w-4 h-4 text-yellow-300" />
+              <span className="text-sm font-medium text-white">AI-Powered Creative Suite</span>
             </div>
             
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                <Sparkles className="w-4 h-4 text-white" />
-                <span className="text-sm text-white/90">AI-Powered Creative Suite</span>
-              </div>
-              <h2 className="font-display text-4xl xl:text-5xl font-bold text-white leading-tight">
-                Create stunning<br />ad campaigns<br />in minutes
-              </h2>
-              <p className="text-white/70 text-lg max-w-md">
-                Transform your ideas into professional marketing assets with the power of AI.
-              </p>
+            <h2 className="font-display text-5xl xl:text-6xl font-bold text-white leading-[1.1] tracking-tight">
+              Create stunning<br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-purple-200">
+                ad campaigns
+              </span><br />
+              in minutes
+            </h2>
+            
+            <p className="text-white/80 text-lg max-w-md leading-relaxed">
+              Transform your creative ideas into professional marketing assets with our intelligent AI design tools.
+            </p>
+
+            {/* Feature Pills */}
+            <div className="flex flex-wrap gap-3">
+              {["Social Ads", "Email Campaigns", "Product Images", "Brand Assets"].map((feature) => (
+                <div
+                  key={feature}
+                  className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm font-medium"
+                >
+                  {feature}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Social Proof */}
+          <div className="space-y-4">
+            {/* Rating */}
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+              ))}
+              <span className="ml-2 text-white/80 text-sm font-medium">4.9/5 from 500+ reviews</span>
             </div>
             
+            {/* Users */}
             <div className="flex items-center gap-4">
               <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
+                {[
+                  "bg-gradient-to-br from-pink-400 to-rose-500",
+                  "bg-gradient-to-br from-blue-400 to-indigo-500",
+                  "bg-gradient-to-br from-green-400 to-emerald-500",
+                  "bg-gradient-to-br from-orange-400 to-amber-500",
+                ].map((gradient, i) => (
                   <div
                     key={i}
-                    className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center text-white text-xs font-medium"
+                    className={`w-11 h-11 rounded-full ${gradient} border-[3px] border-white/30 flex items-center justify-center text-white text-sm font-semibold shadow-lg`}
                   >
-                    {String.fromCharCode(64 + i)}
+                    {String.fromCharCode(65 + i)}
                   </div>
                 ))}
+                <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-sm border-[3px] border-white/30 flex items-center justify-center text-white text-xs font-medium">
+                  +2k
+                </div>
               </div>
-              <p className="text-white/80 text-sm">
-                <span className="font-semibold text-white">2,500+</span> marketers already onboard
+              <p className="text-white/90 text-sm">
+                Join <span className="font-bold text-white">2,500+</span> marketers already creating
               </p>
             </div>
           </div>
@@ -66,25 +114,25 @@ const Login = () => {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 xl:p-20">
+        <div className="w-full max-w-[420px] space-y-8">
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
-              <Cat className="w-5 h-5 text-primary-foreground" />
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center shadow-lg shadow-primary/25">
+              <Cat className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold">KittyKat</span>
+            <span className="font-display text-2xl font-bold text-foreground">KittyKat</span>
           </div>
 
           {/* Header */}
-          <div className="space-y-2">
-            <h1 className="font-display text-3xl font-bold text-foreground">
-              {isSignUp ? "Create an account" : "Welcome back!"}
+          <div className="space-y-3">
+            <h1 className="font-display text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
+              {isSignUp ? "Create your account" : "Welcome back"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-base lg:text-lg">
               {isSignUp
-                ? "Enter your details to get started with KittyKat"
-                : "Please enter your credentials to login to your account"}
+                ? "Start creating amazing campaigns in minutes"
+                : "Sign in to continue to your dashboard"}
             </p>
           </div>
 
@@ -97,22 +145,24 @@ const Login = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="John Doe"
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-background transition-all duration-200"
                 />
               </div>
             )}
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-foreground">
-                Email
+                Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@kittykat.ai"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                placeholder="you@example.com"
+                className="w-full px-4 py-3.5 rounded-xl border border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-background transition-all duration-200"
               />
             </div>
 
@@ -124,9 +174,9 @@ const Login = () => {
                 {!isSignUp && (
                   <button
                     type="button"
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                   >
-                    Forgot Password?
+                    Forgot password?
                   </button>
                 )}
               </div>
@@ -135,13 +185,13 @@ const Login = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pr-12"
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border bg-secondary/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-background transition-all duration-200 pr-12"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -154,21 +204,57 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full py-3 px-4 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all shadow-lg shadow-primary/25"
+              className="w-full py-4 px-4 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-200 shadow-lg shadow-primary/30 flex items-center justify-center gap-2 group"
             >
-              {isSignUp ? "Create Account" : "Login"}
+              {isSignUp ? "Create Account" : "Sign In"}
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-background text-muted-foreground">or continue with</span>
+            </div>
+          </div>
+
+          {/* Social Login */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-border bg-background hover:bg-secondary/50 transition-all duration-200 text-foreground font-medium"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Google
+            </button>
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-border bg-background hover:bg-secondary/50 transition-all duration-200 text-foreground font-medium"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+              </svg>
+              Apple
+            </button>
+          </div>
+
           {/* Toggle Auth Mode */}
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-sm text-muted-foreground pt-2">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary font-medium hover:underline"
+              className="text-primary font-semibold hover:text-primary/80 transition-colors"
             >
-              {isSignUp ? "Sign In" : "Sign Up"}
+              {isSignUp ? "Sign in" : "Sign up for free"}
             </button>
           </p>
         </div>
