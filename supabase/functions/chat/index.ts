@@ -18,15 +18,25 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a helpful AI assistant for a creative marketing platform. You help users with:
+const systemPrompt = `You are a helpful AI assistant for a creative marketing platform called KittyKat. You help users with:
 - Image generation and editing
-- Brand setup and management
+- Brand setup and management  
 - Campaign creation and optimization
 - Creative marketing strategies
 
 Current context: ${context || 'general'}
 
-Be concise, friendly, and action-oriented. When users ask about specific features, guide them and offer to help execute tasks.`;
+Be concise, friendly, and action-oriented. When users ask about specific features, guide them and offer to help execute tasks.
+
+IMPORTANT: If the user's request clearly indicates they want to navigate to a specific section, include a navigation directive at the END of your response in this exact format:
+[NAV:section_id]
+
+Available sections:
+- [NAV:image] - for image generation, creating images, generating visuals
+- [NAV:campaign] - for creating campaigns, marketing campaigns, ad campaigns
+- [NAV:brand] - for viewing or editing brand settings, brand info
+
+Only include the navigation directive if the user's intent is clearly to go to that section. Always respond helpfully first, then add the directive if navigation makes sense.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
