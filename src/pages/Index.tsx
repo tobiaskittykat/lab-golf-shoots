@@ -28,8 +28,19 @@ import {
   Calendar,
   MapPin,
   UserCircle2,
-  ImageIcon
+  ImageIcon,
+  HelpCircle,
+  LogOut,
+  Check
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { id: "home", label: "Home", icon: Home },
@@ -345,9 +356,62 @@ const Index = () => {
             <button className="p-2 rounded-lg hover:bg-secondary">
               <Settings2 className="w-5 h-5 text-muted-foreground" />
             </button>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
-              K
-            </div>
+            
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2">
+                  K
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-popover border border-border shadow-lg z-50">
+                {/* User Info */}
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    K
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">kiahyen</p>
+                    <p className="text-sm text-muted-foreground truncate">kiahyen@kittykat.ai</p>
+                  </div>
+                </div>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Workspaces */}
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-3 py-1.5">
+                  Workspaces
+                </DropdownMenuLabel>
+                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
+                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground font-medium text-sm">
+                    K
+                  </div>
+                  <span className="flex-1">kiahyen's workspace</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
+                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground font-medium text-sm">
+                    K
+                  </div>
+                  <span className="flex-1">Kittykat</span>
+                  <Check className="w-4 h-4 text-primary" />
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
+                
+                {/* Actions */}
+                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
+                  <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                  <span>Help</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer"
+                  onClick={() => navigate("/login")}
+                >
+                  <LogOut className="w-4 h-4 text-muted-foreground" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
