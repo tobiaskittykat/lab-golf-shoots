@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useChat } from "@/hooks/useChat";
 import { 
   Image, 
   Megaphone, 
@@ -21,16 +22,13 @@ import {
   Sparkles,
   Play,
   RefreshCw,
-  MessageSquare,
-  Paperclip,
-  Mic,
-  ImageIcon,
   Copy,
   Star,
   Plus,
   Calendar,
   MapPin,
-  UserCircle2
+  UserCircle2,
+  ImageIcon
 } from "lucide-react";
 
 const navItems = [
@@ -242,9 +240,33 @@ const Index = () => {
     return () => mainContent.removeEventListener("scroll", updateActiveSection);
   }, [updateActiveSection]);
 
+  const { messages: chatMessages, isLoading: isChatLoading, sendMessage } = useChat();
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
   const handleStarterPrompt = (promptText: string) => {
-    setChatMessage(promptText);
+    sendMessage(promptText, activeSection);
   };
+
+  const handleSendMessage = () => {
+    if (chatMessage.trim() && !isChatLoading) {
+      sendMessage(chatMessage.trim(), activeSection);
+      setChatMessage("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
 
   const currentContext = sidebarContextConfig[activeSection];
 
@@ -886,10 +908,34 @@ const Index = () => {
           </div>
 
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="p-4 rounded-xl bg-primary/10 text-sm">
-              <p>I'm ready to help with your {activeSection === "hero" ? "creative needs" : activeSection} work. What would you like to do?</p>
-            </div>
+          <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatMessages.length === 0 ? (
+              <div className="p-4 rounded-xl bg-primary/10 text-sm">
+                <p>I'm ready to help with your {activeSection === "hero" ? "creative needs" : activeSection} work. What would you like to do?</p>
+              </div>
+            ) : (
+              chatMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-xl text-sm ${
+                    msg.role === "user"
+                      ? "bg-secondary ml-8"
+                      : "bg-primary/10 mr-8"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                </div>
+              ))
+            )}
+            {isChatLoading && chatMessages[chatMessages.length - 1]?.role === "user" && (
+              <div className="p-4 rounded-xl bg-primary/10 text-sm mr-8">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-100" />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-200" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Chat Input */}
@@ -898,27 +944,18 @@ const Index = () => {
               <textarea
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder={`Ask about ${activeSection === "hero" ? "anything" : activeSection}...`}
                 rows={3}
-                className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                disabled={isChatLoading}
+                className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 pb-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
               />
-              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                  <input type="checkbox" className="rounded" />
-                  Chat Only Mode
-                </label>
-              </div>
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                <button className="p-2 rounded-lg hover:bg-secondary/80 text-muted-foreground">
-                  <ImageIcon className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg hover:bg-secondary/80 text-muted-foreground">
-                  <Paperclip className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg hover:bg-secondary/80 text-muted-foreground">
-                  <Mic className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-lg bg-primary text-white">
+                <button 
+                  onClick={handleSendMessage}
+                  disabled={!chatMessage.trim() || isChatLoading}
+                  className="p-2 rounded-lg bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Send className="w-4 h-4" />
                 </button>
               </div>
