@@ -367,8 +367,27 @@ const Index = () => {
               </p>
             </div>
 
+            {/* Quick Actions */}
+            <div className="flex flex-wrap justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() => handleQuickAction(action.id)}
+                    className="action-chip group hover:scale-105 transition-all"
+                  >
+                    <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center`}>
+                      <Icon className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    {action.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Main Prompt Input */}
-            <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
                 <textarea
@@ -395,25 +414,6 @@ const Index = () => {
                 <Send className="w-5 h-5 text-white" />
               </button>
             </form>
-
-            {/* Quick Actions */}
-            <div className="flex flex-wrap justify-center gap-3 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => handleQuickAction(action.id)}
-                    className="action-chip group hover:scale-105 transition-all"
-                  >
-                    <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center`}>
-                      <Icon className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    {action.label}
-                  </button>
-                );
-              })}
-            </div>
 
             <div className="flex justify-center mt-12 animate-bounce">
               <ChevronDown className="w-6 h-6 text-muted-foreground" />
