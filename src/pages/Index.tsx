@@ -374,6 +374,14 @@ const Index = () => {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (prompt.trim() && !isChatLoading) {
+                        handleSubmit(e as unknown as React.FormEvent);
+                      }
+                    }
+                  }}
                   placeholder="Describe your ad creative..."
                   rows={3}
                   className="relative command-input resize-none pr-16"
