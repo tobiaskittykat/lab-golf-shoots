@@ -1,37 +1,50 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cat, ArrowRight, Image, Megaphone, Wand2, Zap } from "lucide-react";
+import { 
+  Image, 
+  Megaphone, 
+  Wand2, 
+  Layers, 
+  Send,
+  Cat,
+  History,
+  Settings,
+  ChevronRight
+} from "lucide-react";
 
-const features = [
-  {
-    icon: Image,
-    title: "AI-Powered Imagery",
-    description: "Generate stunning product shots and lifestyle images in seconds",
-  },
-  {
-    icon: Megaphone,
-    title: "Campaign Creation",
-    description: "Build cohesive ad campaigns across all platforms effortlessly",
-  },
-  {
-    icon: Wand2,
-    title: "Smart Editing",
-    description: "Edit and enhance images with natural language commands",
-  },
-  {
-    icon: Zap,
-    title: "Batch Generation",
-    description: "Create multiple variations instantly for A/B testing",
-  },
+const quickActions = [
+  { id: "create-image", label: "Create an image", icon: Image, color: "from-pink-500 to-rose-500" },
+  { id: "create-campaign", label: "Create a campaign", icon: Megaphone, color: "from-primary to-purple-400" },
+  { id: "edit-image", label: "Edit an image", icon: Wand2, color: "from-blue-500 to-cyan-400" },
+  { id: "batch-generate", label: "Batch generate", icon: Layers, color: "from-violet-500 to-purple-400" },
+];
+
+const recentProjects = [
+  { id: 1, name: "Summer Collection Launch", type: "Campaign", date: "2 hours ago" },
+  { id: 2, name: "Product Hero Shot - Necklace", type: "Image", date: "Yesterday" },
+  { id: 3, name: "Holiday Sale Banner", type: "Image", date: "3 days ago" },
 ];
 
 const Index = () => {
   const navigate = useNavigate();
+  const [prompt, setPrompt] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (prompt.trim()) {
+      navigate("/create-campaign", { state: { prompt } });
+    }
+  };
+
+  const handleQuickAction = (actionId: string) => {
+    navigate(`/${actionId}`);
+  };
 
   return (
-    <div className="min-h-screen">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="border-b border-border px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
               <Cat className="w-5 h-5 text-primary-foreground" />
@@ -40,127 +53,89 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate("/login")} 
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Log in
+            <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <History className="w-5 h-5 text-muted-foreground" />
             </button>
-            <button 
-              onClick={() => navigate("/login")} 
-              className="btn-primary px-5 py-2.5 text-sm"
-            >
-              Get Started
+            <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <Settings className="w-5 h-5 text-muted-foreground" />
             </button>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center text-primary-foreground font-medium text-sm">
+              K
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute top-20 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/3 rounded-full blur-3xl animate-float" />
-
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-fade-in">
-            <Cat className="w-4 h-4" />
-            AI-powered ad creative generation
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+        <div className="w-full max-w-3xl">
+          {/* Greeting */}
+          <div className="text-center mb-12 animate-fade-in">
+            <h1 className="font-display text-4xl md:text-5xl font-bold mb-3">
+              What would you like to <span className="text-gradient">create</span> today?
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Describe your vision and let AI bring it to life
+            </p>
           </div>
 
-          <h1 className="font-display text-5xl md:text-7xl font-bold mb-6 leading-tight animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            Create stunning ads
-            <br />
-            <span className="text-gradient">in seconds</span>
-          </h1>
-
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Transform your e-commerce brand with AI-generated campaign images. 
-            From concept to creative—powered by your brand identity.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <button 
-              onClick={() => navigate("/login")} 
-              className="btn-primary text-lg px-8 py-4 inline-flex items-center gap-2"
+          {/* Command Input */}
+          <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe your ad creative... e.g., 'A lifestyle shot of our new summer jewelry collection with a beachy vibe'"
+              rows={3}
+              className="command-input resize-none pr-14"
+            />
+            <button
+              type="submit"
+              className="absolute right-4 bottom-4 w-10 h-10 rounded-xl bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors disabled:opacity-50"
+              disabled={!prompt.trim()}
             >
-              Start Creating
-              <ArrowRight className="w-5 h-5" />
+              <Send className="w-5 h-5 text-primary-foreground" />
             </button>
-            <button className="btn-secondary text-lg px-8 py-4">
-              Watch Demo
-            </button>
-          </div>
-        </div>
-      </section>
+          </form>
 
-      {/* Features */}
-      <section className="py-20 px-6 bg-secondary/30">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-center mb-4">
-            Everything you need to create
-          </h2>
-          <p className="text-muted-foreground text-center max-w-xl mx-auto mb-16">
-            From single product shots to full campaign rollouts—all powered by AI that understands your brand
-          </p>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, i) => {
-              const Icon = feature.icon;
+          {/* Quick Actions */}
+          <div className="flex flex-wrap justify-center gap-3 mb-16 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            {quickActions.map((action) => {
+              const Icon = action.icon;
               return (
-                <div
-                  key={feature.title}
-                  className="card-elevated group hover:border-primary/30 transition-all duration-300 animate-fade-in"
-                  style={{ animationDelay: `${0.1 * i}s` }}
+                <button
+                  key={action.id}
+                  onClick={() => handleQuickAction(action.id)}
+                  className="action-chip group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <Icon className="w-6 h-6 text-primary" />
+                  <div className={`w-5 h-5 rounded-md bg-gradient-to-br ${action.color} flex items-center justify-center`}>
+                    <Icon className="w-3 h-3 text-white" />
                   </div>
-                  <h3 className="font-display text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm">{feature.description}</p>
-                </div>
+                  {action.label}
+                </button>
               );
             })}
           </div>
-        </div>
-      </section>
 
-      {/* CTA */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="glass-card p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-            <div className="relative z-10">
-              <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-                Ready to transform your ads?
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Join thousands of e-commerce brands creating on-brand visuals at scale
-              </p>
-              <button 
-                onClick={() => navigate("/login")} 
-                className="btn-primary text-lg px-8 py-4 inline-flex items-center gap-2"
-              >
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
-              </button>
+          {/* Recent Projects */}
+          <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
+            <h3 className="text-sm font-medium text-muted-foreground mb-4 text-center">Recent Projects</h3>
+            <div className="grid gap-3">
+              {recentProjects.map((project) => (
+                <button
+                  key={project.id}
+                  className="glass-card p-4 flex items-center justify-between hover:border-primary/30 transition-colors text-left group"
+                >
+                  <div>
+                    <p className="font-medium mb-0.5">{project.name}</p>
+                    <p className="text-sm text-muted-foreground">{project.type} · {project.date}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary to-purple-400 flex items-center justify-center">
-              <Cat className="w-3 h-3 text-primary-foreground" />
-            </div>
-            <span>KittyKat</span>
-          </div>
-          <p>© 2025 KittyKat. All rights reserved.</p>
-        </div>
-      </footer>
+      </main>
     </div>
   );
 };

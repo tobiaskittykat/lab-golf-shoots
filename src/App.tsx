@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import BrandSetup from "./pages/BrandSetup";
-import Dashboard from "./pages/Dashboard";
 import CreateCampaign from "./pages/CreateCampaign";
 import NotFound from "./pages/NotFound";
 
@@ -22,7 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/brand-setup" element={<BrandSetup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/create-campaign" element={<CreateCampaign />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />
           <Route path="/create-image" element={<CreateCampaign />} />
           <Route path="/edit-image" element={<CreateCampaign />} />
