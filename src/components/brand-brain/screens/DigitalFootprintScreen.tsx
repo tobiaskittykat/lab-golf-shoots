@@ -204,10 +204,10 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
                         {isConnecting ? (
                           <span className="flex items-center gap-2">
                             <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                            Connecting...
+                            Enabling...
                           </span>
                         ) : hasUrl ? (
-                          "Connect"
+                          "Enable"
                         ) : (
                           "Add Manually"
                         )}
