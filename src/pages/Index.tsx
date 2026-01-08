@@ -157,7 +157,7 @@ const sidebarContextConfig: Record<ActiveSection, {
 }> = {
   hero: {
     title: "KittyKat",
-    description: "I can help you create stunning visuals, manage your brand, and run campaigns.",
+    description: "Describe your vision and let us bring it to life.",
     starterPrompts: [
       { label: "🎨 Generate a new image", prompt: "Help me generate a new product image" },
       { label: "📢 Plan a campaign", prompt: "I want to create a new marketing campaign" },
