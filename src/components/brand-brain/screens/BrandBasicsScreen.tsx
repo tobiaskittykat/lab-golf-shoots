@@ -167,12 +167,14 @@ const BrandBasicsScreen = ({ data, onChange, onSocialLinksFound }: BrandBasicsSc
               </a>
             ) : null}
           </div>
-          {crawlStatus && (
-            <p className={`text-sm mt-2 ${crawlStatus.includes('Found') ? 'text-green-600' : 'text-muted-foreground'}`}>
-              {isCrawling && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
-              {crawlStatus}
-            </p>
-          )}
+          <div className="h-6 mt-2">
+            {crawlStatus && (
+              <p className={`text-sm ${crawlStatus.includes('Found') ? 'text-green-600' : 'text-muted-foreground'}`}>
+                {isCrawling && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+                {crawlStatus}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Industry */}
