@@ -1,33 +1,15 @@
-import { Check, Sparkles, Palette, MessageSquare, Shield, Database, Brain } from "lucide-react";
+import { Check, Sparkles, Database, Brain } from "lucide-react";
 
 interface SummaryScreenProps {
   brandData: {
     basics: { name: string; personality: string };
     connections: Record<string, boolean>;
-    guardrails: { photographyStyle: string };
-    voiceTone: { formalCasual: number; emotionalRational: number; boldSubtle: number };
     files: File[];
   };
 }
 
 const SummaryScreen = ({ brandData }: SummaryScreenProps) => {
   const connectedCount = Object.values(brandData.connections).filter(Boolean).length;
-  
-  const getVoiceDescription = () => {
-    const { formalCasual, emotionalRational, boldSubtle } = brandData.voiceTone;
-    const parts = [];
-    
-    if (formalCasual < 35) parts.push("Formal");
-    else if (formalCasual > 65) parts.push("Casual");
-    
-    if (emotionalRational < 35) parts.push("Emotional");
-    else if (emotionalRational > 65) parts.push("Rational");
-    
-    if (boldSubtle < 35) parts.push("Bold");
-    else if (boldSubtle > 65) parts.push("Subtle");
-    
-    return parts.length > 0 ? parts.join(", ") : "Balanced";
-  };
 
   const summaryCards = [
     {
@@ -37,20 +19,6 @@ const SummaryScreen = ({ brandData }: SummaryScreenProps) => {
       details: brandData.basics.personality 
         ? `${brandData.basics.personality.charAt(0).toUpperCase() + brandData.basics.personality.slice(1)} personality`
         : "Defined",
-    },
-    {
-      icon: MessageSquare,
-      title: "Brand Voice",
-      status: "Configured",
-      details: getVoiceDescription(),
-    },
-    {
-      icon: Shield,
-      title: "Guardrails",
-      status: "Active",
-      details: brandData.guardrails.photographyStyle 
-        ? `${brandData.guardrails.photographyStyle.charAt(0).toUpperCase() + brandData.guardrails.photographyStyle.slice(1)} photography`
-        : "Set",
     },
     {
       icon: Database,
