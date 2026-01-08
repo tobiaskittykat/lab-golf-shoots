@@ -534,7 +534,7 @@ const Index = () => {
                   <p className="text-muted-foreground mb-4">{brandData.tagline}</p>
                   <div className="flex flex-wrap gap-2">
                     {brandData.values.map((value) => (
-                      <span key={value} className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm border border-primary/20">
+                      <span key={value} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm border border-accent/20">
                         {value}
                       </span>
                     ))}
@@ -644,10 +644,10 @@ const Index = () => {
                         {category.items.map((item) => (
                           <span 
                             key={item.label}
-                            className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm border border-primary/20 flex items-center gap-2"
+                            className="px-3 py-1.5 rounded-full bg-accent/10 text-accent text-sm border border-accent/20 flex items-center gap-2"
                           >
                             {item.label}
-                            <span className="text-xs text-primary/60">{item.score}</span>
+                            <span className="text-xs text-accent/60">{item.score}</span>
                           </span>
                         ))}
                       </div>
@@ -668,7 +668,7 @@ const Index = () => {
                       <Plus className="w-4 h-4" />
                       Create
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-medium hover:bg-primary/90 transition-colors">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors">
                       <Sparkles className="w-4 h-4" />
                       Generate with AI
                     </button>
@@ -694,8 +694,8 @@ const Index = () => {
                         <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{persona.description}</p>
                         
                         <div className="border-t border-border pt-3">
-                          <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1">
-                            <span className="w-0.5 h-3 bg-primary rounded-full" />
+                          <p className="text-xs font-semibold text-accent mb-2 flex items-center gap-1">
+                            <span className="w-0.5 h-3 bg-accent rounded-full" />
                             IDENTITY SNAPSHOT
                           </p>
                           <div className="space-y-1.5 text-sm">
@@ -780,7 +780,7 @@ const Index = () => {
                         <option>10</option>
                       </select>
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors">
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-colors">
                       <Sparkles className="w-4 h-4" />
                       Generate Prompts
                     </button>
@@ -828,7 +828,7 @@ const Index = () => {
                       onClick={() => setGenerationMode("image")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "image" 
-                          ? "bg-primary/10 text-primary" 
+                          ? "bg-accent/10 text-accent" 
                           : "hover:bg-secondary text-muted-foreground"
                       }`}
                       title="Image Generation"
@@ -839,7 +839,7 @@ const Index = () => {
                       onClick={() => setGenerationMode("edit")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "edit" 
-                          ? "bg-primary/10 text-primary" 
+                          ? "bg-accent/10 text-accent" 
                           : "hover:bg-secondary text-muted-foreground"
                       }`}
                       title="Image Editing"
@@ -853,7 +853,7 @@ const Index = () => {
                       onClick={() => setGenerationMode("video")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "video" 
-                          ? "bg-primary/10 text-primary" 
+                          ? "bg-accent/10 text-accent" 
                           : "hover:bg-secondary text-muted-foreground"
                       }`}
                       title="Video Generation"
@@ -895,7 +895,7 @@ const Index = () => {
                           onClick={() => setAspectRatio("1:1")}
                           className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             aspectRatio === "1:1"
-                              ? "border-primary bg-primary/5 text-primary"
+                              ? "border-accent bg-accent/5 text-accent"
                               : "border-border hover:bg-secondary"
                           }`}
                         >
@@ -905,7 +905,7 @@ const Index = () => {
                           onClick={() => setImageCount("1x")}
                           className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             imageCount === "1x"
-                              ? "border-primary bg-primary/5 text-primary"
+                              ? "border-accent bg-accent/5 text-accent"
                               : "border-border hover:bg-secondary"
                           }`}
                         >
@@ -929,7 +929,7 @@ const Index = () => {
                         <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
                           <Wand2 className="w-5 h-5" />
                         </button>
-                        <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all">
+                        <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-all">
                           Generate (1,700 tokens)
                         </button>
                       </div>
@@ -957,7 +957,7 @@ const Index = () => {
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <span className="font-semibold text-sm">{currentContext.title}</span>
@@ -977,7 +977,7 @@ const Index = () => {
                 <button
                   key={index}
                   onClick={() => handleStarterPrompt(starter.prompt)}
-                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-primary/30"
+                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30"
                 >
                   {starter.label}
                 </button>
@@ -988,7 +988,7 @@ const Index = () => {
           {/* Chat Messages */}
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatMessages.length === 0 ? (
-              <div className="p-4 rounded-xl bg-primary/10 text-sm">
+              <div className="p-4 rounded-xl bg-accent/10 text-sm">
                 <p>I'm ready to help with your {activeSection === "hero" ? "creative needs" : activeSection} work. What would you like to do?</p>
               </div>
             ) : (
@@ -998,7 +998,7 @@ const Index = () => {
                   className={`p-4 rounded-xl text-sm ${
                     msg.role === "user"
                       ? "bg-secondary ml-8"
-                      : "bg-primary/10 mr-8"
+                      : "bg-accent/10 mr-8"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -1006,11 +1006,11 @@ const Index = () => {
               ))
             )}
             {isChatLoading && chatMessages[chatMessages.length - 1]?.role === "user" && (
-              <div className="p-4 rounded-xl bg-primary/10 text-sm mr-8">
+              <div className="p-4 rounded-xl bg-accent/10 text-sm mr-8">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-100" />
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-200" />
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse delay-100" />
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse delay-200" />
                 </div>
               </div>
             )}
@@ -1026,13 +1026,13 @@ const Index = () => {
                 placeholder={`Ask about ${activeSection === "hero" ? "anything" : activeSection}...`}
                 rows={3}
                 disabled={isChatLoading}
-                className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 pb-12 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 pb-12 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
               />
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button 
                   onClick={handleSendMessage}
                   disabled={!chatMessage.trim() || isChatLoading}
-                  className="p-2 rounded-lg bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-lg bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4" />
                 </button>
