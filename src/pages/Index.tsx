@@ -269,6 +269,8 @@ const Index = () => {
       image: imageRef,
       edit: imageRef,
       batch: imageRef,
+      video: imageRef,
+      "edit-video": imageRef,
     };
     refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
@@ -304,13 +306,6 @@ const Index = () => {
   const currentContext = sidebarContextConfig[activeSection];
 
   const handleQuickAction = (actionId: string) => {
-    // Actions that should navigate to the create-image page
-    const imageActions = ["image", "video", "edit-video", "edit"];
-    if (imageActions.includes(actionId)) {
-      navigate("/create-image");
-      return;
-    }
-    
     // Actions that require chat continuation should open sidebar
     const chatActions = ["ideas", "discover-audience", "define-audience"];
     if (chatActions.includes(actionId)) {
