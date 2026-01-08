@@ -57,9 +57,10 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
   };
 
   const handleDisconnect = (id: string) => {
+    const connection = connections[id as keyof typeof connections];
     onChange({
       ...connections,
-      [id]: { url: "", connected: false }
+      [id]: { ...connection, connected: false }
     });
   };
 
