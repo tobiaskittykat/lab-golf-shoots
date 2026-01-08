@@ -1,0 +1,116 @@
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const socialPatterns = [
+  { id: 'instagram', patterns: ['instagram.com/', 'instagr.am/'] },
+  { id: 'tiktok', patterns: ['tiktok.com/@', 'tiktok.com/'] },
+  { id: 'pinterest', patterns: ['pinterest.com/', 'pin.it/'] },
+  { id: 'youtube', patterns: ['youtube.com/', 'youtu.be/'] },
+  { id: 'facebook', patterns: ['facebook.com/', 'fb.com/'] },
+  { id: 'twitter', patterns: ['twitter.com/', 'x.com/'] },
+  { id: 'linkedin', patterns: ['linkedin.com/'] },
+];
+
+function extractSocialLinks(links: string[]): Record<string, string> {
+  const foundLinks: Record<string, string> = {};
+  
+  for (const link of links) {
+    const lowerLink = link.toLowerCase();
+    for (const social of socialPatterns) {
+      if (foundLinks[social.id]) continue; // Already found this one
+      
+      for (const pattern of social.patterns) {
+        if (lowerLink.includes(pattern)) {
+          foundLinks[social.id] = link;
+          break;
+        }
+      }
+    }
+  }
+  
+  return foundLinks;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { url } = await req.json();
+
+    if (!url) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'URL is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
+    if (!apiKey) {
+      console.error('FIRECRAWL_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Firecrawl connector not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Format URL
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
+
+    console.log('Scraping URL for social links:', formattedUrl);
+
+    // Use scrape with links format to get all links from the page
+    const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: formattedUrl,
+        formats: ['links'],
+        onlyMainContent: false, // We want footer/header links too for social
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Firecrawl API error:', data);
+      return new Response(
+        JSON.stringify({ success: false, error: data.error || `Request failed with status ${response.status}` }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract links from response - handle both data.links and data.data.links
+    const links = data.data?.links || data.links || [];
+    console.log('Found links:', links.length);
+
+    // Extract social media links
+    const socialLinks = extractSocialLinks(links);
+    console.log('Extracted social links:', socialLinks);
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        socialLinks,
+        totalLinksScanned: links.length 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error crawling for social links:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to crawl website';
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

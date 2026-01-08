@@ -1,15 +1,20 @@
 import { Check, Sparkles, Database, Brain } from "lucide-react";
 
+interface SocialConnection {
+  url: string;
+  connected: boolean;
+}
+
 interface SummaryScreenProps {
   brandData: {
     basics: { name: string; personality: string };
-    connections: Record<string, boolean>;
+    connections: Record<string, SocialConnection>;
     files: File[];
   };
 }
 
 const SummaryScreen = ({ brandData }: SummaryScreenProps) => {
-  const connectedCount = Object.values(brandData.connections).filter(Boolean).length;
+  const connectedCount = Object.values(brandData.connections).filter(c => c.connected).length;
 
   const summaryCards = [
     {

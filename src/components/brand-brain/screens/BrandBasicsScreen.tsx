@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Globe, ExternalLink, Check } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Globe, ExternalLink, Check, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface BrandBasicsScreenProps {
   data: {
@@ -10,6 +12,7 @@ interface BrandBasicsScreenProps {
     personality: string;
   };
   onChange: (data: BrandBasicsScreenProps["data"]) => void;
+  onSocialLinksFound?: (links: Record<string, string>) => void;
 }
 
 const personalities = [
@@ -43,7 +46,12 @@ const markets = [
   "Global",
 ];
 
-const BrandBasicsScreen = ({ data, onChange }: BrandBasicsScreenProps) => {
+const BrandBasicsScreen = ({ data, onChange, onSocialLinksFound }: BrandBasicsScreenProps) => {
+  const { toast } = useToast();
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlStatus, setCrawlStatus] = useState<string>("");
+  const [lastCrawledUrl, setLastCrawledUrl] = useState<string>("");
+
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -56,6 +64,63 @@ const BrandBasicsScreen = ({ data, onChange }: BrandBasicsScreenProps) => {
       updateField("markets", [...current, market]);
     }
   };
+
+  // Debounced crawl function
+  const crawlWebsite = useCallback(async (url: string) => {
+    if (!url || url.length < 10 || lastCrawledUrl === url) return;
+    
+    // Basic URL validation
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+    if (!urlPattern.test(url)) return;
+
+    setIsCrawling(true);
+    setCrawlStatus("Scanning website for social links...");
+    setLastCrawledUrl(url);
+
+    try {
+      const { data: result, error } = await supabase.functions.invoke('crawl-social-links', {
+        body: { url },
+      });
+
+      if (error) {
+        console.error('Crawl error:', error);
+        setCrawlStatus("");
+        return;
+      }
+
+      if (result?.success && result.socialLinks) {
+        const linkCount = Object.keys(result.socialLinks).length;
+        if (linkCount > 0) {
+          setCrawlStatus(`Found ${linkCount} social profile${linkCount > 1 ? 's' : ''}!`);
+          onSocialLinksFound?.(result.socialLinks);
+          toast({
+            title: "Social profiles found!",
+            description: `We found ${linkCount} social media link${linkCount > 1 ? 's' : ''} on your website.`,
+          });
+        } else {
+          setCrawlStatus("No social links found on website");
+        }
+      } else {
+        setCrawlStatus("");
+      }
+    } catch (err) {
+      console.error('Crawl failed:', err);
+      setCrawlStatus("");
+    } finally {
+      setIsCrawling(false);
+    }
+  }, [lastCrawledUrl, onSocialLinksFound, toast]);
+
+  // Crawl when website URL changes (with debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (data.website && data.website !== lastCrawledUrl) {
+        crawlWebsite(data.website);
+      }
+    }, 1500); // Wait 1.5s after user stops typing
+
+    return () => clearTimeout(timeoutId);
+  }, [data.website, crawlWebsite, lastCrawledUrl]);
 
   return (
     <div className="animate-fade-in">
@@ -89,7 +154,9 @@ const BrandBasicsScreen = ({ data, onChange }: BrandBasicsScreenProps) => {
               placeholder="https://yourbrand.com"
               className="input-field pl-12"
             />
-            {data.website && (
+            {isCrawling ? (
+              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+            ) : data.website ? (
               <a 
                 href={data.website} 
                 target="_blank" 
@@ -98,8 +165,14 @@ const BrandBasicsScreen = ({ data, onChange }: BrandBasicsScreenProps) => {
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
-            )}
+            ) : null}
           </div>
+          {crawlStatus && (
+            <p className={`text-sm mt-2 ${crawlStatus.includes('Found') ? 'text-green-600' : 'text-muted-foreground'}`}>
+              {isCrawling && <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />}
+              {crawlStatus}
+            </p>
+          )}
         </div>
 
         {/* Industry */}
