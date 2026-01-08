@@ -16,8 +16,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 230 25% 18%;
 
-    /* Periwinkle blue primary (like the CTA buttons) */
-    --primary: 231 70% 71%;
+    /* Periwinkle blue primary #6B7CFF */
+    --primary: 232 100% 71%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 230 30% 97%;
@@ -26,8 +26,8 @@
     --muted: 230 20% 96%;
     --muted-foreground: 230 15% 45%;
 
-    /* Periwinkle blue accent (matching primary) */
-    --accent: 231 100% 71%;
+    /* Periwinkle blue accent #6B7CFF */
+    --accent: 232 100% 71%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -35,7 +35,7 @@
 
     --border: 230 20% 92%;
     --input: 230 20% 96%;
-    --ring: 231 70% 71%;
+    --ring: 232 100% 71%;
 
     --radius: 0.75rem;
 
@@ -50,12 +50,12 @@
     /* Sidebar */
     --sidebar-background: 230 30% 98%;
     --sidebar-foreground: 230 25% 18%;
-    --sidebar-primary: 231 70% 71%;
+    --sidebar-primary: 232 100% 71%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 230 25% 94%;
     --sidebar-accent-foreground: 230 25% 18%;
     --sidebar-border: 230 20% 92%;
-    --sidebar-ring: 231 70% 71%;
+    --sidebar-ring: 232 100% 71%;
   }
 
   .dark {
@@ -65,19 +65,19 @@
     --card-foreground: 0 0% 98%;
     --popover: 230 20% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 231 70% 71%;
+    --primary: 232 100% 71%;
     --primary-foreground: 0 0% 100%;
     --secondary: 230 20% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 230 20% 18%;
     --muted-foreground: 230 15% 55%;
-    --accent: 231 100% 71%;
+    --accent: 232 100% 71%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 230 20% 18%;
     --input: 230 20% 15%;
-    --ring: 231 70% 71%;
+    --ring: 232 100% 71%;
   }
 }
 
