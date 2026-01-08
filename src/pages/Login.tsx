@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react";
-
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import kittykatLogo from "@/assets/kittykat-logo.png";
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -37,10 +37,7 @@ const Login = () => {
 
       {/* Header - Simplified */}
       <header className="w-full px-8 py-6 relative z-10">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-accent" />
-          <span className="font-display text-xl font-bold text-foreground">KittyKat</span>
-        </div>
+        <img src={kittykatLogo} alt="KittyKat" className="h-8" />
       </header>
 
       {/* Main Content - Centered Form */}
