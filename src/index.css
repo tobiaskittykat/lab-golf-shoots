@@ -6,78 +6,78 @@
 
 @layer base {
   :root {
-    /* KittyKat - Soft gradient background with coral/blue accents */
-    --background: 240 33% 99%;
-    --foreground: 220 15% 20%;
+    /* KittyKat - Clean white with periwinkle blue accent */
+    --background: 0 0% 100%;
+    --foreground: 230 25% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 20%;
+    --card-foreground: 230 25% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 20%;
+    --popover-foreground: 230 25% 18%;
 
-    /* Coral/Salmon primary (like the headline text) */
-    --primary: 12 76% 67%;
+    /* Periwinkle blue primary (like the CTA buttons) */
+    --primary: 231 70% 71%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 230 30% 96%;
-    --secondary-foreground: 220 15% 20%;
+    --secondary: 230 30% 97%;
+    --secondary-foreground: 230 25% 18%;
 
-    --muted: 230 25% 95%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 230 20% 96%;
+    --muted-foreground: 230 15% 45%;
 
-    /* Blue accent (like the highlight pill) */
-    --accent: 227 72% 69%;
+    /* Coral/salmon for text accents */
+    --accent: 12 76% 67%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 25% 90%;
-    --input: 230 25% 94%;
-    --ring: 227 72% 69%;
+    --border: 230 20% 92%;
+    --input: 230 20% 96%;
+    --ring: 231 70% 71%;
 
     --radius: 0.75rem;
 
     /* Custom tokens - soft gradient like the reference */
-    --gradient-primary: linear-gradient(135deg, hsl(12, 76%, 67%) 0%, hsl(227, 72%, 69%) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(340, 60%, 95%) 0%, hsl(230, 60%, 95%) 50%, hsl(200, 40%, 96%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(230, 30%, 98%) 0%, hsl(0, 0%, 100%) 100%);
-    --shadow-glow: 0 0 60px rgba(119, 139, 235, 0.15);
-    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.04);
-    --shadow-elevated: 0 8px 32px rgba(119, 139, 235, 0.1);
+    --gradient-primary: linear-gradient(135deg, hsl(12, 76%, 67%) 0%, hsl(231, 70%, 71%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(340, 50%, 97%) 0%, hsl(230, 50%, 97%) 50%, hsl(0, 0%, 100%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(230, 30%, 99%) 0%, hsl(0, 0%, 100%) 100%);
+    --shadow-glow: 0 0 60px rgba(107, 124, 255, 0.12);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.03);
+    --shadow-elevated: 0 8px 32px rgba(107, 124, 255, 0.08);
     
     /* Sidebar */
     --sidebar-background: 230 30% 98%;
-    --sidebar-foreground: 220 15% 20%;
-    --sidebar-primary: 12 76% 67%;
+    --sidebar-foreground: 230 25% 18%;
+    --sidebar-primary: 231 70% 71%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 230 25% 94%;
-    --sidebar-accent-foreground: 220 15% 20%;
-    --sidebar-border: 230 25% 92%;
-    --sidebar-ring: 227 72% 69%;
+    --sidebar-accent-foreground: 230 25% 18%;
+    --sidebar-border: 230 20% 92%;
+    --sidebar-ring: 231 70% 71%;
   }
 
   .dark {
-    --background: 225 15% 8%;
+    --background: 230 20% 8%;
     --foreground: 0 0% 98%;
-    --card: 225 15% 10%;
+    --card: 230 20% 10%;
     --card-foreground: 0 0% 98%;
-    --popover: 225 15% 10%;
+    --popover: 230 20% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 12 76% 67%;
+    --primary: 231 70% 71%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 225 15% 15%;
+    --secondary: 230 20% 15%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 225 15% 18%;
-    --muted-foreground: 225 10% 55%;
-    --accent: 227 72% 69%;
+    --muted: 230 20% 18%;
+    --muted-foreground: 230 15% 55%;
+    --accent: 12 76% 67%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 225 15% 18%;
-    --input: 225 15% 15%;
-    --ring: 227 72% 69%;
+    --border: 230 20% 18%;
+    --input: 230 20% 15%;
+    --ring: 231 70% 71%;
   }
 }
 
@@ -115,8 +115,7 @@
   }
 
   .btn-primary {
-    @apply bg-accent text-accent-foreground font-semibold rounded-full px-6 py-3 hover:opacity-90 transition-all duration-200;
-    background: hsl(227, 72%, 69%);
+    @apply bg-primary text-primary-foreground font-semibold rounded-full px-6 py-3 hover:opacity-90 transition-all duration-200;
   }
 
   .btn-secondary {
@@ -139,7 +138,7 @@
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, hsl(12, 76%, 67%) 0%, hsl(227, 72%, 69%) 100%);
+    background: linear-gradient(135deg, hsl(12, 76%, 67%) 0%, hsl(231, 70%, 71%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

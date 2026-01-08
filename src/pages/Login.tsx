@@ -19,20 +19,18 @@ const Login = () => {
     <div className="h-screen flex flex-col relative overflow-hidden">
       {/* Dreamy gradient background matching KittyKat branding */}
       <div className="absolute inset-0 -z-10">
-        {/* Base white/cream */}
+        {/* Base white */}
         <div className="absolute inset-0 bg-background" />
         
-        {/* Soft coral/pink wash - top left and bottom right */}
-        <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px]" />
+        {/* Soft pink wash - top left */}
+        <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] bg-accent/15 rounded-full blur-[120px]" />
+        
+        {/* Blue/periwinkle wash - top right and bottom */}
+        <div className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[120px]" />
         <div className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-primary/15 rounded-full blur-[100px]" />
         
-        {/* Blue accent wash - top right and bottom left */}
-        <div className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] bg-accent/25 rounded-full blur-[120px]" />
-        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[100px]" />
-        
-        {/* Subtle purple blend in corners */}
-        <div className="absolute top-1/2 -left-1/4 w-[400px] h-[400px] bg-purple-300/10 rounded-full blur-[80px]" />
-        <div className="absolute top-1/2 -right-1/4 w-[400px] h-[400px] bg-purple-300/10 rounded-full blur-[80px]" />
+        {/* Subtle pink blend bottom left */}
+        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px]" />
       </div>
 
       {/* Header - Absolutely positioned so it doesn't affect form layout */}
@@ -44,7 +42,7 @@ const Login = () => {
       <main className="flex-1 flex items-center justify-center px-8">
         <div className="w-full max-w-md">
           {/* Glass Card */}
-          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-accent/5">
+          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5">
             {/* Heading */}
             <div className="text-center space-y-2 mb-8">
               <h1 className="font-display text-3xl font-bold text-foreground">
@@ -67,7 +65,7 @@ const Login = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
-                    className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
                   />
                 </div>
               )}
@@ -79,7 +77,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all"
+                  className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
                 />
               </div>
 
@@ -87,7 +85,7 @@ const Login = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-foreground">Password</label>
                   {!isSignUp && (
-                    <button type="button" className="text-sm text-accent hover:underline">
+                    <button type="button" className="text-sm text-primary hover:underline">
                       Forgot password?
                     </button>
                   )}
@@ -98,7 +96,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 transition-all pr-12"
+                    className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all pr-12"
                   />
                   <button
                     type="button"
@@ -112,7 +110,7 @@ const Login = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 group mt-6 shadow-lg shadow-accent/20"
+                className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 group mt-6 shadow-lg shadow-primary/20"
               >
                 {isSignUp ? "Create account" : "Sign in"}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -161,7 +159,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-accent font-medium hover:underline"
+                className="text-primary font-medium hover:underline"
               >
                 {isSignUp ? "Sign in" : "Sign up"}
               </button>
