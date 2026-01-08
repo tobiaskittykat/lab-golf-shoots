@@ -26,8 +26,8 @@
     --muted: 230 20% 96%;
     --muted-foreground: 230 15% 45%;
 
-    /* Coral/salmon for text accents */
-    --accent: 12 76% 67%;
+    /* Periwinkle blue accent (matching primary) */
+    --accent: 231 100% 71%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -71,7 +71,7 @@
     --secondary-foreground: 0 0% 98%;
     --muted: 230 20% 18%;
     --muted-foreground: 230 15% 55%;
-    --accent: 12 76% 67%;
+    --accent: 231 100% 71%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
