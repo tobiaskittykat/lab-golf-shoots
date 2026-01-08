@@ -22,15 +22,15 @@ const Login = () => {
         {/* Base white */}
         <div className="absolute inset-0 bg-background" />
         
-        {/* Soft pink wash - top left */}
-        <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] bg-accent/15 rounded-full blur-[120px]" />
+        {/* Soft coral/salmon wash - top left */}
+        <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] rounded-full blur-[120px]" style={{ backgroundColor: 'hsl(12 76% 67% / 0.15)' }} />
         
         {/* Blue/periwinkle wash - top right and bottom */}
         <div className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[120px]" />
         <div className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-primary/15 rounded-full blur-[100px]" />
         
-        {/* Subtle pink blend bottom left */}
-        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px]" />
+        {/* Subtle coral blend bottom left */}
+        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full blur-[100px]" style={{ backgroundColor: 'hsl(12 76% 67% / 0.10)' }} />
       </div>
 
       {/* Header - Absolutely positioned so it doesn't affect form layout */}
