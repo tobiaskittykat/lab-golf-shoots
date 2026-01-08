@@ -160,7 +160,7 @@ const BrandBasicsScreen = ({ data, onChange, onSocialLinksFound }: BrandBasicsSc
               </div>
             ) : data.website ? (
               <a 
-                href={data.website} 
+                href={data.website.startsWith('http') ? data.website : `https://${data.website}`} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80"
