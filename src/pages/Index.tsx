@@ -999,22 +999,6 @@ const Index = () => {
             <p className="text-xs text-muted-foreground">{currentContext.description}</p>
           </div>
 
-          {/* Starter Prompts */}
-          <div className="p-4 border-b border-border">
-            <p className="text-xs text-muted-foreground mb-3">Quick suggestions:</p>
-            <div className="flex flex-wrap gap-2">
-              {currentContext.starterPrompts.map((starter, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleStarterPrompt(starter.prompt)}
-                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30"
-                >
-                  {starter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Chat Messages */}
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatMessages.length === 0 ? (
@@ -1048,6 +1032,18 @@ const Index = () => {
 
           {/* Chat Input */}
           <div className="p-4 border-t border-border">
+            {/* Quick suggestions */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {currentContext.starterPrompts.map((starter, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleStarterPrompt(starter.prompt)}
+                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30"
+                >
+                  {starter.label}
+                </button>
+              ))}
+            </div>
             <div className="relative">
               <textarea
                 value={chatMessage}
