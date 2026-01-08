@@ -55,9 +55,15 @@ const navItems = [
 const quickActions = [
   { id: "brand", label: "View brand", icon: Palette, color: "from-primary to-purple-400" },
   { id: "campaign", label: "Create campaign", icon: Megaphone, color: "from-violet-500 to-purple-400" },
+  { id: "moodboard", label: "Create moodboard", icon: Layers, color: "from-amber-500 to-orange-400" },
   { id: "image", label: "Generate image", icon: Image, color: "from-pink-500 to-rose-500" },
+  { id: "video", label: "Generate video", icon: Play, color: "from-emerald-500 to-teal-400" },
+  { id: "edit-video", label: "Edit video", icon: RefreshCw, color: "from-cyan-500 to-blue-400" },
   { id: "edit", label: "Edit image", icon: Wand2, color: "from-blue-500 to-cyan-400" },
-  { id: "batch", label: "Batch generate", icon: Layers, color: "from-emerald-500 to-teal-400" },
+  { id: "gallery", label: "View gallery", icon: GalleryHorizontal, color: "from-purple-500 to-pink-400" },
+  { id: "ideas", label: "Get ideas", icon: Sparkles, color: "from-yellow-500 to-amber-400" },
+  { id: "discover-audience", label: "Discover your audience", icon: Users, color: "from-indigo-500 to-violet-400" },
+  { id: "define-audience", label: "Define your audience", icon: UserCircle2, color: "from-rose-500 to-pink-400" },
 ];
 
 // Mock brand data
