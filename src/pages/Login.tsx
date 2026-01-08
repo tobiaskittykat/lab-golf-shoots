@@ -17,27 +17,22 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Animated dot pattern background */}
+      {/* Dreamy gradient background matching KittyKat branding */}
       <div className="absolute inset-0 -z-10">
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
+        {/* Base white/cream */}
+        <div className="absolute inset-0 bg-background" />
         
-        {/* Dot pattern */}
-        <div 
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage: `radial-gradient(circle at center, hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)`,
-            backgroundSize: '24px 24px',
-          }}
-        />
+        {/* Soft coral/pink wash - top left and bottom right */}
+        <div className="absolute -top-1/4 -left-1/4 w-[800px] h-[800px] bg-primary/20 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-1/4 -right-1/4 w-[600px] h-[600px] bg-primary/15 rounded-full blur-[100px]" />
         
-        {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-primary/5 to-accent/10 rounded-full blur-3xl" />
+        {/* Blue accent wash - top right and bottom left */}
+        <div className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] bg-accent/25 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[100px]" />
         
-        {/* Subtle vignette */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/50" />
+        {/* Subtle purple blend in corners */}
+        <div className="absolute top-1/2 -left-1/4 w-[400px] h-[400px] bg-purple-300/10 rounded-full blur-[80px]" />
+        <div className="absolute top-1/2 -right-1/4 w-[400px] h-[400px] bg-purple-300/10 rounded-full blur-[80px]" />
       </div>
 
       {/* Header - Simplified */}
