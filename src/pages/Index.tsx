@@ -233,8 +233,8 @@ const Index = () => {
     const scrollTop = mainContent.scrollTop;
     const offset = 200; // Offset to trigger section change earlier
 
-    // Show back to top button when scrolled down more than 300px
-    setShowBackToTop(scrollTop > 300);
+    // Show back to top button when scrolled down at all
+    setShowBackToTop(scrollTop > 0);
 
     const sections = [
       { ref: imageRef, id: "image" as ActiveSection },
