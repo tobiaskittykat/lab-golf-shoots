@@ -430,7 +430,7 @@ const Index = () => {
           <section ref={heroRef} className="px-8 py-16 max-w-4xl mx-auto">
             <div className="text-center mb-10 animate-fade-in">
               <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-                What would you like to <span className="text-gradient">create</span> today?
+                How can <span className="text-gradient">KittyKat</span> help you today?
               </h1>
               <p className="text-muted-foreground text-lg">
                 Describe your vision and let AI bring it to life
