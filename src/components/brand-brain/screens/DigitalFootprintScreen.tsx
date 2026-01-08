@@ -94,7 +94,7 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
       </p>
       {foundCount > 0 && (
         <p className="text-sm text-primary mb-2">
-          ✨ We found {foundCount} social profile{foundCount > 1 ? 's' : ''} from your website!
+          ✨ We found {foundCount} social profile{foundCount > 1 ? 's' : ''} from your website — click Connect to enable them.
         </p>
       )}
       <p className="text-sm text-muted-foreground mb-8">
@@ -129,7 +129,14 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
                     <Icon className="w-6 h-6" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{source.label}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{source.label}</p>
+                      {hasUrl && !isConnected && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                          Found
+                        </span>
+                      )}
+                    </div>
                     {isEditing ? (
                       <div className="flex items-center gap-2 mt-1">
                         <input
@@ -204,10 +211,10 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
                         {isConnecting ? (
                           <span className="flex items-center gap-2">
                             <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                            Enabling...
+                            Connecting...
                           </span>
                         ) : hasUrl ? (
-                          "Enable"
+                          "Connect"
                         ) : (
                           "Add Manually"
                         )}
