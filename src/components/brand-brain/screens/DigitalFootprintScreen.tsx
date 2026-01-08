@@ -32,7 +32,7 @@ const sources = [
 const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScreenProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [connectingIds, setConnectingIds] = useState<Record<string, boolean>>({});
   
   // Keep a ref to always have the latest connections for async operations
   const connectionsRef = useRef(connections);
@@ -42,25 +42,35 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
 
   const handleConnect = (id: string) => {
     const connection = connections[id as keyof typeof connections];
-    
-    if (connection.url) {
-      // If there's a URL, simulate connecting
-      setConnectingId(id);
-      setTimeout(() => {
-        // Use ref to get the latest connections state
-        const currentConnections = connectionsRef.current;
-        const currentConnection = currentConnections[id as keyof typeof currentConnections];
-        onChange({
-          ...currentConnections,
-          [id]: { ...currentConnection, connected: true }
-        });
-        setConnectingId(null);
-      }, 1000);
-    } else {
+
+    if (!connection.url) {
       // Open edit mode to enter URL
       setEditingId(id);
       setEditValue("");
+      return;
     }
+
+    if (connectingIds[id]) return; // already in-flight
+
+    // If there's a URL, simulate connecting (per-source)
+    setConnectingIds((prev) => ({ ...prev, [id]: true }));
+
+    setTimeout(() => {
+      // Use ref to get the latest connections state
+      const currentConnections = connectionsRef.current;
+      const currentConnection = currentConnections[id as keyof typeof currentConnections];
+
+      onChange({
+        ...currentConnections,
+        [id]: { ...currentConnection, connected: true },
+      });
+
+      setConnectingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 1000);
   };
 
   const handleDisconnect = (id: string) => {
@@ -114,7 +124,7 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
           const connection = connections[source.id as keyof typeof connections];
           const isConnected = connection.connected;
           const hasUrl = Boolean(connection.url);
-          const isConnecting = connectingId === source.id;
+          const isConnecting = Boolean(connectingIds[source.id]);
           const isEditing = editingId === source.id;
 
           return (
