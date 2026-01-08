@@ -426,68 +426,74 @@ const Index = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Main Content Area */}
         <main ref={mainContentRef} className="flex-1 overflow-y-auto pr-[400px]">
-          {/* Hero Section */}
-          <section ref={heroRef} className="px-8 py-16 max-w-4xl mx-auto">
-            <div className="text-center mb-10 animate-fade-in">
-              <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-                How can <span className="text-gradient">KittyKat</span> help you today?
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Describe your vision and let AI bring it to life
-              </p>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex flex-wrap justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => handleQuickAction(action.id)}
-                    className="action-chip group hover:scale-105 transition-all"
-                  >
-                    <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center`}>
-                      <Icon className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    {action.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Main Prompt Input */}
-            <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (prompt.trim() && !isChatLoading) {
-                        handleSubmit(e as unknown as React.FormEvent);
-                      }
-                    }
-                  }}
-                  placeholder="Describe your ad creative..."
-                  rows={3}
-                  className="relative command-input resize-none pr-16"
-                />
+          {/* Hero Section - Fullscreen */}
+          <section ref={heroRef} className="min-h-[calc(100vh-73px)] flex flex-col justify-center px-8 py-16 max-w-4xl mx-auto relative">
+            <div className="flex-1 flex flex-col justify-center">
+              <div className="text-center mb-10 animate-fade-in">
+                <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
+                  How can <span className="text-gradient">KittyKat</span> help you today?
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Describe your vision and let AI bring it to life
+                </p>
               </div>
-              <button
-                type="submit"
-                className="absolute right-4 bottom-4 w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-purple-500 hover:opacity-90 flex items-center justify-center transition-all disabled:opacity-50 shadow-lg shadow-primary/25"
-                disabled={!prompt.trim()}
-              >
-                <Send className="w-5 h-5 text-white" />
-              </button>
-            </form>
 
-            <div className="flex justify-center mt-12 animate-bounce">
-              <ChevronDown className="w-6 h-6 text-muted-foreground" />
+              {/* Quick Actions */}
+              <div className="flex flex-wrap justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleQuickAction(action.id)}
+                      className="action-chip group hover:scale-105 transition-all"
+                    >
+                      <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center`}>
+                        <Icon className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Main Prompt Input */}
+              <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-blue-500/20 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (prompt.trim() && !isChatLoading) {
+                          handleSubmit(e as unknown as React.FormEvent);
+                        }
+                      }
+                    }}
+                    placeholder="Describe your ad creative..."
+                    rows={3}
+                    className="relative command-input resize-none pr-16"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="absolute right-4 bottom-4 w-11 h-11 rounded-xl bg-accent hover:opacity-90 flex items-center justify-center transition-all disabled:opacity-50 shadow-lg shadow-accent/25"
+                  disabled={!prompt.trim()}
+                >
+                  <Send className="w-5 h-5 text-white" />
+                </button>
+              </form>
             </div>
+
+            {/* Scroll indicator at bottom */}
+            <button 
+              onClick={() => brandRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer hover:text-accent transition-colors"
+            >
+              <ChevronDown className="w-8 h-8 text-muted-foreground" />
+            </button>
           </section>
 
           {/* Brand Section */}
