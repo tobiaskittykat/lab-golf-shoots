@@ -36,7 +36,7 @@ const Login = () => {
       </div>
 
       {/* Header - Absolutely positioned so it doesn't affect form layout */}
-      <header className="absolute top-0 left-0 px-8 py-6 z-10">
+      <header className="absolute top-0 left-0 px-4 py-3 z-10">
         <img src={kittykatLogo} alt="KittyKat" className="h-36" />
       </header>
 
