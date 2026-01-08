@@ -35,9 +35,9 @@ const Login = () => {
         <div className="absolute top-1/2 -right-1/4 w-[400px] h-[400px] bg-purple-300/10 rounded-full blur-[80px]" />
       </div>
 
-      {/* Header - Simplified */}
-      <header className="w-full px-8 py-6 relative z-10">
-        <img src={kittykatLogo} alt="KittyKat" className="h-14" />
+      {/* Header - Absolutely positioned so it doesn't affect form layout */}
+      <header className="absolute top-0 left-0 px-8 py-6 z-10">
+        <img src={kittykatLogo} alt="KittyKat" className="h-24" />
       </header>
 
       {/* Main Content - Centered Form */}
