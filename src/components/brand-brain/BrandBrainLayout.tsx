@@ -111,16 +111,16 @@ const BrandBrainLayout = ({
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Learning Progress</p>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Brand Basics</span>
+                <span className="text-foreground">{currentStep >= 1 ? "Learning" : "Waiting"}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Visual DNA</span>
-                <span className="text-foreground">{currentStep >= 3 ? "Analyzing" : "Waiting"}</span>
+                <span className="text-foreground">{currentStep >= 2 ? "Analyzing" : "Waiting"}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Brand Voice</span>
-                <span className="text-foreground">{currentStep >= 6 ? "Learning" : "Waiting"}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Guardrails</span>
-                <span className="text-foreground">{currentStep >= 5 ? "Configuring" : "Waiting"}</span>
+                <span className="text-muted-foreground">Digital Footprint</span>
+                <span className="text-foreground">{currentStep >= 3 ? "Connected" : "Waiting"}</span>
               </div>
             </div>
           </div>
