@@ -115,16 +115,16 @@ const DigitalFootprintScreen = ({ connections, onChange }: DigitalFootprintScree
               key={source.id}
               className={`p-4 rounded-xl transition-all duration-200 ${
                 isConnected 
-                  ? "bg-primary/5 border-2 border-primary" 
+                  ? "bg-primary/10 border-2 border-primary" 
                   : hasUrl
-                  ? "bg-accent/50 border-2 border-accent"
+                  ? "bg-primary/5 border-2 border-primary/40"
                   : "bg-card border border-border"
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    isConnected ? "bg-primary text-primary-foreground" : hasUrl ? "bg-accent text-accent-foreground" : "bg-secondary"
+                    isConnected ? "bg-primary text-primary-foreground" : hasUrl ? "bg-primary/20 text-primary" : "bg-secondary"
                   }`}>
                     <Icon className="w-6 h-6" />
                   </div>
