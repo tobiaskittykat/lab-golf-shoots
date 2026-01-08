@@ -35,7 +35,8 @@ import {
   Check,
   PanelRightOpen,
   PanelRightClose,
-  MessageSquare
+  MessageSquare,
+  ChevronUp
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -222,14 +223,18 @@ const Index = () => {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [imageCount, setImageCount] = useState("1x");
   const [generationMode, setGenerationMode] = useState<"image" | "edit" | "video">("image");
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Track scroll position to update active section
+  // Track scroll position to update active section and back to top button
   const updateActiveSection = useCallback(() => {
     const mainContent = mainContentRef.current;
     if (!mainContent) return;
 
     const scrollTop = mainContent.scrollTop;
     const offset = 200; // Offset to trigger section change earlier
+
+    // Show back to top button when scrolled down more than 300px
+    setShowBackToTop(scrollTop > 300);
 
     const sections = [
       { ref: imageRef, id: "image" as ActiveSection },
@@ -435,16 +440,29 @@ const Index = () => {
 
       {/* Main Layout: Content + Chat Sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Floating toggle button when sidebar is closed */}
-        {!isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="fixed right-4 bottom-4 z-50 p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105"
-            title="Open chat"
-          >
-            <MessageSquare className="w-5 h-5" />
-          </button>
-        )}
+        {/* Floating buttons */}
+        <div className="fixed right-4 bottom-4 z-50 flex flex-col gap-2">
+          {/* Back to top button */}
+          {showBackToTop && (
+            <button
+              onClick={() => mainContentRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
+              className="p-3 rounded-full bg-secondary border border-border text-foreground shadow-lg hover:bg-secondary/80 transition-all hover:scale-105"
+              title="Back to top"
+            >
+              <ChevronUp className="w-5 h-5" />
+            </button>
+          )}
+          {/* Chat toggle button when sidebar is closed */}
+          {!isSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105"
+              title="Open chat"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
+        </div>
 
         {/* Main Content Area */}
         <main ref={mainContentRef} className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarOpen ? 'pr-[400px]' : 'pr-0'}`}>
