@@ -31,7 +31,10 @@ import {
   ImageIcon,
   HelpCircle,
   LogOut,
-  Check
+  Check,
+  PanelRightOpen,
+  PanelRightClose,
+  MessageSquare
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -208,6 +211,7 @@ const Index = () => {
 
   // Context-aware sidebar state
   const [activeSection, setActiveSection] = useState<ActiveSection>("hero");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Campaign state
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
@@ -299,6 +303,11 @@ const Index = () => {
   const currentContext = sidebarContextConfig[activeSection];
 
   const handleQuickAction = (actionId: string) => {
+    // Actions that require chat continuation should open sidebar
+    const chatActions = ["edit", "edit-video", "ideas", "discover-audience", "define-audience"];
+    if (chatActions.includes(actionId)) {
+      setIsSidebarOpen(true);
+    }
     scrollToSection(actionId);
   };
 
@@ -424,8 +433,19 @@ const Index = () => {
 
       {/* Main Layout: Content + Chat Sidebar */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Floating toggle button when sidebar is closed */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="fixed right-4 bottom-4 z-50 p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105"
+            title="Open chat"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+        )}
+
         {/* Main Content Area */}
-        <main ref={mainContentRef} className="flex-1 overflow-y-auto pr-[400px]">
+        <main ref={mainContentRef} className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarOpen ? 'pr-[400px]' : 'pr-0'}`}>
           {/* Hero Section - Fullscreen */}
           <section ref={heroRef} className="min-h-[calc(100vh-73px)] flex flex-col justify-center px-8 py-16 max-w-4xl mx-auto relative">
             <div className="flex-1 flex flex-col justify-center">
@@ -958,7 +978,7 @@ const Index = () => {
         </main>
 
         {/* Right Chat Sidebar - Context Aware */}
-        <aside className="fixed right-0 top-[73px] w-[400px] h-[calc(100vh-73px)] border-l border-border bg-card flex flex-col overflow-hidden z-40">
+        <aside className={`fixed right-0 top-[73px] w-[400px] h-[calc(100vh-73px)] border-l border-border bg-card flex flex-col overflow-hidden z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Context Header */}
           <div className="p-4 border-b border-border">
             <div className="flex items-center justify-between mb-2">
@@ -968,8 +988,12 @@ const Index = () => {
                 </div>
                 <span className="font-semibold text-sm">{currentContext.title}</span>
               </div>
-              <button className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center">
-                <ChevronDown className="w-4 h-4 rotate-90 text-muted-foreground" />
+              <button 
+                onClick={() => setIsSidebarOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
+                title="Close sidebar"
+              >
+                <PanelRightClose className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
             <p className="text-xs text-muted-foreground">{currentContext.description}</p>
