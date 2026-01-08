@@ -37,7 +37,7 @@ const Login = () => {
 
       {/* Header - Simplified */}
       <header className="w-full px-8 py-6 relative z-10">
-        <img src={kittykatLogo} alt="KittyKat" className="h-10" />
+        <img src={kittykatLogo} alt="KittyKat" className="h-14" />
       </header>
 
       {/* Main Content - Centered Form */}
