@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
-import kittykatLogo from "@/assets/kittykat-logo.png";
+import kittykatLogo from "@/assets/kittykat-logo-transparent.png";
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
