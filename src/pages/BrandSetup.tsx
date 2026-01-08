@@ -32,6 +32,8 @@ const BrandSetup = () => {
     connections: {
       website: { url: "", connected: false },
       instagram: { url: "", connected: false },
+      facebook: { url: "", connected: false },
+      twitter: { url: "", connected: false },
       tiktok: { url: "", connected: false },
       pinterest: { url: "", connected: false },
       youtube: { url: "", connected: false },
