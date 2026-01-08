@@ -8,14 +8,6 @@ import DigitalFootprintScreen from "@/components/brand-brain/screens/DigitalFoot
 import SummaryScreen from "@/components/brand-brain/screens/SummaryScreen";
 import NextActionsScreen from "@/components/brand-brain/screens/NextActionsScreen";
 
-const agentMessages = [
-  "Welcome! I'm excited to learn about your brand.",
-  "Great choices! I'm already forming a picture of your brand's personality.",
-  "Perfect! I'll analyze these files and extract your visual DNA.",
-  "Your digital presence tells me a lot about how your brand behaves in the wild.",
-  "Your Brand Brain is ready! I've learned so much about your brand.",
-  "Let's create something amazing together!",
-];
 
 interface SocialConnection {
   url: string;
@@ -126,12 +118,10 @@ const BrandSetup = () => {
     <BrandBrainLayout
       currentStep={currentStep}
       totalSteps={totalSteps}
-      agentMessage={agentMessages[currentStep] || "I'm learning..."}
-      agentThinking={currentStep === 2 || currentStep === 3}
       onBack={handleBack}
       onNext={handleNext}
       onSkip={handleSkip}
-      nextLabel={currentStep === totalSteps ? "Finish" : currentStep === 4 ? "Continue" : "Continue"}
+      nextLabel={currentStep === totalSteps ? "Finish" : "Continue"}
       showBack={currentStep > 1}
       showSkip={currentStep < 4}
     >
