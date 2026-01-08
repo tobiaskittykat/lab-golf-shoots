@@ -16,9 +16,32 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/5">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Animated dot pattern background */}
+      <div className="absolute inset-0 -z-10">
+        {/* Base gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
+        
+        {/* Dot pattern */}
+        <div 
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage: `radial-gradient(circle at center, hsl(var(--muted-foreground) / 0.3) 1px, transparent 1px)`,
+            backgroundSize: '24px 24px',
+          }}
+        />
+        
+        {/* Animated gradient orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-primary/5 to-accent/10 rounded-full blur-3xl" />
+        
+        {/* Subtle vignette */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/50" />
+      </div>
+
       {/* Header - Simplified */}
-      <header className="w-full px-8 py-6">
+      <header className="w-full px-8 py-6 relative z-10">
         <div className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-accent" />
           <span className="font-display text-xl font-bold text-foreground">KittyKat</span>
