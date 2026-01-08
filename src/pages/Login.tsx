@@ -41,7 +41,7 @@ const Login = () => {
       </header>
 
       {/* Main Content - Centered Form */}
-      <main className="min-h-screen flex items-center justify-center px-8 py-12">
+      <main className="min-h-screen flex items-center justify-center px-8 pt-20 pb-12">
         <div className="w-full max-w-md">
           {/* Glass Card */}
           <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-accent/5">
