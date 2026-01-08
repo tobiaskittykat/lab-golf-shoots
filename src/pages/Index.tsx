@@ -327,7 +327,7 @@ const Index = () => {
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
-            <img src={kittykatLogo} alt="KittyKat" className="h-12" />
+            <img src={kittykatLogo} alt="KittyKat" className="h-16" />
           </div>
 
           {/* Nav Items */}
