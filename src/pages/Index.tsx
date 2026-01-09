@@ -909,20 +909,11 @@ const Index = () => {
         <aside className={`fixed right-0 top-[73px] w-[400px] h-[calc(100vh-73px)] border-l border-border bg-card flex flex-col overflow-hidden z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Context Header */}
           <div className="p-4 pt-6 border-b border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <span className="font-semibold text-sm">KittyKat Assistant</span>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
               </div>
-              <button 
-                onClick={() => setIsSidebarOpen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-secondary flex items-center justify-center"
-                title="Close sidebar"
-              >
-                <PanelRightClose className="w-4 h-4 text-muted-foreground" />
-              </button>
+              <span className="font-semibold text-sm">KittyKat Assistant</span>
             </div>
             <p className="text-xs text-muted-foreground">I can help you create stunning visuals, manage your brand, and run campaigns.</p>
           </div>
