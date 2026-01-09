@@ -893,7 +893,7 @@ const Index = () => {
                 <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
                   <Sparkles className="w-4 h-4" />
                 </div>
-                <span className="font-semibold text-sm">{currentContext.title}</span>
+                <span className="font-semibold text-sm">KittyKat Assistant</span>
               </div>
               <button 
                 onClick={() => setIsSidebarOpen(false)}
@@ -903,14 +903,14 @@ const Index = () => {
                 <PanelRightClose className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">{currentContext.description}</p>
+            <p className="text-xs text-muted-foreground">I can help you create stunning visuals, manage your brand, and run campaigns.</p>
           </div>
 
           {/* Chat Messages */}
           <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatMessages.length === 0 ? (
               <div className="p-4 rounded-xl bg-accent/10 text-sm">
-                <p>I'm ready to help with your {activeSection === "hero" ? "creative needs" : activeSection} work. What would you like to do?</p>
+                <p>Hi! I'm here to help with your creative work. What would you like to do today?</p>
               </div>
             ) : (
               chatMessages.map((msg, index) => (
@@ -939,24 +939,31 @@ const Index = () => {
 
           {/* Chat Input */}
           <div className="p-4 border-t border-border">
-            {/* Quick suggestions */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {currentContext.starterPrompts.map((starter, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleStarterPrompt(starter.prompt)}
-                  className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30"
-                >
-                  {starter.label}
-                </button>
-              ))}
-            </div>
+            {/* Quick suggestions - static prompts */}
+            {chatMessages.length === 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[
+                  { label: "🎨 Generate an image", prompt: "Help me generate a new product image" },
+                  { label: "📢 Plan a campaign", prompt: "I want to create a new marketing campaign" },
+                  { label: "🏷️ Update my brand", prompt: "Help me refine my brand guidelines" },
+                  { label: "💡 Get ideas", prompt: "Give me creative campaign ideas" },
+                ].map((starter, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleStarterPrompt(starter.prompt)}
+                    className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30"
+                  >
+                    {starter.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="relative">
               <textarea
                 value={chatMessage}
                 onChange={(e) => setChatMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Ask about ${activeSection === "hero" ? "anything" : activeSection}...`}
+                placeholder="Ask me anything..."
                 rows={3}
                 disabled={isChatLoading}
                 className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 pb-12 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
