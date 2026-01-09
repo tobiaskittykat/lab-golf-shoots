@@ -991,6 +991,13 @@ const Index = () => {
               />
               <div className="absolute bottom-3 right-3 flex items-center gap-2">
                 <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 text-muted-foreground border border-border"
+                  title="Close chat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <button 
                   onClick={handleSendMessage}
                   disabled={!chatMessage.trim() || isChatLoading}
                   className="p-2 rounded-lg bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed"
