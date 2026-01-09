@@ -908,7 +908,7 @@ const Index = () => {
         {/* Right Chat Sidebar - Context Aware */}
         <aside className={`fixed right-0 top-[73px] w-[400px] h-[calc(100vh-73px)] border-l border-border bg-card flex flex-col overflow-hidden z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Context Header */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4 pt-6 border-b border-border">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
