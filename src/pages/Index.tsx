@@ -577,7 +577,7 @@ const Index = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Campaign</p>
-                    <h2 className="font-display text-2xl font-bold">Campaign Setup</h2>
+                    <h2 className="font-display text-2xl font-bold">Summer Collection 2026</h2>
                   </div>
                 </div>
 
@@ -751,7 +751,7 @@ const Index = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Visual Media</p>
-                    <h2 className="font-display text-2xl font-bold">Generate Images & Videos</h2>
+                    <h2 className="font-display text-2xl font-bold">Yellow Diamond Necklace Shoot</h2>
                   </div>
                 </div>
 
