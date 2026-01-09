@@ -153,6 +153,7 @@ const Index = () => {
 
   // Section collapse state
   const [isCampaignOpen, setIsCampaignOpen] = useState(true);
+  const [isMoodboardOpen, setIsMoodboardOpen] = useState(true);
   const [isImageOpen, setIsImageOpen] = useState(true);
 
   // Campaign state
@@ -620,6 +621,87 @@ const Index = () => {
                   </div>
                 </div>
               </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </section>
+
+          {/* Moodboard Section */}
+          <section className="px-8 py-16 border-t border-border">
+            <div className="max-w-5xl mx-auto">
+              <Collapsible open={isMoodboardOpen} onOpenChange={setIsMoodboardOpen}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <CollapsibleTrigger asChild>
+                      <button 
+                        className="w-8 h-8 rounded-lg border border-border bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors"
+                        title={isMoodboardOpen ? "Collapse section" : "Expand section"}
+                      >
+                        {isMoodboardOpen ? (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center">
+                      <Layers className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Moodboard</p>
+                      <h2 className="font-display text-xl font-bold">Sunlit Steps: Begin Your Yellow Diamond Story's Moodboard v1</h2>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Select Moodboard"
+                        className="input-field w-48 text-sm pl-9"
+                      />
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                    </div>
+                    <button className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors">
+                      <Plus className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
+                </div>
+
+                <CollapsibleContent>
+                  <div className="space-y-4">
+                    {/* Campaign Concept Card */}
+                    <div className="glass-card p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <h3 className="font-semibold">Campaign Concept: "Sunlit Steps: Begin Your Yellow Diamond Story"</h3>
+                        <div className="flex items-center gap-2">
+                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground" title="Copy">
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground" title="Pin">
+                            <Star className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground mb-4">
+                        A luminous, editorial campaign designed for women in New York ready to begin their own collection of rare, colored diamonds—starting with a princess cut yellow diamond of 1 carat or more. 'Sunlit Steps' shines a light on the modern woman's desire for self-celebration and milestone marking, offering exquisitely cut yellow diamonds as the gateway to personalized luxury. Visuals focus on natural light, authentic urban glamour, and the radiant vibrance of each unique diamond, inviting women to take their first sunlit step into the world of special colored stones.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {["Radiant", "Empowering", "Editorial", "Modern", "Aspirational"].map((tag) => (
+                          <span key={tag} className="px-3 py-1.5 rounded-full border border-border text-sm text-foreground">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Create Moodboard Button */}
+                    <button className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-colors">
+                      Create Moodboard
+                    </button>
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
             </div>
