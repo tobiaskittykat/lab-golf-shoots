@@ -583,7 +583,15 @@ const Index = () => {
 
             {/* Scroll indicator at bottom */}
             <button 
-              onClick={() => brandRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => {
+                const element = brandRef.current;
+                if (element) {
+                  const headerOffset = 80; // Account for sticky navbar
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                  window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+                }
+              }}
               className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer hover:text-accent transition-colors"
             >
               <ChevronDown className="w-8 h-8 text-muted-foreground" />
