@@ -263,7 +263,7 @@ const Index = () => {
 
   const handleQuickAction = (actionId: string) => {
     // Actions that require chat continuation should open sidebar
-    const chatActions = ["ideas", "discover-audience", "define-audience"];
+    const chatActions = ["ideas", "discover-audience", "define-audience", "brand", "campaign", "moodboard"];
     if (chatActions.includes(actionId)) {
       setIsSidebarOpen(true);
     }
@@ -273,6 +273,7 @@ const Index = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() && !isChatLoading) {
+      setIsSidebarOpen(true);
       sendMessage(prompt.trim(), activeSection);
       setPrompt("");
     }
