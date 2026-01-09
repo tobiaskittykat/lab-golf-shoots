@@ -780,41 +780,41 @@ const Index = () => {
                       onClick={() => setGenerationMode("image")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "image" 
-                          ? "bg-accent/10 text-accent" 
-                          : "hover:bg-secondary text-muted-foreground"
+                          ? "text-accent" 
+                          : "hover:bg-secondary text-foreground"
                       }`}
                       title="Image Generation"
                     >
-                      <ImageIcon className="w-5 h-5" />
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
                     </button>
                     <button 
                       onClick={() => setGenerationMode("edit")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "edit" 
-                          ? "bg-accent/10 text-accent" 
-                          : "hover:bg-secondary text-muted-foreground"
+                          ? "text-accent" 
+                          : "hover:bg-secondary text-foreground"
                       }`}
                       title="Image Editing"
                     >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
+                      <PenTool className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => setGenerationMode("video")}
                       className={`p-3 rounded-lg transition-colors ${
                         generationMode === "video" 
-                          ? "bg-accent/10 text-accent" 
-                          : "hover:bg-secondary text-muted-foreground"
+                          ? "text-accent" 
+                          : "hover:bg-secondary text-foreground"
                       }`}
                       title="Video Generation"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
+                        <rect x="2" y="4" width="6" height="16" rx="1" />
+                        <rect x="9" y="4" width="6" height="16" rx="1" />
+                        <rect x="16" y="4" width="6" height="16" rx="1" />
                       </svg>
                     </button>
                   </div>
