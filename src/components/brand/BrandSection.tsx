@@ -4,6 +4,7 @@ import {
   Plus, 
   Sparkles, 
   ChevronDown, 
+  ChevronRight,
   RefreshCw,
   Calendar,
   MapPin,
@@ -18,6 +19,7 @@ import {
 import { useBrands } from "@/hooks/useBrands";
 import BrandSelector from "@/components/BrandSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Mock brand data - will be replaced with real data from useBrands
 const brandData = {
@@ -94,55 +96,67 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
   const navigate = useNavigate();
   const { currentBrand } = useBrands();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     <section ref={brandRef as React.RefObject<HTMLElement>} className="px-8 py-12 border-t border-border">
       <div className="max-w-5xl mx-auto">
-        {/* Brand Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coral to-primary flex items-center justify-center text-white font-bold text-lg">
-              {currentBrand?.name?.charAt(0).toUpperCase() || "H"}
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Brand</p>
-              <h2 className="font-display text-2xl font-bold">{currentBrand?.name || brandData.name}</h2>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+          {/* Brand Header */}
+          <div className="flex items-center justify-between mb-8">
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-3 group cursor-pointer">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coral to-primary flex items-center justify-center text-white font-bold text-lg">
+                  {currentBrand?.name?.charAt(0).toUpperCase() || "H"}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-muted-foreground">Brand</p>
+                  <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                    {currentBrand?.name || brandData.name}
+                    {isOpen ? (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    )}
+                  </h2>
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            <div className="flex items-center gap-3">
+              <BrandSelector />
+              <button 
+                onClick={() => navigate("/brand-setup")}
+                className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-colors"
+                title="Create new brand"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <BrandSelector />
-            <button 
-              onClick={() => navigate("/brand-setup")}
-              className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-colors"
-              title="Create new brand"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
-        {/* Tabbed Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-secondary/50 p-1 rounded-xl">
-            <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-background">
-              <Eye className="w-4 h-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="identity" className="rounded-lg data-[state=active]:bg-background">
-              <Palette className="w-4 h-4 mr-2" />
-              Identity
-            </TabsTrigger>
-            <TabsTrigger value="visual" className="rounded-lg data-[state=active]:bg-background">
-              <Camera className="w-4 h-4 mr-2" />
-              Visual Style
-            </TabsTrigger>
-            <TabsTrigger value="audience" className="rounded-lg data-[state=active]:bg-background">
-              <Users className="w-4 h-4 mr-2" />
-              Audience
-            </TabsTrigger>
-          </TabsList>
+          <CollapsibleContent>
+            {/* Tabbed Content */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="bg-secondary/50 p-1 rounded-xl">
+                <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-background">
+                  <Eye className="w-4 h-4 mr-2" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="identity" className="rounded-lg data-[state=active]:bg-background">
+                  <Palette className="w-4 h-4 mr-2" />
+                  Identity
+                </TabsTrigger>
+                <TabsTrigger value="visual" className="rounded-lg data-[state=active]:bg-background">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Visual Style
+                </TabsTrigger>
+                <TabsTrigger value="audience" className="rounded-lg data-[state=active]:bg-background">
+                  <Users className="w-4 h-4 mr-2" />
+                  Audience
+                </TabsTrigger>
+              </TabsList>
 
-          {/* Overview Tab */}
+              {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Tagline & Values */}
             <div className="glass-card p-6">
@@ -330,7 +344,9 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
               ))}
             </div>
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </section>
   );

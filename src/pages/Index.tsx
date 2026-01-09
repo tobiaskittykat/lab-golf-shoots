@@ -21,6 +21,7 @@ import {
   Users,
   Settings2,
   ChevronDown,
+  ChevronRight,
   Upload,
   Palette,
   Building2,
@@ -51,6 +52,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const navItems = [
   { id: "home", label: "Home", icon: Home },
@@ -148,6 +150,10 @@ const Index = () => {
   // Context-aware sidebar state
   const [activeSection, setActiveSection] = useState<ActiveSection>("hero");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Section collapse state
+  const [isCampaignOpen, setIsCampaignOpen] = useState(true);
+  const [isImageOpen, setIsImageOpen] = useState(true);
 
   // Campaign state
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
@@ -529,15 +535,29 @@ const Index = () => {
           {/* Campaign Section */}
           <section ref={campaignRef} className="px-8 py-16 border-t border-border bg-secondary/20">
             <div className="max-w-5xl mx-auto">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-400 flex items-center justify-center">
-                  <Megaphone className="w-5 h-5 text-white" />
+              <Collapsible open={isCampaignOpen} onOpenChange={setIsCampaignOpen}>
+                <div className="flex items-center justify-between mb-8">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex items-center gap-3 group cursor-pointer">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-400 flex items-center justify-center">
+                        <Megaphone className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                          Campaign Setup
+                          {isCampaignOpen ? (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          )}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">Create your advertising campaign</p>
+                      </div>
+                    </button>
+                  </CollapsibleTrigger>
                 </div>
-                <div>
-                  <h2 className="font-display text-2xl font-bold">Campaign Setup</h2>
-                  <p className="text-sm text-muted-foreground">Create your advertising campaign</p>
-                </div>
-              </div>
+
+                <CollapsibleContent>
 
               <div className="space-y-6">
                 {/* Moodboard */}
@@ -599,14 +619,38 @@ const Index = () => {
                   </div>
                 </div>
               </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </section>
 
           {/* Image Generation Section */}
           <section ref={imageRef} className="px-8 py-16 border-t border-border bg-secondary/20">
             <div className="max-w-5xl mx-auto">
-              <div className="glass-card p-6">
-                {/* Top right actions */}
+              <Collapsible open={isImageOpen} onOpenChange={setIsImageOpen}>
+                <div className="flex items-center justify-between mb-6">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex items-center gap-3 group cursor-pointer">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-blue-500 flex items-center justify-center">
+                        <Image className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                          Visual Media
+                          {isImageOpen ? (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          )}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">Generate images and videos</p>
+                      </div>
+                    </button>
+                  </CollapsibleTrigger>
+                </div>
+
+                <CollapsibleContent>
+                  <div className="glass-card p-6">
                 <div className="flex justify-end gap-2 mb-4">
                   <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -747,8 +791,10 @@ const Index = () => {
                       ))}
                     </div>
                   </div>
-                </div>
-              </div>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </section>
         </main>
