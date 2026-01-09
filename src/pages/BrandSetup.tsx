@@ -36,7 +36,7 @@ const BrandSetup = () => {
     connections: getDefaultConnections(),
   });
 
-  // Initialize draft on mount
+  // Initialize draft on mount - only run once
   useEffect(() => {
     const existingDraftId = searchParams.get("draft");
     
@@ -50,12 +50,14 @@ const BrandSetup = () => {
           files: [],
           connections: existingDraft.connections,
         });
-        return;
+      }
+      // Draft not found - clear invalid param from URL
+      else {
+        window.history.replaceState(null, "", "/brand-setup");
       }
     }
-    // No draft param or draft not found - show welcome screen
-    setCurrentStep(0);
-  }, [searchParams, getDraft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save draft whenever data changes (after welcome screen)
   useEffect(() => {
