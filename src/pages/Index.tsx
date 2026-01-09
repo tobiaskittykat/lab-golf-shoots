@@ -489,41 +489,44 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Resume Draft Banners */}
+              {/* Resume Draft Dropdown */}
               {drafts.length > 0 && (
-                <div className="mb-6 space-y-3">
-                  {drafts.slice(0, 3).map((draft) => (
-                    <div 
-                      key={draft.id}
-                      className="p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-fade-in"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">Resume brand setup</p>
-                          <p className="text-sm text-muted-foreground">
-                            Continue setting up "{draft.basics.name || "Untitled Brand"}" - Step {draft.currentStep}/4
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => deleteDraft(draft.id)}
-                          className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          Dismiss
-                        </button>
-                        <button
+                <div className="mb-6 flex justify-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl text-sm font-medium text-primary transition-colors">
+                        <Building2 className="w-4 h-4" />
+                        Continue brand setup
+                        <span className="px-1.5 py-0.5 bg-primary/20 rounded text-xs">{drafts.length}</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-72 bg-popover border border-border shadow-lg z-50">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">In-progress brands</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {drafts.map((draft) => (
+                        <DropdownMenuItem
+                          key={draft.id}
+                          className="flex items-center justify-between gap-3 p-3 cursor-pointer"
                           onClick={() => navigate(`/brand-setup?draft=${draft.id}`)}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                         >
-                          Continue
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{draft.basics.name || "Untitled Brand"}</p>
+                            <p className="text-xs text-muted-foreground">Step {draft.currentStep} of 4</p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteDraft(draft.id);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            Dismiss
+                          </button>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
 
