@@ -110,7 +110,7 @@ const Login = () => {
 
       {/* Main Content - Centered Form */}
       <main className="flex-1 flex items-start justify-center px-8 py-8">
-        <div className="w-full max-w-md">
+        <div className={`w-full ${isSignUp ? "max-w-xl" : "max-w-md"} transition-all duration-300`}>
           {/* Glass Card */}
           <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5">
             {/* Heading */}
