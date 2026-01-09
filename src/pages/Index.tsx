@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
+import { useBrandDrafts } from "@/hooks/useBrandDrafts";
 import BrandSelector from "@/components/BrandSelector";
 import { 
   Image, 
@@ -201,38 +202,14 @@ const sidebarContextConfig: Record<ActiveSection, {
   },
 };
 
-const DRAFT_STORAGE_KEY = "kittykat_brand_draft";
-
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { currentBrand } = useBrands();
+  const { drafts, deleteDraft } = useBrandDrafts();
   const [prompt, setPrompt] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [activeNav, setActiveNav] = useState("home");
-  const [hasDraft, setHasDraft] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  
-  // Check for saved draft on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.basics?.name || parsed.currentStep > 0) {
-          setHasDraft(true);
-          setDraftName(parsed.basics?.name || "Untitled Brand");
-        }
-      }
-    } catch (e) {
-      console.error("Failed to check draft:", e);
-    }
-  }, []);
-
-  const handleDismissDraft = () => {
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
-    setHasDraft(false);
-  };
   
   // Section refs for scrolling
   const brandRef = useRef<HTMLDivElement>(null);
@@ -512,32 +489,41 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Resume Draft Banner */}
-              {hasDraft && (
-                <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">Resume brand setup</p>
-                      <p className="text-sm text-muted-foreground">Continue setting up "{draftName}"</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDismissDraft}
-                      className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              {/* Resume Draft Banners */}
+              {drafts.length > 0 && (
+                <div className="mb-6 space-y-3">
+                  {drafts.slice(0, 3).map((draft) => (
+                    <div 
+                      key={draft.id}
+                      className="p-4 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-fade-in"
                     >
-                      Dismiss
-                    </button>
-                    <button
-                      onClick={() => navigate("/brand-setup")}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-                    >
-                      Continue
-                    </button>
-                  </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">Resume brand setup</p>
+                          <p className="text-sm text-muted-foreground">
+                            Continue setting up "{draft.basics.name || "Untitled Brand"}" - Step {draft.currentStep}/4
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => deleteDraft(draft.id)}
+                          className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                        <button
+                          onClick={() => navigate(`/brand-setup?draft=${draft.id}`)}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                        >
+                          Continue
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

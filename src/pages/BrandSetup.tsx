@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import WelcomeScreen from "@/components/brand-brain/screens/WelcomeScreen";
 import BrandBrainLayout from "@/components/brand-brain/BrandBrainLayout";
@@ -8,40 +8,7 @@ import UploadAssetsScreen from "@/components/brand-brain/screens/UploadAssetsScr
 import DigitalFootprintScreen from "@/components/brand-brain/screens/DigitalFootprintScreen";
 import SummaryScreen from "@/components/brand-brain/screens/SummaryScreen";
 import { useBrands } from "@/hooks/useBrands";
-
-interface SocialConnection {
-  url: string;
-  connected: boolean;
-}
-
-const DRAFT_STORAGE_KEY = "kittykat_brand_draft";
-
-interface DraftData {
-  currentStep: number;
-  basics: { name: string; website: string; industry: string; markets: string[]; personality: string };
-  connections: Record<string, SocialConnection>;
-}
-
-const getInitialState = (): { step: number; data: DraftData["basics"]; connections: Record<string, SocialConnection> } => {
-  try {
-    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (saved) {
-      const parsed: DraftData = JSON.parse(saved);
-      return {
-        step: parsed.currentStep || 0,
-        data: parsed.basics || { name: "", website: "", industry: "", markets: [], personality: "" },
-        connections: parsed.connections || getDefaultConnections(),
-      };
-    }
-  } catch (e) {
-    console.error("Failed to load draft:", e);
-  }
-  return {
-    step: 0,
-    data: { name: "", website: "", industry: "", markets: [], personality: "" },
-    connections: getDefaultConnections(),
-  };
-};
+import { useBrandDrafts, generateDraftId, type BrandDraft, type SocialConnection } from "@/hooks/useBrandDrafts";
 
 const getDefaultConnections = (): Record<string, SocialConnection> => ({
   website: { url: "", connected: false },
@@ -55,31 +22,61 @@ const getDefaultConnections = (): Record<string, SocialConnection> => ({
 
 const BrandSetup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { createBrand } = useBrands();
+  const { drafts, createDraft, updateDraft, deleteDraft, getDraft } = useBrandDrafts();
   
-  const initialState = getInitialState();
-  const [currentStep, setCurrentStep] = useState(initialState.step);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   
   const [brandData, setBrandData] = useState({
-    basics: initialState.data,
+    basics: { name: "", website: "", industry: "", markets: [] as string[], personality: "" },
     files: [] as File[],
-    connections: initialState.connections,
+    connections: getDefaultConnections(),
   });
 
-  // Save draft to localStorage whenever data changes
+  // Initialize draft on mount
   useEffect(() => {
-    if (currentStep > 0) {
-      const draft: DraftData = {
+    const existingDraftId = searchParams.get("draft");
+    
+    if (existingDraftId) {
+      const existingDraft = getDraft(existingDraftId);
+      if (existingDraft) {
+        setDraftId(existingDraftId);
+        setCurrentStep(existingDraft.currentStep);
+        setBrandData({
+          basics: existingDraft.basics,
+          files: [],
+          connections: existingDraft.connections,
+        });
+        return;
+      }
+    }
+    // No draft param or draft not found - show welcome screen
+    setCurrentStep(0);
+  }, [searchParams, getDraft]);
+
+  // Save draft whenever data changes (after welcome screen)
+  useEffect(() => {
+    if (draftId && currentStep > 0) {
+      updateDraft(draftId, {
         currentStep,
         basics: brandData.basics,
         connections: brandData.connections,
-      };
-      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      });
     }
-  }, [currentStep, brandData.basics, brandData.connections]);
+  }, [draftId, currentStep, brandData.basics, brandData.connections, updateDraft]);
 
   const totalSteps = 4;
+
+  const handleStart = () => {
+    const newDraft = createDraft();
+    setDraftId(newDraft.id);
+    setCurrentStep(1);
+    // Update URL without navigation
+    window.history.replaceState(null, "", `/brand-setup?draft=${newDraft.id}`);
+  };
 
   const handleFinish = async () => {
     if (!brandData.basics.name.trim()) {
@@ -96,7 +93,7 @@ const BrandSetup = () => {
       markets: brandData.basics.markets,
       personality: brandData.basics.personality || null,
       social_connections: brandData.connections,
-      assets: {}, // Files would need storage upload - for now empty
+      assets: {},
     });
 
     setIsSaving(false);
@@ -106,8 +103,10 @@ const BrandSetup = () => {
       return;
     }
 
-    // Clear draft on successful creation
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    // Delete draft on successful creation
+    if (draftId) {
+      deleteDraft(draftId);
+    }
     toast.success("Brand created successfully!");
     navigate("/");
   };
@@ -123,12 +122,10 @@ const BrandSetup = () => {
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const handleSkip = () => handleNext();
 
-  // Handle social links found from website crawl
   const handleSocialLinksFound = useCallback((links: Record<string, string>) => {
     setBrandData(prev => {
       const newConnections = { ...prev.connections };
       
-      // Map the found social links to our connection format
       const socialMapping: Record<string, string> = {
         instagram: 'instagram',
         tiktok: 'tiktok',
@@ -146,7 +143,6 @@ const BrandSetup = () => {
         }
       }
 
-      // Also set the website URL if basics has it
       if (prev.basics.website && newConnections.website) {
         newConnections.website = { url: prev.basics.website, connected: false };
       }
@@ -155,11 +151,9 @@ const BrandSetup = () => {
     });
   }, []);
 
-  // Keep website URL in sync
   const handleBasicsChange = useCallback((basics: typeof brandData.basics) => {
     setBrandData(prev => {
       const newData = { ...prev, basics };
-      // Sync website URL to connections
       if (basics.website && prev.connections.website) {
         newData.connections = {
           ...prev.connections,
@@ -171,7 +165,7 @@ const BrandSetup = () => {
   }, []);
 
   if (currentStep === 0) {
-    return <WelcomeScreen onStart={() => setCurrentStep(1)} />;
+    return <WelcomeScreen onStart={handleStart} />;
   }
 
   const screens: Record<number, React.ReactNode> = {
