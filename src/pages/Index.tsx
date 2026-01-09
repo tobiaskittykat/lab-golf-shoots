@@ -576,8 +576,8 @@ const Index = () => {
                     <Megaphone className="w-6 h-6 text-white" />
                   </div>
                   <div>
+                    <p className="text-sm text-muted-foreground">Campaign</p>
                     <h2 className="font-display text-2xl font-bold">Campaign Setup</h2>
-                    <p className="text-sm text-muted-foreground">Create your advertising campaign</p>
                   </div>
                 </div>
 
@@ -671,7 +671,7 @@ const Index = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Moodboard</p>
-                      <h2 className="font-display text-xl font-bold">Sunlit Steps: Begin Your Yellow Diamond Story's Moodboard v1</h2>
+                      <h2 className="font-display text-2xl font-bold">Sunlit Steps: Begin Your Yellow Diamond Story</h2>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -750,8 +750,8 @@ const Index = () => {
                     <Image className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-display text-2xl font-bold">Visual Media</h2>
-                    <p className="text-sm text-muted-foreground">Generate images and videos</p>
+                    <p className="text-sm text-muted-foreground">Visual Media</p>
+                    <h2 className="font-display text-2xl font-bold">Generate Images & Videos</h2>
                   </div>
                 </div>
 
