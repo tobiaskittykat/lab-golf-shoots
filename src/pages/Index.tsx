@@ -872,14 +872,13 @@ const Index = () => {
 
                         {/* Right controls */}
                         <div className="ml-auto flex items-center gap-3">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">Model</span>
-                            <select className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm">
-                              <option>🌐 GPT Image 1</option>
-                              <option>🎨 DALL-E 3</option>
-                              <option>✨ Midjourney</option>
-                            </select>
-                          </div>
+                          <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm">
+                            <span>🌐</span>
+                            <span>GPT Image 1</span>
+                            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                          </button>
                           <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
                             <Wand2 className="w-5 h-5" />
                           </button>
