@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import WelcomeScreen from "@/components/brand-brain/screens/WelcomeScreen";
 import BrandBrainLayout from "@/components/brand-brain/BrandBrainLayout";
 import BrandBasicsScreen from "@/components/brand-brain/screens/BrandBasicsScreen";
 import UploadAssetsScreen from "@/components/brand-brain/screens/UploadAssetsScreen";
 import DigitalFootprintScreen from "@/components/brand-brain/screens/DigitalFootprintScreen";
 import SummaryScreen from "@/components/brand-brain/screens/SummaryScreen";
-
+import { useBrands } from "@/hooks/useBrands";
 
 interface SocialConnection {
   url: string;
@@ -15,7 +16,9 @@ interface SocialConnection {
 
 const BrandSetup = () => {
   const navigate = useNavigate();
+  const { createBrand } = useBrands();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [brandData, setBrandData] = useState({
     basics: { name: "", website: "", industry: "", markets: [] as string[], personality: "" },
@@ -33,13 +36,43 @@ const BrandSetup = () => {
 
   const totalSteps = 4;
 
+  const handleFinish = async () => {
+    if (!brandData.basics.name.trim()) {
+      toast.error("Please enter a brand name");
+      return;
+    }
+
+    setIsSaving(true);
+    
+    const { data, error } = await createBrand({
+      name: brandData.basics.name,
+      website: brandData.basics.website || null,
+      industry: brandData.basics.industry || null,
+      markets: brandData.basics.markets,
+      personality: brandData.basics.personality || null,
+      social_connections: brandData.connections,
+      assets: {}, // Files would need storage upload - for now empty
+    });
+
+    setIsSaving(false);
+
+    if (error) {
+      toast.error("Failed to create brand: " + error.message);
+      return;
+    }
+
+    toast.success("Brand created successfully!");
+    navigate("/");
+  };
+
   const handleNext = () => {
     if (currentStep === totalSteps) {
-      navigate("/");
+      handleFinish();
     } else {
       setCurrentStep((s) => Math.min(s + 1, totalSteps));
     }
   };
+  
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const handleSkip = () => handleNext();
 
@@ -119,7 +152,7 @@ const BrandSetup = () => {
       onBack={handleBack}
       onNext={handleNext}
       onSkip={handleSkip}
-      nextLabel={currentStep === totalSteps ? "Finish" : "Continue"}
+      nextLabel={currentStep === totalSteps ? (isSaving ? "Saving..." : "Finish") : "Continue"}
       showBack={currentStep > 1}
       showSkip={currentStep < 4}
     >

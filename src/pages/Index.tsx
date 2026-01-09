@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import kittykatLogo from "@/assets/kittykat-logo-transparent.png";
 import { useNavigate } from "react-router-dom";
 import { useChat } from "@/hooks/useChat";
+import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
+import BrandSelector from "@/components/BrandSelector";
 import { 
   Image, 
   Megaphone, 
@@ -200,6 +203,8 @@ const sidebarContextConfig: Record<ActiveSection, {
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { currentBrand } = useBrands();
   const [prompt, setPrompt] = useState("");
   const [chatMessage, setChatMessage] = useState("");
   const [activeNav, setActiveNav] = useState("home");
@@ -342,9 +347,10 @@ const Index = () => {
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm px-6 py-3">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
+          {/* Logo + Brand Selector */}
+          <div className="flex items-center gap-4">
             <img src={kittykatLogo} alt="KittyKat" className="h-16" />
+            <BrandSelector />
           </div>
 
           {/* Nav Items */}
@@ -393,40 +399,20 @@ const Index = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2">
-                  K
+                  {user?.email?.charAt(0).toUpperCase() || "U"}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 bg-popover border border-border shadow-lg z-50">
                 {/* User Info */}
                 <div className="flex items-center gap-3 p-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    K
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">kiahyen</p>
-                    <p className="text-sm text-muted-foreground truncate">kiahyen@kittykat.ai</p>
+                    <p className="font-medium text-foreground truncate">{user?.user_metadata?.name || user?.email?.split("@")[0] || "User"}</p>
+                    <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
                   </div>
                 </div>
-                
-                <DropdownMenuSeparator />
-                
-                {/* Workspaces */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal px-3 py-1.5">
-                  Workspaces
-                </DropdownMenuLabel>
-                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
-                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground font-medium text-sm">
-                    K
-                  </div>
-                  <span className="flex-1">kiahyen's workspace</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
-                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground font-medium text-sm">
-                    K
-                  </div>
-                  <span className="flex-1">Kittykat</span>
-                  <Check className="w-4 h-4 text-primary" />
-                </DropdownMenuItem>
                 
                 <DropdownMenuSeparator />
                 
@@ -437,7 +423,10 @@ const Index = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="flex items-center gap-3 px-3 py-2 cursor-pointer"
-                  onClick={() => navigate("/login")}
+                  onClick={async () => {
+                    await signOut();
+                    navigate("/login");
+                  }}
                 >
                   <LogOut className="w-4 h-4 text-muted-foreground" />
                   <span>Log out</span>

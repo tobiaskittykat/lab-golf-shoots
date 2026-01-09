@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { BrandsProvider } from "@/hooks/useBrands";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import BrandSetup from "./pages/BrandSetup";
@@ -20,17 +23,63 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/brand-setup" element={<BrandSetup />} />
-          <Route path="/create-campaign" element={<CreateCampaign />} />
-          <Route path="/create-image" element={<CreateImage />} />
-          <Route path="/edit-image" element={<EditImage />} />
-          <Route path="/batch-generate" element={<BatchGenerate />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <BrandsProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/brand-setup"
+                element={
+                  <ProtectedRoute requireBrand={false}>
+                    <BrandSetup />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-campaign"
+                element={
+                  <ProtectedRoute>
+                    <CreateCampaign />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-image"
+                element={
+                  <ProtectedRoute>
+                    <CreateImage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-image"
+                element={
+                  <ProtectedRoute>
+                    <EditImage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/batch-generate"
+                element={
+                  <ProtectedRoute>
+                    <BatchGenerate />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrandsProvider>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

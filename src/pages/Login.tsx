@@ -1,19 +1,89 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import kittykatLogo from "@/assets/kittykat-logo-transparent.png";
+import { useAuth } from "@/hooks/useAuth";
+import { z } from "zod";
+
+const emailSchema = z.string().email("Please enter a valid email address");
+const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { signIn, signUp, user, isLoading: authLoading } = useAuth();
+  
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate("/brand-setup");
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      const from = (location.state as any)?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, location]);
+
+  const validateForm = () => {
+    try {
+      emailSchema.parse(email);
+      passwordSchema.parse(password);
+      return true;
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        setError(e.errors[0].message);
+      }
+      return false;
+    }
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await signUp(email, password, name || undefined);
+        if (error) {
+          if (error.message.includes("already registered")) {
+            setError("This email is already registered. Please sign in instead.");
+          } else {
+            setError(error.message);
+          }
+        }
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            setError("Invalid email or password. Please try again.");
+          } else {
+            setError(error.message);
+          }
+        }
+      }
+    } catch (e) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden">
@@ -55,6 +125,14 @@ const Login = () => {
               </p>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {isSignUp && (
@@ -75,9 +153,10 @@ const Login = () => {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
                   placeholder="you@example.com"
                   className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+                  required
                 />
               </div>
 
@@ -94,9 +173,10 @@ const Login = () => {
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setError(null); }}
                     placeholder="••••••••"
                     className="w-full px-4 py-3.5 rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all pr-12"
+                    required
                   />
                   <button
                     type="button"
@@ -110,10 +190,17 @@ const Login = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 group mt-6 shadow-lg shadow-primary/20"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2 group mt-6 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSignUp ? "Create account" : "Sign in"}
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                {isSubmitting ? (
+                  <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {isSignUp ? "Create account" : "Sign in"}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </>
+                )}
               </button>
             </form>
 
@@ -158,7 +245,7 @@ const Login = () => {
               {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
                 className="text-primary font-medium hover:underline"
               >
                 {isSignUp ? "Sign in" : "Sign up"}
