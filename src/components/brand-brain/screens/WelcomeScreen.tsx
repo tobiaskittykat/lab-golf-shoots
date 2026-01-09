@@ -1,10 +1,11 @@
-import { Cat, Sparkles, Brain, Shield } from "lucide-react";
+import { Cat, Sparkles, Brain, Shield, Zap } from "lucide-react";
 
 interface WelcomeScreenProps {
   onStart: () => void;
+  onStartManual?: () => void;
 }
 
-const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
+const WelcomeScreen = ({ onStart, onStartManual }: WelcomeScreenProps) => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="max-w-xl text-center">
@@ -20,35 +21,44 @@ const WelcomeScreen = ({ onStart }: WelcomeScreenProps) => {
 
         {/* Subtext */}
         <p className="text-lg text-muted-foreground mb-10 max-w-md mx-auto">
-          I'm KittyKat, your AI visual specialist. Over the next few minutes, I'll learn how your brand looks, feels, and behaves — so I can create on-brand content at scale.
+          I'm KittyKat, your AI visual specialist. Just give me your website URL and I'll automatically extract your brand identity — colors, tone, social profiles, and more.
         </p>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-card border border-border rounded-xl p-4">
-            <Sparkles className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium">Visual DNA</p>
-            <p className="text-xs text-muted-foreground">Colors, typography, imagery</p>
+            <Zap className="w-6 h-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium">Auto-Extract</p>
+            <p className="text-xs text-muted-foreground">From your website</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <Brain className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium">Brand Voice</p>
-            <p className="text-xs text-muted-foreground">Tone, personality, style</p>
+            <p className="text-sm font-medium">AI Analysis</p>
+            <p className="text-xs text-muted-foreground">Tone & personality</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
-            <Shield className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-sm font-medium">Guardrails</p>
-            <p className="text-xs text-muted-foreground">Rules & boundaries</p>
+            <Sparkles className="w-6 h-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium">Review & Edit</p>
+            <p className="text-xs text-muted-foreground">You stay in control</p>
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTAs */}
         <button onClick={onStart} className="btn-primary text-lg px-8 py-4">
-          Start training my Brand Brain
+          Start with my website URL
         </button>
 
+        {onStartManual && (
+          <button
+            onClick={onStartManual}
+            className="block mx-auto mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Or set up manually →
+          </button>
+        )}
+
         <p className="text-sm text-muted-foreground mt-6">
-          Takes about 10-15 minutes · Save anytime
+          Takes about 2 minutes · AI-powered setup
         </p>
       </div>
     </div>

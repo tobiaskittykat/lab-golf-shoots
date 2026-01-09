@@ -7,6 +7,7 @@ import BrandBasicsScreen from "@/components/brand-brain/screens/BrandBasicsScree
 import UploadAssetsScreen from "@/components/brand-brain/screens/UploadAssetsScreen";
 import DigitalFootprintScreen from "@/components/brand-brain/screens/DigitalFootprintScreen";
 import SummaryScreen from "@/components/brand-brain/screens/SummaryScreen";
+import AgentBrandSetup from "@/components/brand-brain/AgentBrandSetup";
 import { useBrands } from "@/hooks/useBrands";
 import { useBrandDrafts, type SocialConnection } from "@/hooks/useBrandDrafts";
 
@@ -20,12 +21,15 @@ const getDefaultConnections = (): Record<string, SocialConnection> => ({
   youtube: { url: "", connected: false },
 });
 
+type SetupMode = "welcome" | "agent" | "manual";
+
 const BrandSetup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { createBrand } = useBrands();
   const { drafts, createDraft, updateDraft, deleteDraft, getDraft } = useBrandDrafts();
   
+  const [mode, setMode] = useState<SetupMode>("welcome");
   const [draftId, setDraftId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,38 +49,86 @@ const BrandSetup = () => {
       if (existingDraft) {
         setDraftId(existingDraftId);
         setCurrentStep(existingDraft.currentStep);
+        setMode("manual");
         setBrandData({
           basics: existingDraft.basics,
           files: [],
           connections: existingDraft.connections,
         });
       } else {
-        // Draft not found - clear invalid param from URL
         window.history.replaceState(null, "", "/brand-setup");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save draft whenever data changes (after welcome screen)
+  // Save draft whenever data changes (manual mode only)
   useEffect(() => {
-    if (draftId && currentStep > 0) {
+    if (draftId && currentStep > 0 && mode === "manual") {
       updateDraft(draftId, {
         currentStep,
         basics: brandData.basics,
         connections: brandData.connections,
       });
     }
-  }, [draftId, currentStep, brandData.basics, brandData.connections, updateDraft]);
+  }, [draftId, currentStep, brandData.basics, brandData.connections, updateDraft, mode]);
 
   const totalSteps = 4;
 
-  const handleStart = () => {
+  const handleStartAgent = () => {
+    setMode("agent");
+  };
+
+  const handleStartManual = () => {
     const newDraft = createDraft();
     setDraftId(newDraft.id);
     setCurrentStep(1);
-    // Update URL without navigation
+    setMode("manual");
     window.history.replaceState(null, "", `/brand-setup?draft=${newDraft.id}`);
+  };
+
+  const handleAgentComplete = async (data: {
+    name: string;
+    website: string;
+    industry: string;
+    personality: string;
+    tagline: string;
+    socialLinks: Record<string, string>;
+  }) => {
+    setIsSaving(true);
+
+    // Convert social links to connections format
+    const connections = getDefaultConnections();
+    connections.website = { url: data.website, connected: false };
+    for (const [key, url] of Object.entries(data.socialLinks)) {
+      if (connections[key]) {
+        connections[key] = { url, connected: false };
+      }
+    }
+
+    const { data: brandResult, error } = await createBrand({
+      name: data.name,
+      website: data.website || null,
+      industry: data.industry || null,
+      markets: [],
+      personality: data.personality || null,
+      social_connections: connections,
+      assets: {},
+    });
+
+    setIsSaving(false);
+
+    if (error) {
+      toast.error("Failed to create brand: " + error.message);
+      return;
+    }
+
+    toast.success("Brand created successfully!");
+    navigate("/");
+  };
+
+  const handleAgentCancel = () => {
+    setMode("welcome");
   };
 
   const handleFinish = async () => {
@@ -104,7 +156,6 @@ const BrandSetup = () => {
       return;
     }
 
-    // Delete draft on successful creation
     if (draftId) {
       deleteDraft(draftId);
     }
@@ -165,10 +216,27 @@ const BrandSetup = () => {
     });
   }, []);
 
-  if (currentStep === 0) {
-    return <WelcomeScreen onStart={handleStart} />;
+  // Welcome screen
+  if (mode === "welcome") {
+    return (
+      <WelcomeScreen 
+        onStart={handleStartAgent} 
+        onStartManual={handleStartManual}
+      />
+    );
   }
 
+  // Agent-led setup
+  if (mode === "agent") {
+    return (
+      <AgentBrandSetup
+        onComplete={handleAgentComplete}
+        onCancel={handleAgentCancel}
+      />
+    );
+  }
+
+  // Manual setup (existing form-based flow)
   const screens: Record<number, React.ReactNode> = {
     1: (
       <BrandBasicsScreen 
