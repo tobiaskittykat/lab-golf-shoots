@@ -112,7 +112,7 @@ const Login = () => {
       <main className="flex-1 flex items-center justify-center px-8 pt-32 pb-8">
         <div className="w-full max-w-md">
           {/* Glass Card */}
-          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5">
+          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5 h-[min(640px,calc(100vh-12rem))] overflow-y-auto">
             {/* Heading */}
             <div className="text-center space-y-2 mb-8">
               <h1 className="font-display text-3xl font-bold text-foreground">
