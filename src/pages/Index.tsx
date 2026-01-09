@@ -418,14 +418,16 @@ const Index = () => {
               <ChevronUp className="w-5 h-5" />
             </button>
           )}
-          {/* Chat toggle button - same position for open/close */}
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105"
-            title={isSidebarOpen ? "Close chat" : "Open chat"}
-          >
-            {isSidebarOpen ? <X className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
-          </button>
+          {/* Chat open button - only visible when sidebar is closed */}
+          {!isSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105"
+              title="Open chat"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Main Content Area */}
