@@ -516,14 +516,14 @@ const Index = () => {
               </form>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-4 justify-items-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (
                     <button
                       key={action.id}
                       onClick={() => handleQuickAction(action.id)}
-                      className="action-chip group hover:scale-105 transition-all w-fit"
+                      className="action-chip group hover:scale-105 transition-all"
                     >
                       <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-coral to-primary flex items-center justify-center">
                         <Icon className="w-3.5 h-3.5 text-primary-foreground" />
