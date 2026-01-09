@@ -757,27 +757,11 @@ const Index = () => {
 
                 <CollapsibleContent>
                   <div className="glass-card p-6">
-                    <div className="flex justify-end gap-2 mb-4">
-                      <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                      </button>
-                      <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18" />
-                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        </svg>
-                      </button>
-                    </div>
-
                     <div className="flex flex-col gap-4">
-                      {/* Top row - Icon aligned with prompt */}
+                      {/* Top row - Icons aligned with prompt */}
                       <div className="flex items-start gap-4">
                         {/* Mode toggles column */}
-                        <div className="flex flex-col gap-2 pt-1">
+                        <div className="flex flex-col gap-2">
                           <button 
                             onClick={() => setGenerationMode("image")}
                             className={`p-2 rounded-lg transition-colors ${
@@ -822,7 +806,7 @@ const Index = () => {
                         </div>
 
                         {/* Prompt Input - aligned with first icon */}
-                        <div className="flex-1 pt-2">
+                        <div className="flex-1 pt-1">
                           <input
                             type="text"
                             value={imagePrompt}
@@ -830,6 +814,23 @@ const Index = () => {
                             placeholder="Describe what you want to see ..."
                             className="w-full bg-transparent border-none focus:outline-none text-foreground placeholder:text-muted-foreground"
                           />
+                        </div>
+
+                        {/* Lock and Bin icons - aligned with prompt */}
+                        <div className="flex items-center gap-2">
+                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                          </button>
+                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
 
