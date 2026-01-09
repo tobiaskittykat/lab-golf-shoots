@@ -269,7 +269,6 @@ const Index = () => {
       "define-audience": "Let's define your ideal audience together. Do you have any existing customer data or personas we should start from?",
       "brand": "I see you want to work on your brand. Would you like to update your brand colors, refine your messaging, or create new brand assets?",
       "campaign": "Great choice! Let's create a campaign. What's the goal - awareness, engagement, or conversions? And what platforms are you targeting?",
-      "moodboard": "Time to get creative with a moodboard! What's the vibe you're going for - minimal, bold, playful, or something else?",
     };
 
     if (actionId in chatActionMessages) {
