@@ -143,6 +143,7 @@ const Index = () => {
   // Section refs for scrolling
   const brandRef = useRef<HTMLDivElement>(null);
   const campaignRef = useRef<HTMLDivElement>(null);
+  const moodboardRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const mainContentRef = useRef<HTMLElement>(null);
@@ -222,6 +223,7 @@ const Index = () => {
     const refs: Record<string, React.RefObject<HTMLDivElement>> = {
       brand: brandRef,
       campaign: campaignRef,
+      moodboard: moodboardRef,
       image: imageRef,
       edit: imageRef,
       batch: imageRef,
@@ -647,7 +649,7 @@ const Index = () => {
           </section>
 
           {/* Moodboard Section */}
-          <section className="px-8 py-16 border-t border-border">
+          <section ref={moodboardRef} className="px-8 py-16 border-t border-border">
             <div className="max-w-5xl mx-auto">
               <Collapsible open={isMoodboardOpen} onOpenChange={setIsMoodboardOpen}>
                 <div className="flex items-center justify-between mb-6">
