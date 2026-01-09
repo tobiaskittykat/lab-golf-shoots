@@ -751,7 +751,7 @@ const Index = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Visual Media</p>
-                    <h2 className="font-display text-2xl font-bold">Yellow Diamond Necklace Shoot</h2>
+                    <h2 className="font-display text-2xl font-bold">Product Photography</h2>
                   </div>
                 </div>
 
