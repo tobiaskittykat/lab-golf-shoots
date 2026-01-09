@@ -117,7 +117,7 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                   )}
                 </button>
               </CollapsibleTrigger>
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coral to-primary flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center text-white font-bold text-sm">
                 {currentBrand?.name?.charAt(0).toUpperCase() || "H"}
               </div>
               <div>
