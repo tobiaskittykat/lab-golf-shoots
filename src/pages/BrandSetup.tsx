@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import WelcomeScreen from "@/components/brand-brain/screens/WelcomeScreen";
@@ -14,25 +14,70 @@ interface SocialConnection {
   connected: boolean;
 }
 
+const DRAFT_STORAGE_KEY = "kittykat_brand_draft";
+
+interface DraftData {
+  currentStep: number;
+  basics: { name: string; website: string; industry: string; markets: string[]; personality: string };
+  connections: Record<string, SocialConnection>;
+}
+
+const getInitialState = (): { step: number; data: DraftData["basics"]; connections: Record<string, SocialConnection> } => {
+  try {
+    const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      const parsed: DraftData = JSON.parse(saved);
+      return {
+        step: parsed.currentStep || 0,
+        data: parsed.basics || { name: "", website: "", industry: "", markets: [], personality: "" },
+        connections: parsed.connections || getDefaultConnections(),
+      };
+    }
+  } catch (e) {
+    console.error("Failed to load draft:", e);
+  }
+  return {
+    step: 0,
+    data: { name: "", website: "", industry: "", markets: [], personality: "" },
+    connections: getDefaultConnections(),
+  };
+};
+
+const getDefaultConnections = (): Record<string, SocialConnection> => ({
+  website: { url: "", connected: false },
+  instagram: { url: "", connected: false },
+  facebook: { url: "", connected: false },
+  twitter: { url: "", connected: false },
+  tiktok: { url: "", connected: false },
+  pinterest: { url: "", connected: false },
+  youtube: { url: "", connected: false },
+});
+
 const BrandSetup = () => {
   const navigate = useNavigate();
   const { createBrand } = useBrands();
-  const [currentStep, setCurrentStep] = useState(0);
+  
+  const initialState = getInitialState();
+  const [currentStep, setCurrentStep] = useState(initialState.step);
   const [isSaving, setIsSaving] = useState(false);
   
   const [brandData, setBrandData] = useState({
-    basics: { name: "", website: "", industry: "", markets: [] as string[], personality: "" },
+    basics: initialState.data,
     files: [] as File[],
-    connections: {
-      website: { url: "", connected: false },
-      instagram: { url: "", connected: false },
-      facebook: { url: "", connected: false },
-      twitter: { url: "", connected: false },
-      tiktok: { url: "", connected: false },
-      pinterest: { url: "", connected: false },
-      youtube: { url: "", connected: false },
-    } as Record<string, SocialConnection>,
+    connections: initialState.connections,
   });
+
+  // Save draft to localStorage whenever data changes
+  useEffect(() => {
+    if (currentStep > 0) {
+      const draft: DraftData = {
+        currentStep,
+        basics: brandData.basics,
+        connections: brandData.connections,
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    }
+  }, [currentStep, brandData.basics, brandData.connections]);
 
   const totalSteps = 4;
 
@@ -61,6 +106,8 @@ const BrandSetup = () => {
       return;
     }
 
+    // Clear draft on successful creation
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
     toast.success("Brand created successfully!");
     navigate("/");
   };

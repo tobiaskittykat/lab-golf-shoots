@@ -9,6 +9,7 @@ interface BrandBrainLayoutProps {
   onBack?: () => void;
   onNext: () => void;
   onSkip?: () => void;
+  onSaveAndExit?: () => void;
   nextLabel?: string;
   showBack?: boolean;
   showSkip?: boolean;
@@ -21,12 +22,20 @@ const BrandBrainLayout = ({
   onBack,
   onNext,
   onSkip,
+  onSaveAndExit,
   nextLabel = "Continue",
   showBack = true,
   showSkip = true,
 }: BrandBrainLayoutProps) => {
   const navigate = useNavigate();
   const progress = Math.round((currentStep / totalSteps) * 100);
+
+  const handleSaveAndExit = () => {
+    if (onSaveAndExit) {
+      onSaveAndExit();
+    }
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -54,7 +63,7 @@ const BrandBrainLayout = ({
 
         {/* Save & Exit */}
         <button 
-          onClick={() => navigate("/")}
+          onClick={handleSaveAndExit}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <Save className="w-4 h-4" />
