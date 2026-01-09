@@ -572,8 +572,8 @@ const Index = () => {
                       )}
                     </button>
                   </CollapsibleTrigger>
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-                    <Megaphone className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                    <Megaphone className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <h2 className="font-display text-2xl font-bold">Campaign Setup</h2>
@@ -666,8 +666,8 @@ const Index = () => {
                         )}
                       </button>
                     </CollapsibleTrigger>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-                      <Layers className="w-5 h-5 text-white" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                      <Layers className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Moodboard</p>
@@ -746,8 +746,8 @@ const Index = () => {
                       )}
                     </button>
                   </CollapsibleTrigger>
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-                    <Image className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                    <Image className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <h2 className="font-display text-2xl font-bold">Visual Media</h2>
