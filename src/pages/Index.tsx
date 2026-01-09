@@ -231,7 +231,7 @@ const Index = () => {
     refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const { messages: chatMessages, isLoading: isChatLoading, sendMessage } = useChat(scrollToSection);
+  const { messages: chatMessages, isLoading: isChatLoading, sendMessage, addWelcomeMessage } = useChat(scrollToSection);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const handleStarterPrompt = (promptText: string) => {
@@ -273,6 +273,10 @@ const Index = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim() && !isChatLoading) {
+      // If chat is empty and sidebar wasn't open, add welcome message first
+      if (chatMessages.length === 0) {
+        addWelcomeMessage();
+      }
       setIsSidebarOpen(true);
       sendMessage(prompt.trim(), activeSection);
       setPrompt("");

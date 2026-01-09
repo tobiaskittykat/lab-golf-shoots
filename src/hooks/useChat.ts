@@ -123,5 +123,11 @@ export function useChat(onNavigate?: (section: string) => void) {
     setMessages([]);
   }, []);
 
-  return { messages, isLoading, sendMessage, clearMessages };
+  const addWelcomeMessage = useCallback(() => {
+    if (messages.length === 0) {
+      setMessages([{ role: "assistant", content: "Hi! I'm here to help with your creative work. What would you like to do today?" }]);
+    }
+  }, [messages.length]);
+
+  return { messages, isLoading, sendMessage, clearMessages, addWelcomeMessage };
 }
