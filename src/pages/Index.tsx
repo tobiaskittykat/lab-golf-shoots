@@ -320,8 +320,8 @@ const Index = () => {
                   onClick={() => setActiveNav(item.id)}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors relative ${
                     activeNav === item.id 
-                      ? "text-primary" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      ? "text-accent" 
+                      : "text-foreground hover:text-accent/80 hover:bg-secondary/50"
                   }`}
                 >
                   <div className="relative">
