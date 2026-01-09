@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Cat, Globe, Loader2, Check, X, Edit2, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Cat, Globe, Loader2, Check, Edit2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -22,9 +22,9 @@ interface Message {
   id: string;
   role: "agent" | "user";
   content: string;
-  type?: "text" | "input" | "review" | "confirmation";
-  field?: keyof ExtractedBrandInfo | "colors" | "socialLinks";
-  value?: any;
+  type?: "text" | "review";
+  field?: keyof ExtractedBrandInfo;
+  reviewIndex?: number;
 }
 
 interface AgentBrandSetupProps {
@@ -47,6 +47,9 @@ const REVIEW_FIELDS: { key: keyof ExtractedBrandInfo; label: string; emoji: stri
   { key: "tone", label: "Brand Tone", emoji: "🎯" },
   { key: "mission", label: "Mission", emoji: "🚀" },
 ];
+
+let messageIdCounter = 0;
+const generateMessageId = () => `msg-${Date.now()}-${++messageIdCounter}`;
 
 const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,26 +80,26 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     return () => clearTimeout(timer);
   }, []);
 
-  const addAgentMessage = (content: string, extras?: Partial<Message>) => {
+  const addAgentMessage = useCallback((content: string, extras?: Partial<Message>) => {
     const msg: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       role: "agent",
       content,
       type: "text",
       ...extras,
     };
     setMessages((prev) => [...prev, msg]);
-  };
+  }, []);
 
-  const addUserMessage = (content: string) => {
+  const addUserMessage = useCallback((content: string) => {
     const msg: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       role: "user",
       content,
       type: "text",
     };
     setMessages((prev) => [...prev, msg]);
-  };
+  }, []);
 
   const handleSubmitUrl = async () => {
     if (!websiteUrl.trim()) return;
@@ -166,7 +169,7 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     setCurrentReviewIndex(index);
     addAgentMessage(
       `${field.emoji} **${field.label}**: "${value}"\n\nDoes this look right?`,
-      { type: "review", field: field.key, value }
+      { type: "review", field: field.key, reviewIndex: index }
     );
   };
 
@@ -261,8 +264,8 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
                   )}
                 </p>
 
-                {/* Review actions */}
-                {msg.type === "review" && msg.role === "agent" && currentReviewIndex === REVIEW_FIELDS.findIndex(f => f.key === msg.field) && (
+                {/* Review actions - only show for the current review item */}
+                {msg.type === "review" && msg.role === "agent" && msg.reviewIndex === currentReviewIndex && (
                   <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                     {editingField === msg.field ? (
                       <div className="flex-1 flex gap-2">
