@@ -174,7 +174,7 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
 
               {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Brand Overview Header */}
+            {/* Tagline & Values */}
             <div className="glass-card p-6">
               <h4 className="text-sm font-semibold text-muted-foreground mb-3">Brand Overview</h4>
               <EditableText
@@ -189,25 +189,15 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
               />
             </div>
 
-            {/* Mission & Vision - using personality field for now, could be extended */}
+            {/* Mission & Vision */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="glass-card p-5">
-                <h4 className="text-sm font-semibold text-primary mb-2">Industry</h4>
-                <EditableText
-                  value={currentBrand?.industry || ""}
-                  onSave={(value) => handleUpdateField("industry", value)}
-                  className="text-muted-foreground"
-                  placeholder="Add industry..."
-                />
+                <h4 className="text-sm font-semibold text-primary mb-2">Mission</h4>
+                <p className="text-muted-foreground">{brandData.mission}</p>
               </div>
               <div className="glass-card p-5">
-                <h4 className="text-sm font-semibold text-primary mb-2">Website</h4>
-                <EditableText
-                  value={currentBrand?.website || ""}
-                  onSave={(value) => handleUpdateField("website", value)}
-                  className="text-muted-foreground"
-                  placeholder="Add website URL..."
-                />
+                <h4 className="text-sm font-semibold text-primary mb-2">Vision</h4>
+                <p className="text-muted-foreground">{brandData.vision}</p>
               </div>
             </div>
 
