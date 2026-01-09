@@ -398,8 +398,8 @@ const Index = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Floating buttons */}
         <div className="fixed right-4 bottom-4 z-50 flex flex-col gap-2">
-          {/* Back to top button */}
-          {showBackToTop && (
+          {/* Back to top button - hidden when chat sidebar is open */}
+          {showBackToTop && !isSidebarOpen && (
             <button
               onClick={() => {
                 const mainContent = mainContentRef.current;
