@@ -516,7 +516,7 @@ const Index = () => {
               </form>
 
               {/* Quick Actions */}
-              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              <div className="grid grid-cols-4 justify-items-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
                 {quickActions.map((action) => {
                   const Icon = action.icon;
                   return (
