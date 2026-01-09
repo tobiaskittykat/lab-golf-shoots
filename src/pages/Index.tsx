@@ -350,10 +350,9 @@ const Index = () => {
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm px-6 py-3">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          {/* Logo + Brand Selector */}
-          <div className="flex items-center gap-4">
+          {/* Logo */}
+          <div className="flex items-center">
             <img src={kittykatLogo} alt="KittyKat" className="h-16" />
-            <BrandSelector />
           </div>
 
           {/* Nav Items */}
@@ -616,13 +615,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="🔍 Select Brand"
-                      className="input-field w-48 text-sm"
-                    />
-                  </div>
+                  <BrandSelector />
                   <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
                     <Plus className="w-5 h-5" />
                   </button>
