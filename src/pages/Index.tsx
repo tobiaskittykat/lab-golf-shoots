@@ -486,27 +486,8 @@ const Index = () => {
                 </div>
               )}
 
-              {/* Quick Actions */}
-              <div className="flex flex-wrap justify-center gap-3 mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-                {quickActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={action.id}
-                      onClick={() => handleQuickAction(action.id)}
-                      className="action-chip group hover:scale-105 transition-all"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-                        <Icon className="w-3.5 h-3.5 text-primary-foreground" />
-                      </div>
-                      {action.label}
-                    </button>
-                  );
-                })}
-              </div>
-
               {/* Main Prompt Input */}
-              <form onSubmit={handleSubmit} className="relative mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              <form onSubmit={handleSubmit} className="relative mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-blue-500/20 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
                   <textarea
@@ -533,6 +514,25 @@ const Index = () => {
                   <Send className="w-5 h-5 text-white" />
                 </button>
               </form>
+
+              {/* Quick Actions */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => handleQuickAction(action.id)}
+                      className="action-chip group hover:scale-105 transition-all"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                        <Icon className="w-3.5 h-3.5 text-primary-foreground" />
+                      </div>
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Scroll indicator at bottom */}
