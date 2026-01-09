@@ -86,9 +86,9 @@ const Login = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden">
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden">
       {/* Dreamy gradient background matching KittyKat branding */}
-      <div className="absolute inset-0 -z-10">
+      <div className="fixed inset-0 -z-10">
         {/* Base white */}
         <div className="absolute inset-0 bg-background" />
         
@@ -103,16 +103,16 @@ const Login = () => {
         <div className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] rounded-full blur-[100px]" style={{ backgroundColor: 'hsl(12 76% 67% / 0.10)' }} />
       </div>
 
-      {/* Header - Absolutely positioned so it doesn't affect form layout */}
-      <header className="absolute top-0 left-0 px-4 py-3 z-10">
+      {/* Header */}
+      <header className="px-4 py-3 z-10">
         <img src={kittykatLogo} alt="KittyKat" className="h-28" />
       </header>
 
       {/* Main Content - Centered Form */}
-      <main className="flex-1 flex items-center justify-center px-8 pt-32 pb-8">
+      <main className="flex-1 flex items-start justify-center px-8 py-8">
         <div className="w-full max-w-md">
           {/* Glass Card */}
-          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5 h-[min(640px,calc(100vh-12rem))] overflow-y-auto">
+          <div className="bg-card/50 backdrop-blur-xl border border-border/50 rounded-3xl p-8 shadow-2xl shadow-primary/5">
             {/* Heading */}
             <div className="text-center space-y-2 mb-8">
               <h1 className="font-display text-3xl font-bold text-foreground">
