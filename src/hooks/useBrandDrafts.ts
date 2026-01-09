@@ -47,19 +47,18 @@ export const generateDraftId = (): string => {
 };
 
 export const useBrandDrafts = () => {
-  const [drafts, setDrafts] = useState<BrandDraft[]>([]);
-
-  // Load drafts from localStorage on mount
-  useEffect(() => {
+  const [drafts, setDrafts] = useState<BrandDraft[]>(() => {
+    // Initialize synchronously from localStorage to avoid race conditions
     try {
       const saved = localStorage.getItem(DRAFTS_STORAGE_KEY);
       if (saved) {
-        setDrafts(JSON.parse(saved));
+        return JSON.parse(saved);
       }
     } catch (e) {
       console.error("Failed to load drafts:", e);
     }
-  }, []);
+    return [];
+  });
 
   // Save drafts to localStorage whenever they change
   const saveDrafts = useCallback((newDrafts: BrandDraft[]) => {
