@@ -979,28 +979,28 @@ const Index = () => {
                 ))}
               </div>
             )}
-            <div className="relative">
-              <textarea
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything..."
-                rows={3}
-                disabled={isChatLoading}
-                className="w-full bg-secondary border border-border rounded-xl p-4 pr-12 pb-12 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
-              />
-              <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                <button 
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="p-2 rounded-lg bg-secondary hover:bg-secondary/80 text-muted-foreground border border-border"
-                  title="Close chat"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            <div className="flex items-end gap-2">
+              <button 
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground border border-border transition-colors shrink-0"
+                title="Close chat"
+              >
+                <PanelRightClose className="w-4 h-4" />
+              </button>
+              <div className="relative flex-1">
+                <textarea
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything..."
+                  rows={2}
+                  disabled={isChatLoading}
+                  className="w-full bg-secondary border border-border rounded-xl p-3 pr-12 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
+                />
                 <button 
                   onClick={handleSendMessage}
                   disabled={!chatMessage.trim() || isChatLoading}
-                  className="p-2 rounded-lg bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute bottom-2.5 right-2.5 p-2 rounded-lg bg-accent text-white disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
                 >
                   <Send className="w-4 h-4" />
                 </button>
