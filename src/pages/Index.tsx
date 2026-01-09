@@ -523,7 +523,7 @@ const Index = () => {
                     <button
                       key={action.id}
                       onClick={() => handleQuickAction(action.id)}
-                      className="action-chip group hover:scale-105 transition-all"
+                      className="action-chip group hover:scale-105 transition-all w-fit"
                     >
                       <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-coral to-primary flex items-center justify-center">
                         <Icon className="w-3.5 h-3.5 text-primary-foreground" />
