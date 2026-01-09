@@ -75,7 +75,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchBrands();
-  }, [user]);
+  }, [fetchBrands]);
 
   const createBrand = async (data: Partial<Brand>) => {
     if (!user) return { data: null, error: new Error("Not authenticated") };
