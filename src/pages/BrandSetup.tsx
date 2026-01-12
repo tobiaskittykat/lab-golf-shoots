@@ -136,6 +136,11 @@ const BrandSetup = () => {
       return;
     }
 
+    // Delete the draft after successful brand creation
+    if (draftId) {
+      deleteDraft(draftId);
+    }
+
     toast.success("Brand created successfully!");
     navigate("/");
   };
