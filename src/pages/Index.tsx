@@ -43,7 +43,8 @@ import {
   PanelRightClose,
   MessageSquare,
   ChevronUp,
-  X
+  X,
+  FileText
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -468,17 +469,26 @@ const Index = () => {
                           className="flex items-center justify-between gap-3 p-3 cursor-pointer focus:bg-secondary hover:bg-secondary"
                           onClick={() => navigate(`/brand-setup?draft=${draft.id}`)}
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">
-                              {draft.mode === "agent" 
-                                ? (draft.agentState?.extractedData?.name || "Untitled Brand")
-                                : (draft.basics.name || "Untitled Brand")}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {draft.mode === "agent" 
-                                ? (draft.agentState?.phase === "complete" ? "Ready to save" : "In progress")
-                                : `Step ${draft.currentStep} of 4`}
-                            </p>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`p-1.5 rounded-md ${draft.mode === "agent" ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"}`}>
+                              {draft.mode === "agent" ? (
+                                <MessageSquare className="w-4 h-4" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {draft.mode === "agent" 
+                                  ? (draft.agentState?.extractedData?.name || "Untitled Brand")
+                                  : (draft.basics.name || "Untitled Brand")}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {draft.mode === "agent" 
+                                  ? `Chat setup • ${draft.agentState?.phase === "complete" ? "Ready to save" : "In progress"}`
+                                  : `Form setup • Step ${draft.currentStep} of 4`}
+                              </p>
+                            </div>
                           </div>
                           <button
                             onClick={(e) => {
