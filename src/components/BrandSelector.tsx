@@ -172,13 +172,13 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
             {brands.map((brand) => (
               <DropdownMenuItem
                 key={brand.id}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-muted hover:bg-muted text-foreground group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground group"
                 onClick={() => setCurrentBrand(brand)}
               >
                 <div className="w-7 h-7 rounded-md bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <Building2 className="w-3.5 h-3.5 text-accent" />
                 </div>
-                <span className="flex-1 font-medium truncate text-base">{brand.name}</span>
+                <span className="flex-1 font-medium truncate text-base text-foreground">{brand.name}</span>
                 {brand.id === currentBrand.id ? (
                   <Check className="w-4 h-4 text-accent flex-shrink-0" />
                 ) : (
