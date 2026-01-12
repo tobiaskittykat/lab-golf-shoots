@@ -102,12 +102,11 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "inline-flex items-center gap-1 border-b-2 border-accent/40 hover:border-accent text-accent transition-all focus:outline-none group",
+              "border-b-2 border-accent/40 hover:border-accent text-accent transition-all focus:outline-none",
               className
             )}
           >
-            <span>{currentBrand.name}</span>
-            <ChevronDown className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
+            {currentBrand.name}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent 
