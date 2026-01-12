@@ -118,15 +118,17 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
       if (error) throw error;
 
       if (data?.success && data.brandInfo) {
-        setExtractedData(data.brandInfo);
+        const brandInfo = data.brandInfo as ExtractedBrandInfo;
+        setExtractedData(brandInfo);
         setIsExtracting(false);
         setPhase("reviewing");
         
         setTimeout(() => {
           addAgentMessage(
-            `Great news! I found a lot of info about **${data.brandInfo.name || "your brand"}**. Let me walk you through what I discovered and you can confirm or edit each piece. 👇`
+            `Great news! I found a lot of info about **${brandInfo.name || "your brand"}**. Let me walk you through what I discovered and you can confirm or edit each piece. 👇`
           );
-          setTimeout(() => startReview(), 1000);
+          // Start review with the extracted data directly (not from state)
+          setTimeout(() => startReviewWithData(brandInfo), 1000);
         }, 500);
       } else {
         throw new Error(data?.error || "Failed to extract brand info");
@@ -141,15 +143,15 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     }
   };
 
-  const startReview = () => {
-    setCurrentReviewIndex(0);
-    reviewNextField(0);
+  const startReviewWithData = (data: ExtractedBrandInfo) => {
+    reviewFieldAtIndex(0, data);
   };
 
-  const reviewNextField = (index: number) => {
-    if (!extractedData || index >= REVIEW_FIELDS.length) {
+  const reviewFieldAtIndex = (index: number, data: ExtractedBrandInfo) => {
+    if (index >= REVIEW_FIELDS.length) {
       // All fields reviewed
       setPhase("complete");
+      setCurrentReviewIndex(-1);
       addAgentMessage(
         "Awesome! Your brand profile is ready. Does everything look good to save? 🎉"
       );
@@ -157,12 +159,11 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     }
 
     const field = REVIEW_FIELDS[index];
-    const value = extractedData[field.key];
+    const value = data[field.key];
 
-    if (!value || (typeof value === "string" && !value.trim())) {
-      // Skip empty fields
-      setCurrentReviewIndex(index + 1);
-      reviewNextField(index + 1);
+    if (!value || (typeof value === "string" && !value.trim()) || typeof value === "object") {
+      // Skip empty fields or complex objects (colors, socialLinks)
+      reviewFieldAtIndex(index + 1, data);
       return;
     }
 
@@ -171,6 +172,11 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
       `${field.emoji} **${field.label}**: "${value}"\n\nDoes this look right?`,
       { type: "review", field: field.key, reviewIndex: index }
     );
+  };
+
+  const reviewNextField = (index: number) => {
+    if (!extractedData) return;
+    reviewFieldAtIndex(index, extractedData);
   };
 
   const handleConfirmField = () => {
