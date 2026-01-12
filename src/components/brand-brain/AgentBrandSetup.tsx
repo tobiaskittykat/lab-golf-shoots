@@ -60,6 +60,7 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
   const [currentReviewIndex, setCurrentReviewIndex] = useState(-1);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editingSocialLinks, setEditingSocialLinks] = useState<Record<string, string> | null>(null);
   const [phase, setPhase] = useState<"url" | "extracting" | "reviewing" | "complete">("url");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -211,25 +212,56 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
   };
 
   const handleEditField = (field: string) => {
-    setEditingField(field);
-    setEditValue(extractedData?.[field as keyof ExtractedBrandInfo] as string || "");
+    if (field === "socialLinks") {
+      // For social links, enable editing mode with current values
+      setEditingSocialLinks({ ...(extractedData?.socialLinks || {}) });
+      setEditingField(field);
+    } else {
+      setEditingField(field);
+      setEditValue(extractedData?.[field as keyof ExtractedBrandInfo] as string || "");
+    }
   };
 
   const handleSaveEdit = () => {
     if (!editingField || !extractedData) return;
 
-    setExtractedData({
-      ...extractedData,
-      [editingField]: editValue,
-    });
+    if (editingField === "socialLinks" && editingSocialLinks) {
+      // Filter out empty links
+      const filteredLinks = Object.fromEntries(
+        Object.entries(editingSocialLinks).filter(([_, url]) => url.trim())
+      );
+      
+      setExtractedData({
+        ...extractedData,
+        socialLinks: filteredLinks,
+      });
+      
+      const linkCount = Object.keys(filteredLinks).length;
+      addUserMessage(`Updated social links (${linkCount} saved)`);
+      setEditingSocialLinks(null);
+    } else {
+      setExtractedData({
+        ...extractedData,
+        [editingField]: editValue,
+      });
+      
+      addUserMessage(`Updated to: "${editValue}"`);
+      setEditValue("");
+    }
     
-    addUserMessage(`Updated to: "${editValue}"`);
     setEditingField(null);
-    setEditValue("");
     
     const nextIndex = currentReviewIndex + 1;
     setCurrentReviewIndex(nextIndex);
     setTimeout(() => reviewNextField(nextIndex), 500);
+  };
+
+  const handleSocialLinkChange = (platform: string, url: string) => {
+    if (!editingSocialLinks) return;
+    setEditingSocialLinks({
+      ...editingSocialLinks,
+      [platform]: url,
+    });
   };
 
   const handleComplete = () => {
@@ -296,25 +328,48 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
 
                 {/* Review actions - only show for the current review item */}
                 {msg.type === "review" && msg.role === "agent" && msg.reviewIndex === currentReviewIndex && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                  <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
                     {editingField === msg.field ? (
-                      <div className="flex-1 flex gap-2">
-                        <input
-                          type="text"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-background border border-border"
-                          autoFocus
-                        />
-                        <button
-                          onClick={handleSaveEdit}
-                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm"
-                        >
-                          Save
-                        </button>
-                      </div>
+                      msg.field === "socialLinks" && editingSocialLinks ? (
+                        <div className="flex flex-col gap-2">
+                          {Object.entries(editingSocialLinks).map(([platform, url]) => (
+                            <div key={platform} className="flex gap-2 items-center">
+                              <span className="text-xs text-muted-foreground w-20 capitalize">{platform}</span>
+                              <input
+                                type="url"
+                                value={url}
+                                onChange={(e) => handleSocialLinkChange(platform, e.target.value)}
+                                className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-background border border-border"
+                                placeholder={`https://${platform}.com/...`}
+                              />
+                            </div>
+                          ))}
+                          <button
+                            onClick={handleSaveEdit}
+                            className="mt-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm self-end"
+                          >
+                            Save All
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-background border border-border"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSaveEdit}
+                            className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      )
                     ) : (
-                      <>
+                      <div className="flex gap-2">
                         <button
                           onClick={handleConfirmField}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-600 rounded-lg text-sm hover:bg-green-500/20"
@@ -329,7 +384,7 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
                           <Edit2 className="w-3.5 h-3.5" />
                           Edit
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
