@@ -147,9 +147,15 @@ const BrandSetup = () => {
   };
 
   const handleAgentCancel = () => {
+    // Prevent any late onStateChange autosaves from re-creating the draft
+    isCancelledRef.current = true;
+
     if (draftId) {
       deleteDraft(draftId);
     }
+
+    setDraftId(null);
+    setAgentInitialState(undefined);
     navigate("/");
   };
 
@@ -159,7 +165,7 @@ const BrandSetup = () => {
   };
 
   const handleAgentStateChange = useCallback((state: AgentDraftState) => {
-    if (draftId) {
+    if (draftId && !isCancelledRef.current) {
       updateDraft(draftId, { agentState: state });
     }
   }, [draftId, updateDraft]);
