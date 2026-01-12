@@ -102,7 +102,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
         <DropdownMenuTrigger asChild>
           <button
             className={cn(
-              "border-b-2 border-accent/40 hover:border-accent text-accent transition-all focus:outline-none",
+              "text-gradient border-b-2 border-primary/30 hover:border-primary/60 transition-all focus:outline-none",
               className
             )}
           >
