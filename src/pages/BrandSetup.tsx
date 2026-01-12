@@ -9,7 +9,7 @@ import DigitalFootprintScreen from "@/components/brand-brain/screens/DigitalFoot
 import SummaryScreen from "@/components/brand-brain/screens/SummaryScreen";
 import AgentBrandSetup from "@/components/brand-brain/AgentBrandSetup";
 import { useBrands } from "@/hooks/useBrands";
-import { useBrandDrafts, type SocialConnection } from "@/hooks/useBrandDrafts";
+import { useBrandDrafts, type SocialConnection, type AgentDraftState } from "@/hooks/useBrandDrafts";
 
 const getDefaultConnections = (): Record<string, SocialConnection> => ({
   website: { url: "", connected: false },
@@ -33,6 +33,7 @@ const BrandSetup = () => {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [agentInitialState, setAgentInitialState] = useState<AgentDraftState | undefined>();
   
   const [brandData, setBrandData] = useState({
     basics: { name: "", website: "", industry: "", markets: [] as string[], personality: "" },
@@ -48,13 +49,21 @@ const BrandSetup = () => {
       const existingDraft = getDraft(existingDraftId);
       if (existingDraft) {
         setDraftId(existingDraftId);
-        setCurrentStep(existingDraft.currentStep);
-        setMode("manual");
-        setBrandData({
-          basics: existingDraft.basics,
-          files: [],
-          connections: existingDraft.connections,
-        });
+        
+        if (existingDraft.mode === "agent") {
+          // Resume agent flow
+          setMode("agent");
+          setAgentInitialState(existingDraft.agentState);
+        } else {
+          // Resume manual flow
+          setCurrentStep(existingDraft.currentStep);
+          setMode("manual");
+          setBrandData({
+            basics: existingDraft.basics,
+            files: [],
+            connections: existingDraft.connections,
+          });
+        }
       } else {
         window.history.replaceState(null, "", "/brand-setup");
       }
@@ -76,11 +85,15 @@ const BrandSetup = () => {
   const totalSteps = 4;
 
   const handleStartAgent = () => {
+    const newDraft = createDraft("agent");
+    setDraftId(newDraft.id);
+    setAgentInitialState(newDraft.agentState);
     setMode("agent");
+    window.history.replaceState(null, "", `/brand-setup?draft=${newDraft.id}`);
   };
 
   const handleStartManual = () => {
-    const newDraft = createDraft();
+    const newDraft = createDraft("manual");
     setDraftId(newDraft.id);
     setCurrentStep(1);
     setMode("manual");
@@ -128,8 +141,25 @@ const BrandSetup = () => {
   };
 
   const handleAgentCancel = () => {
+    if (draftId) {
+      deleteDraft(draftId);
+    }
     setMode("welcome");
+    setDraftId(null);
+    setAgentInitialState(undefined);
+    window.history.replaceState(null, "", "/brand-setup");
   };
+
+  const handleAgentSaveAndExit = () => {
+    toast.success("Draft saved! You can resume anytime.");
+    navigate("/");
+  };
+
+  const handleAgentStateChange = useCallback((state: AgentDraftState) => {
+    if (draftId) {
+      updateDraft(draftId, { agentState: state });
+    }
+  }, [draftId, updateDraft]);
 
   const handleFinish = async () => {
     if (!brandData.basics.name.trim()) {
@@ -232,6 +262,9 @@ const BrandSetup = () => {
       <AgentBrandSetup
         onComplete={handleAgentComplete}
         onCancel={handleAgentCancel}
+        onSaveAndExit={handleAgentSaveAndExit}
+        initialState={agentInitialState}
+        onStateChange={handleAgentStateChange}
       />
     );
   }

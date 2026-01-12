@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cat, Globe, Loader2, Check, Edit2, Sparkles } from "lucide-react";
+import { Cat, Globe, Loader2, Check, Edit2, Sparkles, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import type { AgentDraftState, ExtractedBrandData } from "@/hooks/useBrandDrafts";
 
 interface ExtractedBrandInfo {
   name: string;
@@ -37,6 +38,9 @@ interface AgentBrandSetupProps {
     socialLinks: Record<string, string>;
   }) => void;
   onCancel: () => void;
+  onSaveAndExit: () => void;
+  initialState?: AgentDraftState;
+  onStateChange?: (state: AgentDraftState) => void;
 }
 
 const REVIEW_FIELDS: { key: keyof ExtractedBrandInfo; label: string; emoji: string }[] = [
@@ -52,17 +56,29 @@ const REVIEW_FIELDS: { key: keyof ExtractedBrandInfo; label: string; emoji: stri
 let messageIdCounter = 0;
 const generateMessageId = () => `msg-${Date.now()}-${++messageIdCounter}`;
 
-const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
+const AgentBrandSetup = ({ 
+  onComplete, 
+  onCancel, 
+  onSaveAndExit,
+  initialState,
+  onStateChange,
+}: AgentBrandSetupProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState(initialState?.websiteUrl || "");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractedData, setExtractedData] = useState<ExtractedBrandInfo | null>(null);
-  const [currentReviewIndex, setCurrentReviewIndex] = useState(-1);
+  const [extractedData, setExtractedData] = useState<ExtractedBrandInfo | null>(
+    initialState?.extractedData as ExtractedBrandInfo | null
+  );
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(initialState?.currentReviewIndex ?? -1);
+  const [reviewedFields, setReviewedFields] = useState<string[]>(initialState?.reviewedFields || []);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editingSocialLinks, setEditingSocialLinks] = useState<Record<string, string> | null>(null);
-  const [phase, setPhase] = useState<"url" | "extracting" | "reviewing" | "complete">("url");
+  const [phase, setPhase] = useState<"url" | "extracting" | "reviewing" | "complete">(
+    initialState?.phase || "url"
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -72,12 +88,46 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     scrollToBottom();
   }, [messages]);
 
-  // Initial greeting
+  // Notify parent of state changes for draft saving
   useEffect(() => {
+    if (onStateChange) {
+      onStateChange({
+        websiteUrl,
+        extractedData: extractedData as ExtractedBrandData | null,
+        reviewedFields,
+        currentReviewIndex,
+        phase,
+      });
+    }
+  }, [websiteUrl, extractedData, reviewedFields, currentReviewIndex, phase, onStateChange]);
+
+  // Initial greeting or resume message
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const timer = setTimeout(() => {
-      addAgentMessage(
-        "Hey! I'm KittyKat 🐱 I'll help you set up your brand in just a minute. Drop your website URL below and I'll analyze it to extract your brand info automatically!"
-      );
+      if (initialState?.extractedData && initialState.phase === "reviewing") {
+        // Resuming from saved draft
+        addAgentMessage(
+          `Welcome back! 🐱 Let's continue reviewing your brand info for **${initialState.extractedData.name || "your brand"}**. Picking up where we left off...`
+        );
+        // Resume review from saved index
+        setTimeout(() => {
+          reviewFieldAtIndex(
+            initialState.currentReviewIndex >= 0 ? initialState.currentReviewIndex : 0, 
+            initialState.extractedData as ExtractedBrandInfo
+          );
+        }, 1000);
+      } else if (initialState?.phase === "complete" && initialState.extractedData) {
+        addAgentMessage(
+          `Welcome back! 🐱 Your brand profile for **${initialState.extractedData.name}** is ready to save. Does everything look good?`
+        );
+      } else {
+        addAgentMessage(
+          "Hey! I'm KittyKat 🐱 I'll help you set up your brand in just a minute. Drop your website URL below and I'll analyze it to extract your brand info automatically!"
+        );
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, []);
@@ -205,6 +255,10 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
   };
 
   const handleConfirmField = () => {
+    const currentField = REVIEW_FIELDS[currentReviewIndex]?.key;
+    if (currentField) {
+      setReviewedFields(prev => [...prev, currentField]);
+    }
     const nextIndex = currentReviewIndex + 1;
     setCurrentReviewIndex(nextIndex);
     addUserMessage("✓ Looks good!");
@@ -213,7 +267,6 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
 
   const handleEditField = (field: string) => {
     if (field === "socialLinks") {
-      // For social links, enable editing mode with current values
       setEditingSocialLinks({ ...(extractedData?.socialLinks || {}) });
       setEditingField(field);
     } else {
@@ -225,8 +278,12 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
   const handleSaveEdit = () => {
     if (!editingField || !extractedData) return;
 
+    const currentField = REVIEW_FIELDS[currentReviewIndex]?.key;
+    if (currentField) {
+      setReviewedFields(prev => [...prev, currentField]);
+    }
+
     if (editingField === "socialLinks" && editingSocialLinks) {
-      // Filter out empty links
       const filteredLinks = Object.fromEntries(
         Object.entries(editingSocialLinks).filter(([_, url]) => url.trim())
       );
@@ -288,12 +345,21 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
           <span className="font-semibold text-lg">KittyKat</span>
           <span className="text-sm text-muted-foreground ml-2">Brand Setup</span>
         </div>
-        <button
-          onClick={onCancel}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onSaveAndExit}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Save className="w-4 h-4" />
+            Save & Exit
+          </button>
+          <button
+            onClick={onCancel}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
       </header>
 
       {/* Chat Area */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 export interface SocialConnection {
   url: string;
@@ -13,11 +13,36 @@ export interface BrandDraftBasics {
   personality: string;
 }
 
+export interface ExtractedBrandData {
+  name: string;
+  tagline: string;
+  industry: string;
+  personality: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  socialLinks: Record<string, string>;
+  mission: string;
+  tone: string;
+}
+
+export interface AgentDraftState {
+  websiteUrl: string;
+  extractedData: ExtractedBrandData | null;
+  reviewedFields: string[];
+  currentReviewIndex: number;
+  phase: "url" | "extracting" | "reviewing" | "complete";
+}
+
 export interface BrandDraft {
   id: string;
+  mode: "manual" | "agent";
   currentStep: number;
   basics: BrandDraftBasics;
   connections: Record<string, SocialConnection>;
+  agentState?: AgentDraftState;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,13 +67,20 @@ const getDefaultBasics = (): BrandDraftBasics => ({
   personality: "",
 });
 
+const getDefaultAgentState = (): AgentDraftState => ({
+  websiteUrl: "",
+  extractedData: null,
+  reviewedFields: [],
+  currentReviewIndex: -1,
+  phase: "url",
+});
+
 export const generateDraftId = (): string => {
   return `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
 export const useBrandDrafts = () => {
   const [drafts, setDrafts] = useState<BrandDraft[]>(() => {
-    // Initialize synchronously from localStorage to avoid race conditions
     try {
       const saved = localStorage.getItem(DRAFTS_STORAGE_KEY);
       if (saved) {
@@ -60,19 +92,20 @@ export const useBrandDrafts = () => {
     return [];
   });
 
-  // Save drafts to localStorage whenever they change
   const saveDrafts = useCallback((newDrafts: BrandDraft[]) => {
     setDrafts(newDrafts);
     localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(newDrafts));
   }, []);
 
-  const createDraft = useCallback((): BrandDraft => {
+  const createDraft = useCallback((mode: "manual" | "agent" = "manual"): BrandDraft => {
     const now = new Date().toISOString();
     const newDraft: BrandDraft = {
       id: generateDraftId(),
-      currentStep: 1,
+      mode,
+      currentStep: mode === "manual" ? 1 : 0,
       basics: getDefaultBasics(),
       connections: getDefaultConnections(),
+      agentState: mode === "agent" ? getDefaultAgentState() : undefined,
       createdAt: now,
       updatedAt: now,
     };
