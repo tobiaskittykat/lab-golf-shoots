@@ -83,7 +83,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
           {brands.map((brand) => (
             <DropdownMenuItem
               key={brand.id}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground group"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer focus:bg-secondary focus:text-foreground hover:bg-secondary hover:text-foreground group"
               onClick={() => setCurrentBrand(brand)}
             >
               <Building2 className="w-4 h-4 text-muted-foreground" />
@@ -172,7 +172,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
             {brands.map((brand) => (
               <DropdownMenuItem
                 key={brand.id}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-secondary focus:text-foreground hover:bg-secondary hover:text-foreground group"
                 onClick={() => setCurrentBrand(brand)}
               >
                 <div className="w-7 h-7 rounded-md bg-accent/10 flex items-center justify-center flex-shrink-0">
@@ -254,7 +254,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
           {brands.map((brand) => (
             <DropdownMenuItem
               key={brand.id}
-              className="flex items-center gap-3 cursor-pointer group focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground"
+              className="flex items-center gap-3 cursor-pointer group focus:bg-secondary focus:text-foreground hover:bg-secondary hover:text-foreground"
               onClick={() => setCurrentBrand(brand)}
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white text-sm font-semibold shrink-0">
