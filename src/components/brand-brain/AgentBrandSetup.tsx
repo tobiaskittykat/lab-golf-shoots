@@ -46,6 +46,7 @@ const REVIEW_FIELDS: { key: keyof ExtractedBrandInfo; label: string; emoji: stri
   { key: "personality", label: "Personality", emoji: "✨" },
   { key: "tone", label: "Brand Tone", emoji: "🎯" },
   { key: "mission", label: "Mission", emoji: "🚀" },
+  { key: "socialLinks", label: "Social Profiles", emoji: "🔗" },
 ];
 
 let messageIdCounter = 0;
@@ -161,8 +162,31 @@ const AgentBrandSetup = ({ onComplete, onCancel }: AgentBrandSetupProps) => {
     const field = REVIEW_FIELDS[index];
     const value = data[field.key];
 
+    // Handle socialLinks specially
+    if (field.key === "socialLinks") {
+      const links = value as Record<string, string>;
+      const linkCount = Object.keys(links || {}).length;
+      
+      if (linkCount === 0) {
+        // Skip if no social links found
+        reviewFieldAtIndex(index + 1, data);
+        return;
+      }
+
+      const linksList = Object.entries(links)
+        .map(([platform, url]) => `• **${platform.charAt(0).toUpperCase() + platform.slice(1)}**: ${url}`)
+        .join("\n");
+
+      setCurrentReviewIndex(index);
+      addAgentMessage(
+        `${field.emoji} **${field.label}**: Found ${linkCount} social profile${linkCount > 1 ? 's' : ''}!\n\n${linksList}\n\nLook correct?`,
+        { type: "review", field: field.key, reviewIndex: index }
+      );
+      return;
+    }
+
+    // Skip empty fields or complex objects (colors)
     if (!value || (typeof value === "string" && !value.trim()) || typeof value === "object") {
-      // Skip empty fields or complex objects (colors, socialLinks)
       reviewFieldAtIndex(index + 1, data);
       return;
     }
