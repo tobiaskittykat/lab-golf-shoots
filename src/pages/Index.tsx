@@ -134,7 +134,7 @@ const sidebarContextConfig: Record<ActiveSection, {
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { currentBrand } = useBrands();
+  const { currentBrand, brands, setCurrentBrand } = useBrands();
   const { drafts, deleteDraft } = useBrandDrafts();
   const [prompt, setPrompt] = useState("");
   const [chatMessage, setChatMessage] = useState("");
@@ -437,7 +437,60 @@ const Index = () => {
             <div className="flex-1 flex flex-col justify-center">
               <div className="text-center mb-10 animate-fade-in">
                 <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-                  How can <span className="text-gradient">KittyKat</span> help you today?
+                  How can <span className="text-gradient">KittyKat</span> help you with{" "}
+                  {currentBrand ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="inline-flex items-center gap-1.5 text-accent hover:text-accent/80 transition-colors focus:outline-none">
+                          {currentBrand.name}
+                          <ChevronDown className="w-6 h-6" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-64 bg-popover border border-border shadow-lg z-50">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">Switch brand</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {brands.map((brand) => (
+                          <DropdownMenuItem
+                            key={brand.id}
+                            className="flex items-center gap-3 p-3 cursor-pointer focus:bg-secondary hover:bg-secondary"
+                            onClick={() => setCurrentBrand(brand)}
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                              <Building2 className="w-4 h-4 text-accent" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">{brand.name}</p>
+                              {brand.industry && (
+                                <p className="text-xs text-muted-foreground truncate">{brand.industry}</p>
+                              )}
+                            </div>
+                            {brand.id === currentBrand.id && (
+                              <Check className="w-4 h-4 text-accent" />
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="flex items-center gap-3 p-3 cursor-pointer focus:bg-secondary hover:bg-secondary text-primary"
+                          onClick={() => navigate("/brand-setup")}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-primary" />
+                          </div>
+                          <span className="font-medium">Add new brand</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <button
+                      onClick={() => navigate("/brand-setup")}
+                      className="inline-flex items-center gap-1.5 text-accent hover:text-accent/80 transition-colors"
+                    >
+                      your brand
+                      <Plus className="w-6 h-6" />
+                    </button>
+                  )}
+                  {" "}today?
                 </h1>
                 <p className="text-muted-foreground text-lg">
                   Describe your vision and let us bring it to life
