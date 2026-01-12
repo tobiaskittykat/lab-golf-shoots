@@ -83,7 +83,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
           {brands.map((brand) => (
             <DropdownMenuItem
               key={brand.id}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground group"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer focus:bg-accent/10 focus:text-foreground hover:bg-accent/10 hover:text-foreground group"
               onClick={() => setCurrentBrand(brand)}
             >
               <Building2 className="w-4 h-4 text-muted-foreground" />
@@ -172,7 +172,7 @@ const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) =
             {brands.map((brand) => (
               <DropdownMenuItem
                 key={brand.id}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-muted focus:text-foreground hover:bg-muted hover:text-foreground group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-accent/10 focus:text-foreground hover:bg-accent/10 hover:text-foreground group"
                 onClick={() => setCurrentBrand(brand)}
               >
                 <div className="w-7 h-7 rounded-md bg-accent/10 flex items-center justify-center flex-shrink-0">
