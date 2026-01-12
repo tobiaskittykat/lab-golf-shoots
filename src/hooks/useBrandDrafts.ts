@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export interface SocialConnection {
   url: string;
@@ -79,22 +79,48 @@ export const generateDraftId = (): string => {
   return `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-export const useBrandDrafts = () => {
-  const [drafts, setDrafts] = useState<BrandDraft[]>(() => {
-    try {
-      const saved = localStorage.getItem(DRAFTS_STORAGE_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error("Failed to load drafts:", e);
+const loadDraftsFromStorage = (): BrandDraft[] => {
+  try {
+    const saved = localStorage.getItem(DRAFTS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
     }
-    return [];
-  });
+  } catch (e) {
+    console.error("Failed to load drafts:", e);
+  }
+  return [];
+};
+
+export const useBrandDrafts = () => {
+  const [drafts, setDrafts] = useState<BrandDraft[]>(loadDraftsFromStorage);
+
+  // Sync with localStorage changes from other components/tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === DRAFTS_STORAGE_KEY) {
+        setDrafts(loadDraftsFromStorage());
+      }
+    };
+
+    // Also listen for custom events for same-tab updates
+    const handleCustomStorageChange = () => {
+      setDrafts(loadDraftsFromStorage());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("brandDraftsUpdated", handleCustomStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("brandDraftsUpdated", handleCustomStorageChange);
+    };
+  }, []);
 
   const saveDrafts = useCallback((newDrafts: BrandDraft[]) => {
     setDrafts(newDrafts);
     localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(newDrafts));
+    // Dispatch custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent("brandDraftsUpdated"));
   }, []);
 
   const createDraft = useCallback((mode: "manual" | "agent" = "manual"): BrandDraft => {
