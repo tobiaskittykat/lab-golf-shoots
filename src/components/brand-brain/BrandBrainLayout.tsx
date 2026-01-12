@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Cat, Save } from "lucide-react";
+import { Cat, Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BrandBrainLayoutProps {
@@ -10,6 +10,7 @@ interface BrandBrainLayoutProps {
   onNext: () => void;
   onSkip?: () => void;
   onSaveAndExit?: () => void;
+  onCancel?: () => void;
   nextLabel?: string;
   showBack?: boolean;
   showSkip?: boolean;
@@ -23,6 +24,7 @@ const BrandBrainLayout = ({
   onNext,
   onSkip,
   onSaveAndExit,
+  onCancel,
   nextLabel = "Continue",
   showBack = true,
   showSkip = true,
@@ -61,14 +63,25 @@ const BrandBrainLayout = ({
           <span className="text-sm font-medium text-primary">{progress}%</span>
         </div>
 
-        {/* Save & Exit */}
-        <button 
-          onClick={handleSaveAndExit}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Save className="w-4 h-4" />
-          Save & Exit
-        </button>
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          {onCancel && (
+            <button 
+              onClick={onCancel}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+          )}
+          <button 
+            onClick={handleSaveAndExit}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Save className="w-4 h-4" />
+            Save & Exit
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}

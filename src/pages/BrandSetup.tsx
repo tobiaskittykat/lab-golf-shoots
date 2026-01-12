@@ -208,6 +208,13 @@ const BrandSetup = () => {
   
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
   const handleSkip = () => handleNext();
+  
+  const handleManualCancel = () => {
+    if (draftId) {
+      deleteDraft(draftId);
+    }
+    navigate("/");
+  };
 
   const handleSocialLinksFound = useCallback((links: Record<string, string>) => {
     setBrandData(prev => {
@@ -300,6 +307,7 @@ const BrandSetup = () => {
       onBack={handleBack}
       onNext={handleNext}
       onSkip={handleSkip}
+      onCancel={handleManualCancel}
       nextLabel={currentStep === totalSteps ? (isSaving ? "Saving..." : "Finish") : "Continue"}
       showBack={currentStep > 1}
       showSkip={currentStep < 4}
