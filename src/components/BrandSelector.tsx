@@ -1,4 +1,4 @@
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Building2, Check, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBrands } from "@/hooks/useBrands";
 import {
@@ -8,11 +8,82 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-const BrandSelector = () => {
+interface BrandSelectorProps {
+  variant?: "default" | "inline";
+  className?: string;
+}
+
+const BrandSelector = ({ variant = "default", className }: BrandSelectorProps) => {
   const navigate = useNavigate();
   const { brands, currentBrand, setCurrentBrand, isLoading } = useBrands();
 
+  // Inline variant for use in headings
+  if (variant === "inline") {
+    if (!currentBrand) {
+      return (
+        <button
+          onClick={() => navigate("/brand-setup")}
+          className={cn(
+            "inline-flex items-center gap-1 border-b-2 border-dashed border-accent/50 hover:border-accent text-accent transition-all",
+            className
+          )}
+        >
+          your brand
+          <Plus className="w-5 h-5" />
+        </button>
+      );
+    }
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className={cn(
+              "inline-flex items-center gap-1 border-b-2 border-accent/40 hover:border-accent text-accent transition-all focus:outline-none group",
+              className
+            )}
+          >
+            <span>{currentBrand.name}</span>
+            <ChevronDown className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="center" 
+          className="w-56 bg-popover border border-border shadow-xl z-50 rounded-xl p-1"
+        >
+          {brands.map((brand) => (
+            <DropdownMenuItem
+              key={brand.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-secondary hover:bg-secondary"
+              onClick={() => setCurrentBrand(brand)}
+            >
+              <div className="w-7 h-7 rounded-md bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-accent" />
+              </div>
+              <span className="flex-1 font-medium truncate text-base">{brand.name}</span>
+              {brand.id === currentBrand.id && (
+                <Check className="w-4 h-4 text-accent flex-shrink-0" />
+              )}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator className="my-1" />
+          <DropdownMenuItem
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 hover:bg-primary/10 text-primary"
+            onClick={() => navigate("/brand-setup")}
+          >
+            <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Plus className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-medium text-base">Add new brand</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // Default variant (button style)
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 animate-pulse">
@@ -33,7 +104,7 @@ const BrandSelector = () => {
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-64 bg-popover border border-border shadow-lg z-50">
         {brands.map((brand) => (
           <DropdownMenuItem
             key={brand.id}
