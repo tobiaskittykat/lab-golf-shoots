@@ -150,10 +150,7 @@ const BrandSetup = () => {
     if (draftId) {
       deleteDraft(draftId);
     }
-    setMode("welcome");
-    setDraftId(null);
-    setAgentInitialState(undefined);
-    window.history.replaceState(null, "", "/brand-setup");
+    navigate("/");
   };
 
   const handleAgentSaveAndExit = () => {
