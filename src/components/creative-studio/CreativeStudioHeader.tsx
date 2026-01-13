@@ -1,4 +1,4 @@
-import { RefreshCw, Send, Package, Users, Megaphone, Share2, Palette, FolderOpen, Image, Video, UserCircle } from "lucide-react";
+import { RefreshCw, Package, Users, Megaphone, Share2, Palette, FolderOpen, Image, Video, UserCircle } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -149,21 +149,15 @@ export const CreativeStudioHeader = ({
         </Select>
       </div>
 
-      {/* Brief Input with embedded Send button */}
-      <div className="w-full relative">
+      {/* Brief Input */}
+      <div className="w-full">
         <input
           type="text"
           value={state.prompt}
           onChange={(e) => onUpdate({ prompt: e.target.value })}
           placeholder="Enter your creative brief..."
-          className="command-input pr-16"
+          className="command-input"
         />
-        <button
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl bg-accent text-accent-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
-          title="Generate"
-        >
-          <Send className="w-5 h-5" />
-        </button>
       </div>
 
       {/* Regenerate button when showing */}

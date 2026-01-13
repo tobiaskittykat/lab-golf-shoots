@@ -153,8 +153,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                       boxShadow: state.prompt.trim() ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                     }}
                   >
-                    Continue
-                    <ArrowRight className="w-5 h-5" />
+                    <Sparkles className="w-5 h-5" />
+                    Generate visual ideas
                   </button>
                 </>
               ) : (

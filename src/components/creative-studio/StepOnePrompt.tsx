@@ -71,7 +71,8 @@ export const StepOnePrompt = ({ state, onUpdate }: StepOnePromptProps) => {
 
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-6 pt-8">
-      {/* Example Briefs Section */}
+      {/* Example Briefs Section - only show when prompt is empty */}
+      {!state.prompt.trim() && (
       <div className="w-full space-y-5">
         {/* Section Header */}
         <div className="flex items-center gap-4">
@@ -110,6 +111,7 @@ export const StepOnePrompt = ({ state, onUpdate }: StepOnePromptProps) => {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };
