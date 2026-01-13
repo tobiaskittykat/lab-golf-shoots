@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
@@ -19,8 +19,19 @@ import {
   Upload,
   Globe,
   Link2,
-  FileText
+  FileText,
+  Instagram,
+  Youtube,
+  Check,
+  X
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useBrands } from "@/hooks/useBrands";
 import BrandSelector from "@/components/BrandSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,11 +109,61 @@ interface BrandSectionProps {
   brandRef: React.RefObject<HTMLDivElement | null>;
 }
 
+// Platform icons mapping
+const platformIcons: Record<string, React.ReactNode> = {
+  website: <Globe className="w-4 h-4" />,
+  instagram: <Instagram className="w-4 h-4" />,
+  pinterest: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0a12 12 0 0 0-4.37 23.17c-.1-.94-.2-2.38.04-3.4.22-.93 1.4-5.93 1.4-5.93s-.36-.71-.36-1.77c0-1.66.96-2.9 2.16-2.9 1.02 0 1.51.77 1.51 1.7 0 1.03-.66 2.57-.99 4-.28 1.18.6 2.15 1.77 2.15 2.12 0 3.75-2.24 3.75-5.47 0-2.86-2.05-4.86-4.98-4.86-3.39 0-5.38 2.54-5.38 5.17 0 1.02.4 2.12.89 2.72a.36.36 0 0 1 .08.34c-.09.38-.29 1.19-.33 1.36-.05.22-.18.27-.4.16-1.49-.69-2.42-2.87-2.42-4.62 0-3.76 2.73-7.22 7.88-7.22 4.14 0 7.35 2.95 7.35 6.88 0 4.11-2.59 7.42-6.18 7.42-1.21 0-2.34-.63-2.73-1.37l-.74 2.82c-.27 1.04-1 2.35-1.49 3.14A12 12 0 1 0 12 0z"/></svg>,
+  youtube: <Youtube className="w-4 h-4" />,
+  facebook: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>,
+  linkedin: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>,
+  twitter: <X className="w-4 h-4" />,
+  tiktok: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>,
+};
+
 const BrandSection = ({ brandRef }: BrandSectionProps) => {
   const navigate = useNavigate();
   const { currentBrand, updateBrand } = useBrands();
   const [activeTab, setActiveTab] = useState("overview");
   const [isOpen, setIsOpen] = useState(true);
+  
+  // Sources tab state
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [imageCount, setImageCount] = useState("10");
+
+  // Get connected sources from brand's social_connections
+  const connectedSources = useMemo(() => {
+    const connections = currentBrand?.social_connections as Record<string, { url?: string; connected?: boolean }> | null;
+    if (!connections) return [];
+    
+    return Object.entries(connections)
+      .filter(([_, data]) => data?.url && data?.connected)
+      .map(([platform, data]) => ({
+        id: platform,
+        label: platform.charAt(0).toUpperCase() + platform.slice(1),
+        url: data.url!,
+        icon: platformIcons[platform] || <Globe className="w-4 h-4" />,
+      }));
+  }, [currentBrand?.social_connections]);
+
+  const handleSourceSelect = (sourceId: string, url: string) => {
+    if (selectedSource === sourceId) {
+      setSelectedSource(null);
+      setScrapeUrl("");
+    } else {
+      setSelectedSource(sourceId);
+      setScrapeUrl(url);
+    }
+  };
+
+  const handleScrape = () => {
+    if (!scrapeUrl) {
+      toast.error("Please enter a URL to scrape");
+      return;
+    }
+    toast.success(`Scraping ${imageCount} images from ${scrapeUrl}...`);
+  };
 
   const handleUpdateField = async (field: string, value: any) => {
     if (!currentBrand) return;
@@ -387,29 +448,90 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                 </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* URL Input */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border">
                   <Link2 className="w-5 h-5 text-muted-foreground" />
                   <input 
                     type="url" 
-                    placeholder="Enter website URL to scrape..."
+                    value={scrapeUrl}
+                    onChange={(e) => {
+                      setScrapeUrl(e.target.value);
+                      setSelectedSource(null);
+                    }}
+                    placeholder="Enter website URL or select below..."
                     className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
-                  <button className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90 transition-colors">
+                  {scrapeUrl && (
+                    <button 
+                      onClick={() => {
+                        setScrapeUrl("");
+                        setSelectedSource(null);
+                      }}
+                      className="p-1 rounded hover:bg-secondary transition-colors"
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Connected Sources Chips */}
+                {connectedSources.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Quick select from connected sources:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {connectedSources.map((source) => (
+                        <button
+                          key={source.id}
+                          onClick={() => handleSourceSelect(source.id, source.url)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm ${
+                            selectedSource === source.id
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary/50 border-border hover:bg-secondary text-foreground"
+                          }`}
+                        >
+                          {source.icon}
+                          <span>{source.label}</span>
+                          {selectedSource === source.id && (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {connectedSources.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">
+                    No connected sources yet. Connect your social accounts in Brand Setup to quickly scrape from them.
+                  </p>
+                )}
+
+                {/* Image Count & Scrape Button */}
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Images:</span>
+                    <Select value={imageCount} onValueChange={setImageCount}>
+                      <SelectTrigger className="w-24 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <button 
+                    onClick={handleScrape}
+                    disabled={!scrapeUrl}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className="w-4 h-4" />
                     Scrape
                   </button>
-                </div>
-                
-                <div className="grid md:grid-cols-4 gap-3">
-                  {["Instagram", "Facebook", "LinkedIn", "X (Twitter)"].map((platform) => (
-                    <button 
-                      key={platform}
-                      className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-border hover:bg-secondary/50 transition-colors text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      <Plus className="w-4 h-4" />
-                      {platform}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
