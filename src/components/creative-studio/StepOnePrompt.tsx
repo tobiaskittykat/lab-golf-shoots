@@ -176,8 +176,8 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
         disabled={!canContinue}
         className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground font-semibold text-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/25"
       >
+        Continue
         <Sparkles className="w-5 h-5" />
-        Generate Concepts
       </button>
     </div>
   );
