@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { 
-  ArrowLeft, 
   Sparkles, 
   ImageIcon, 
   Type, 
@@ -40,8 +39,6 @@ import {
 interface StepTwoCustomizeProps {
   state: CreativeStudioState;
   onUpdate: (updates: Partial<CreativeStudioState>) => void;
-  onBack: () => void;
-  onGenerate: () => void;
 }
 
 // Sample moodboards for selection
@@ -54,7 +51,7 @@ const moodboardOptions = [
   { id: 'natural', label: 'Natural', thumbnail: '🌿' },
 ];
 
-export const StepTwoCustomize = ({ state, onUpdate, onBack, onGenerate }: StepTwoCustomizeProps) => {
+export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => {
   const [newKeyword, setNewKeyword] = useState('');
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>('minimal');
 
@@ -475,29 +472,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onBack, onGenerate }: StepTw
         </CustomizationSection>
       </div>
 
-      {/* Sticky Footer */}
-      <div className="sticky bottom-0 -mx-6 -mb-6 p-4 bg-card border-t border-border flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-
-        <span className="text-sm text-muted-foreground">
-          {state.selectedConcept ? '1 concept selected' : 'No concept selected'}
-        </span>
-
-        <button
-          onClick={onGenerate}
-          disabled={state.isGenerating}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-all disabled:opacity-50"
-        >
-          <Sparkles className="w-5 h-5" />
-          Generate ({tokenEstimate.toLocaleString()} tokens)
-        </button>
-      </div>
+      {/* Footer is now in parent CreativeStudioWizard */}
     </div>
   );
 };

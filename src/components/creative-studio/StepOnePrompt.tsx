@@ -1,11 +1,10 @@
-import { Shuffle, Plus, ArrowRight } from "lucide-react";
+import { Shuffle, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CreativeStudioState } from "./types";
 
 interface StepOnePromptProps {
   state: CreativeStudioState;
   onUpdate: (updates: Partial<CreativeStudioState>) => void;
-  onContinue: () => void;
 }
 
 // Example briefs organized by type
@@ -50,7 +49,7 @@ const getRandomBriefs = (typeId: string, count: number = 6): string[] => {
   return shuffled.slice(0, count);
 };
 
-export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProps) => {
+export const StepOnePrompt = ({ state, onUpdate }: StepOnePromptProps) => {
   const [displayedBriefs, setDisplayedBriefs] = useState<string[]>([]);
 
   // Initialize and update briefs when type changes
@@ -68,7 +67,7 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
     onUpdate({ prompt: brief });
   };
 
-  const canContinue = state.prompt.trim().length > 0;
+  
 
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-6 pt-6">
@@ -109,15 +108,7 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
         </div>
       </div>
 
-      {/* Centered Continue Button */}
-      <button
-        onClick={onContinue}
-        disabled={!canContinue}
-        className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground font-semibold text-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/25"
-      >
-        Continue
-        <ArrowRight className="w-5 h-5" />
-      </button>
+      {/* Footer is now in parent CreativeStudioWizard */}
     </div>
   );
 };
