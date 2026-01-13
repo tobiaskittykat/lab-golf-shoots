@@ -147,7 +147,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 </div>
               </div>
             ) : (
-              <div className="glass-card p-6 flex flex-col max-h-[calc(100vh-280px)] min-h-[500px]">
+              <div className="glass-card p-6 relative">
                 <CreativeStudioHeader
                   state={state}
                   onUpdate={handleUpdate}
@@ -155,17 +155,17 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   showRegenerate={true}
                 />
                 
-                {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto -mx-6 px-6 mt-4">
+                {/* Content with bottom padding for sticky footer */}
+                <div className="pb-24">
                   <StepTwoCustomize
                     state={state}
                     onUpdate={handleUpdate}
                   />
                 </div>
 
-                {/* Fixed Footer - Always visible at bottom of card */}
-                <div className="mt-4 pt-4 border-t border-border -mx-6 px-6 bg-card rounded-b-2xl flex-shrink-0">
-                  <div className="flex items-center justify-between pb-2">
+                {/* Sticky Footer - sticks within card boundaries */}
+                <div className="sticky bottom-0 -mx-6 px-6 py-4 bg-card/95 backdrop-blur-sm border-t border-border rounded-b-2xl z-10">
+                  <div className="flex items-center justify-between">
                     <button
                       onClick={handleBack}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
