@@ -131,6 +131,11 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [imageCount, setImageCount] = useState("10");
+  const [addingPlatform, setAddingPlatform] = useState<string | null>(null);
+  const [newPlatformUrl, setNewPlatformUrl] = useState("");
+
+  // All available platforms
+  const allPlatforms = ["website", "instagram", "pinterest", "youtube", "facebook", "linkedin", "twitter", "tiktok"];
 
   // Get connected sources from brand's social_connections
   const connectedSources = useMemo(() => {
@@ -147,6 +152,18 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
       }));
   }, [currentBrand?.social_connections]);
 
+  // Get platforms that are not yet connected
+  const availablePlatforms = useMemo(() => {
+    const connectedIds = connectedSources.map(s => s.id);
+    return allPlatforms
+      .filter(p => !connectedIds.includes(p))
+      .map(platform => ({
+        id: platform,
+        label: platform.charAt(0).toUpperCase() + platform.slice(1),
+        icon: platformIcons[platform] || <Globe className="w-4 h-4" />,
+      }));
+  }, [connectedSources]);
+
   const handleSourceSelect = (sourceId: string, url: string) => {
     if (selectedSource === sourceId) {
       setSelectedSource(null);
@@ -154,6 +171,25 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
     } else {
       setSelectedSource(sourceId);
       setScrapeUrl(url);
+    }
+  };
+
+  const handleAddPlatform = async (platformId: string) => {
+    if (!newPlatformUrl || !currentBrand) return;
+    
+    const connections = (currentBrand.social_connections as Record<string, any>) || {};
+    const updatedConnections = {
+      ...connections,
+      [platformId]: { url: newPlatformUrl, connected: true }
+    };
+    
+    const { error } = await updateBrand(currentBrand.id, { social_connections: updatedConnections });
+    if (error) {
+      toast.error("Failed to add: " + error.message);
+    } else {
+      toast.success(`${platformId.charAt(0).toUpperCase() + platformId.slice(1)} connected!`);
+      setAddingPlatform(null);
+      setNewPlatformUrl("");
     }
   };
 
@@ -501,10 +537,62 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                   </div>
                 )}
 
-                {connectedSources.length === 0 && (
-                  <p className="text-sm text-muted-foreground italic">
-                    No connected sources yet. Connect your social accounts in Brand Setup to quickly scrape from them.
-                  </p>
+                {/* Add New Sources */}
+                {availablePlatforms.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Add a source:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availablePlatforms.map((platform) => (
+                        <div key={platform.id}>
+                          {addingPlatform === platform.id ? (
+                            <div className="flex items-center gap-2 p-2 rounded-lg border border-primary bg-secondary/50">
+                              {platform.icon}
+                              <input
+                                type="url"
+                                value={newPlatformUrl}
+                                onChange={(e) => setNewPlatformUrl(e.target.value)}
+                                placeholder={`Enter ${platform.label} URL...`}
+                                className="flex-1 min-w-48 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleAddPlatform(platform.id);
+                                  if (e.key === "Escape") {
+                                    setAddingPlatform(null);
+                                    setNewPlatformUrl("");
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => handleAddPlatform(platform.id)}
+                                disabled={!newPlatformUrl}
+                                className="p-1 rounded hover:bg-primary/20 transition-colors disabled:opacity-50"
+                              >
+                                <Check className="w-4 h-4 text-primary" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setAddingPlatform(null);
+                                  setNewPlatformUrl("");
+                                }}
+                                className="p-1 rounded hover:bg-secondary transition-colors"
+                              >
+                                <X className="w-4 h-4 text-muted-foreground" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setAddingPlatform(platform.id)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:bg-secondary/50 transition-colors text-sm text-muted-foreground hover:text-foreground"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              {platform.icon}
+                              <span>{platform.label}</span>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {/* Image Count & Scrape Button */}
