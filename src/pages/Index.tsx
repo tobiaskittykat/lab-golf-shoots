@@ -7,6 +7,7 @@ import { useBrands } from "@/hooks/useBrands";
 import { useBrandDrafts } from "@/hooks/useBrandDrafts";
 import BrandSelector from "@/components/BrandSelector";
 import BrandSection from "@/components/brand/BrandSection";
+import { CreativeStudioWizard } from "@/components/creative-studio/CreativeStudioWizard";
 import { 
   Image, 
   Megaphone, 
@@ -161,12 +162,6 @@ const Index = () => {
 
   // Campaign state
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
-
-  // Image generation state
-  const [imagePrompt, setImagePrompt] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [imageCount, setImageCount] = useState("1x");
-  const [generationMode, setGenerationMode] = useState<"image" | "edit" | "video">("image");
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Track scroll position to update active section and back to top button
@@ -750,180 +745,13 @@ const Index = () => {
             </div>
           </section>
 
-          {/* Image Generation Section */}
-          <section ref={imageRef} className="px-8 py-16 border-t border-border bg-secondary/20">
-            <div className="max-w-5xl mx-auto">
-              <Collapsible open={isImageOpen} onOpenChange={setIsImageOpen}>
-                <div className="flex items-center gap-3 mb-6">
-                  <CollapsibleTrigger asChild>
-                    <button 
-                      className="w-8 h-8 rounded-lg border border-border bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors"
-                      title={isImageOpen ? "Collapse section" : "Expand section"}
-                    >
-                      {isImageOpen ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </button>
-                  </CollapsibleTrigger>
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-                    <Image className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Visual Media</p>
-                    <h2 className="font-display text-2xl font-bold">Creative Studio</h2>
-                  </div>
-                </div>
-
-                <CollapsibleContent>
-                  <div className="glass-card p-6">
-                    <div className="flex flex-col gap-4">
-                      {/* Top row - Icons aligned with prompt */}
-                      <div className="flex items-start gap-4">
-                        {/* Mode toggles column */}
-                        <div className="flex flex-col gap-2">
-                          <button 
-                            onClick={() => setGenerationMode("image")}
-                            className={`p-2 rounded-lg transition-colors ${
-                              generationMode === "image" 
-                                ? "text-accent" 
-                                : "hover:bg-secondary text-foreground"
-                            }`}
-                            title="Image Generation"
-                          >
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                              <circle cx="8.5" cy="8.5" r="1.5" />
-                              <polyline points="21 15 16 10 5 21" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => setGenerationMode("edit")}
-                            className={`p-2 rounded-lg transition-colors ${
-                              generationMode === "edit" 
-                                ? "text-accent" 
-                                : "hover:bg-secondary text-foreground"
-                            }`}
-                            title="Image Editing"
-                          >
-                            <PenTool className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={() => setGenerationMode("video")}
-                            className={`p-2 rounded-lg transition-colors ${
-                              generationMode === "video" 
-                                ? "text-accent" 
-                                : "hover:bg-secondary text-foreground"
-                            }`}
-                            title="Video Generation"
-                          >
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="2" y="4" width="6" height="16" rx="1" />
-                              <rect x="9" y="4" width="6" height="16" rx="1" />
-                              <rect x="16" y="4" width="6" height="16" rx="1" />
-                            </svg>
-                          </button>
-                        </div>
-
-                        {/* Prompt Input - aligned with first icon */}
-                        <div className="flex-1 pt-1">
-                          <input
-                            type="text"
-                            value={imagePrompt}
-                            onChange={(e) => setImagePrompt(e.target.value)}
-                            placeholder="Describe what you want to see ..."
-                            className="w-full bg-transparent border-none focus:outline-none text-foreground placeholder:text-muted-foreground"
-                          />
-                        </div>
-
-                        {/* Lock and Bin icons - aligned with prompt */}
-                        <div className="flex items-center gap-2">
-                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                            </svg>
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M3 6h18" />
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Controls Row */}
-                      <div className="flex items-center gap-3">
-                        {/* Left controls */}
-                        <div className="flex items-center gap-2">
-                          <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                              <circle cx="8.5" cy="8.5" r="1.5" />
-                              <polyline points="21 15 16 10 5 21" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => setAspectRatio("1:1")}
-                            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                              aspectRatio === "1:1"
-                                ? "border-accent bg-accent/5 text-accent"
-                                : "border-border hover:bg-secondary"
-                            }`}
-                          >
-                            1:1
-                          </button>
-                          <button 
-                            onClick={() => setImageCount("1x")}
-                            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                              imageCount === "1x"
-                                ? "border-accent bg-accent/5 text-accent"
-                                : "border-border hover:bg-secondary"
-                            }`}
-                          >
-                            1x
-                          </button>
-                          <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
-                            <Settings2 className="w-5 h-5" />
-                          </button>
-                        </div>
-
-                        {/* Right controls */}
-                        <div className="ml-auto flex items-center gap-3">
-                          <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:bg-secondary transition-colors text-sm">
-                            <span>🌐</span>
-                            <span>GPT Image 1</span>
-                            <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="m6 9 6 6 6-6"/>
-                            </svg>
-                          </button>
-                          <button className="p-2 rounded-lg border border-border hover:bg-secondary transition-colors">
-                            <Wand2 className="w-5 h-5" />
-                          </button>
-                          <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-all">
-                            Generate (1,700 tokens)
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Image Grid */}
-                      <div className="grid grid-cols-3 gap-1">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div 
-                            key={i}
-                            className={`bg-secondary/50 border-r border-b border-border ${i <= 3 ? 'aspect-[4/3]' : 'aspect-[4/2]'}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-          </section>
+          {/* Creative Studio - New Gamma-Inspired Wizard */}
+          <div ref={imageRef}>
+            <CreativeStudioWizard 
+              isOpen={isImageOpen} 
+              onOpenChange={setIsImageOpen}
+            />
+          </div>
         </main>
 
         {/* Right Chat Sidebar - Context Aware */}
