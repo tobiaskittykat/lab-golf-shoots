@@ -115,82 +115,84 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           </div>
 
           <CollapsibleContent>
-            <div className="glass-card p-6">
-              {/* Header */}
-              <CreativeStudioHeader
-                state={state}
-                onUpdate={handleUpdate}
-                onRegenerate={handleContinue}
-                showRegenerate={state.step === 2}
-              />
-
-              {/* Step content */}
-              {state.step === 1 ? (
-                <>
-                  <StepOnePrompt 
-                    state={state} 
+            {state.step === 1 ? (
+              <div className="glass-card p-6">
+                <CreativeStudioHeader
+                  state={state}
+                  onUpdate={handleUpdate}
+                  onRegenerate={handleContinue}
+                  showRegenerate={false}
+                />
+                <StepOnePrompt 
+                  state={state} 
+                  onUpdate={handleUpdate}
+                />
+                
+                {/* Step 1 Footer */}
+                <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {state.prompt ? '✨ Ready to generate concepts' : 'Enter a brief to continue'}
+                  </div>
+                  <button
+                    onClick={handleContinue}
+                    disabled={!state.prompt.trim()}
+                    className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
+                    style={{
+                      boxShadow: state.prompt.trim() ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    Create Concepts
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="glass-card p-6 flex flex-col max-h-[calc(100vh-280px)] min-h-[500px]">
+                <CreativeStudioHeader
+                  state={state}
+                  onUpdate={handleUpdate}
+                  onRegenerate={handleContinue}
+                  showRegenerate={true}
+                />
+                
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto -mx-6 px-6 mt-4">
+                  <StepTwoCustomize
+                    state={state}
                     onUpdate={handleUpdate}
                   />
-                  
-                  {/* Step 1 Footer */}
-                  <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      {state.prompt ? '✨ Ready to generate concepts' : 'Enter a brief to continue'}
-                    </div>
+                </div>
+
+                {/* Fixed Footer - Always visible at bottom of card */}
+                <div className="mt-4 pt-4 border-t border-border -mx-6 px-6 bg-card rounded-b-2xl flex-shrink-0">
+                  <div className="flex items-center justify-between pb-2">
                     <button
-                      onClick={handleContinue}
-                      disabled={!state.prompt.trim()}
+                      onClick={handleBack}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back
+                    </button>
+                    
+                    <span className="text-sm text-muted-foreground">
+                      {state.selectedConcept ? '✓ 1 concept selected' : 'No concept selected'}
+                    </span>
+                    
+                    <button
+                      onClick={handleGenerate}
+                      disabled={state.isGenerating}
                       className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
                       style={{
-                        boxShadow: state.prompt.trim() ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
+                        boxShadow: !state.isGenerating ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                       }}
                     >
                       <Sparkles className="w-5 h-5" />
-                      Create Concepts
+                      Generate ({(1700 + (state.imageCount - 1) * 400).toLocaleString()} tokens)
                     </button>
                   </div>
-                </>
-              ) : (
-                <>
-                  {/* Step 2 content with padding for sticky footer */}
-                  <div className="pb-24">
-                    <StepTwoCustomize
-                      state={state}
-                      onUpdate={handleUpdate}
-                    />
-                  </div>
-                  
-                  {/* Sticky Footer - Inside the card, sticks to bottom while scrolling */}
-                  <div className="sticky bottom-0 z-10 -mx-6 px-6 py-4 bg-card/95 backdrop-blur-lg border-t border-border rounded-b-2xl">
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={handleBack}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        Back
-                      </button>
-                      
-                      <span className="text-sm text-muted-foreground">
-                        {state.selectedConcept ? '✓ 1 concept selected' : 'No concept selected'}
-                      </span>
-                      
-                      <button
-                        onClick={handleGenerate}
-                        disabled={state.isGenerating}
-                        className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
-                        style={{
-                          boxShadow: !state.isGenerating ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
-                        }}
-                      >
-                        <Sparkles className="w-5 h-5" />
-                        Generate ({(1700 + (state.imageCount - 1) * 400).toLocaleString()} tokens)
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </CollapsibleContent>
         </Collapsible>
       </div>
