@@ -46,7 +46,7 @@ export const CreativeStudioHeader = ({
           Create <span className="text-gradient">stunning visuals</span>
         </h1>
         <p className="text-muted-foreground text-lg">
-          Describe your vision and we'll bring it to life
+          Share your brief and let's bring it to life together
         </p>
       </div>
 
