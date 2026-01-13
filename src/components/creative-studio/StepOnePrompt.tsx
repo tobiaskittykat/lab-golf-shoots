@@ -1,4 +1,4 @@
-import { RefreshCw, Sparkles, Image, Video } from "lucide-react";
+import { RefreshCw, Sparkles, Image, Video, ArrowRight } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -170,14 +170,14 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
         </button>
       </div>
 
-      {/* Centered Generate Button */}
+      {/* Centered Continue Button */}
       <button
         onClick={onContinue}
         disabled={!canContinue}
         className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-accent text-accent-foreground font-semibold text-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-accent/25"
       >
         Continue
-        <Sparkles className="w-5 h-5" />
+        <ArrowRight className="w-5 h-5" />
       </button>
     </div>
   );
