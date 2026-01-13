@@ -38,18 +38,15 @@ export const CreativeStudioHeader = ({
     });
   };
 
-  const displayBrandName = currentBrand?.name || brands.find(b => b.id === state.selectedBrand)?.name || "your brand";
-
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-8">
-      {/* Conversational Header matching Landing Page */}
+      {/* Visual-focused Header */}
       <div className="text-center space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-          How can <span className="text-gradient">KittyKat</span> help you with{" "}
-          <span className="text-gradient">{displayBrandName}</span> today?
+          Create <span className="text-gradient">stunning visuals</span>
         </h1>
         <p className="text-muted-foreground text-lg">
-          Describe your vision and let us bring it to life
+          Describe your vision and we'll bring it to life
         </p>
       </div>
 
