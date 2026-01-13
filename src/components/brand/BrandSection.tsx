@@ -15,7 +15,11 @@ import {
   Camera,
   Users,
   Target,
-  Eye
+  Eye,
+  Upload,
+  Globe,
+  Link2,
+  FileText
 } from "lucide-react";
 import { useBrands } from "@/hooks/useBrands";
 import BrandSelector from "@/components/BrandSelector";
@@ -160,7 +164,7 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                 </TabsTrigger>
                 <TabsTrigger value="identity" className="rounded-lg data-[state=active]:bg-background">
                   <Palette className="w-4 h-4 mr-2" />
-                  Identity
+                  Brand DNA
                 </TabsTrigger>
                 <TabsTrigger value="visual" className="rounded-lg data-[state=active]:bg-background">
                   <Camera className="w-4 h-4 mr-2" />
@@ -169,6 +173,10 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                 <TabsTrigger value="audience" className="rounded-lg data-[state=active]:bg-background">
                   <Users className="w-4 h-4 mr-2" />
                   Audience
+                </TabsTrigger>
+                <TabsTrigger value="sources" className="rounded-lg data-[state=active]:bg-background">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Sources
                 </TabsTrigger>
               </TabsList>
 
@@ -201,21 +209,15 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
               </div>
             </div>
 
-            {/* Products & Audience Summary */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="glass-card p-5">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-3">Products</h4>
-                <div className="flex flex-wrap gap-2">
-                  {brandData.products.map((product) => (
-                    <span key={product} className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm">
-                      {product}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="glass-card p-5">
-                <h4 className="text-sm font-semibold text-muted-foreground mb-3">Target Audience</h4>
-                <p className="text-sm text-muted-foreground">{brandData.targetAudience}</p>
+            {/* Products */}
+            <div className="glass-card p-5">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3">Products</h4>
+              <div className="flex flex-wrap gap-2">
+                {brandData.products.map((product) => (
+                  <span key={product} className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-sm">
+                    {product}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -319,6 +321,15 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
 
           {/* Audience Tab */}
           <TabsContent value="audience" className="space-y-6">
+            {/* Target Audience Summary */}
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-4 h-4 text-primary" />
+                <h4 className="text-sm font-semibold text-muted-foreground">Target Audience</h4>
+              </div>
+              <p className="text-muted-foreground">{brandData.targetAudience}</p>
+            </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-lg">Brand Personas</h3>
@@ -361,6 +372,65 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Sources Tab */}
+          <TabsContent value="sources" className="space-y-6">
+            {/* Website & Social Scraping */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Globe className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Website & Social Media</h3>
+                  <p className="text-sm text-muted-foreground">Automatically extract brand info from your online presence</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border">
+                  <Link2 className="w-5 h-5 text-muted-foreground" />
+                  <input 
+                    type="url" 
+                    placeholder="Enter website URL to scrape..."
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  <button className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-90 transition-colors">
+                    Scrape
+                  </button>
+                </div>
+                
+                <div className="grid md:grid-cols-4 gap-3">
+                  {["Instagram", "Facebook", "LinkedIn", "X (Twitter)"].map((platform) => (
+                    <button 
+                      key={platform}
+                      className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-border hover:bg-secondary/50 transition-colors text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {platform}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* File Upload */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">Brand Documents</h3>
+                  <p className="text-sm text-muted-foreground">Upload brand guidelines, style guides, or other documents</p>
+                </div>
+              </div>
+              
+              <div 
+                className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:bg-secondary/30 transition-colors cursor-pointer"
+              >
+                <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium mb-1">Drop files here or click to upload</p>
+                <p className="text-xs text-muted-foreground">PDF, DOCX, images up to 10MB each</p>
+              </div>
             </div>
           </TabsContent>
             </Tabs>
