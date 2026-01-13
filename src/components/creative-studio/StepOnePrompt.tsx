@@ -78,14 +78,14 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
         ))}
       </div>
 
-      {/* Settings Pills Row - Centered */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      {/* Settings Pills Row - Single Row */}
+      <div className="flex items-center justify-center gap-3 flex-nowrap">
         {/* Brand Selector Pill */}
         <Select 
           value={state.selectedBrand || currentBrand?.id || ''} 
           onValueChange={(value) => onUpdate({ selectedBrand: value })}
         >
-          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors">
+          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors w-auto">
             <SelectValue placeholder="Brand" />
           </SelectTrigger>
           <SelectContent>
@@ -99,7 +99,7 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
 
         {/* Campaign Selector Pill */}
         <Select value={state.selectedCampaign || ''} onValueChange={(value) => onUpdate({ selectedCampaign: value })}>
-          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors">
+          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors w-auto">
             <SelectValue placeholder="Campaign" />
           </SelectTrigger>
           <SelectContent>
@@ -110,7 +110,7 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
         </Select>
 
         {/* Media Type Toggle Pill */}
-        <div className="flex items-center rounded-full bg-secondary/50 overflow-hidden">
+        <div className="flex items-center rounded-full bg-secondary/50 overflow-hidden shrink-0">
           <button
             onClick={() => onUpdate({ mediaType: 'image' })}
             className={`flex items-center gap-1.5 px-4 h-9 text-sm font-medium transition-colors ${
@@ -135,19 +135,19 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
           </button>
         </div>
 
-        {/* Number of Images Pill */}
+        {/* Number of Concepts Pill */}
         <Select 
           value={state.imageCount.toString()} 
           onValueChange={(value) => onUpdate({ imageCount: parseInt(value) })}
         >
-          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors">
-            <SelectValue placeholder="# Images" />
+          <SelectTrigger className="h-9 px-4 rounded-full bg-secondary/50 border-0 text-sm font-medium hover:bg-secondary transition-colors w-auto">
+            <SelectValue placeholder="# Concepts" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">1 Image</SelectItem>
-            <SelectItem value="2">2 Images</SelectItem>
-            <SelectItem value="4">4 Images</SelectItem>
-            <SelectItem value="6">6 Images</SelectItem>
+            <SelectItem value="2">2 Concepts</SelectItem>
+            <SelectItem value="3">3 Concepts</SelectItem>
+            <SelectItem value="4">4 Concepts</SelectItem>
+            <SelectItem value="6">6 Concepts</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -158,7 +158,7 @@ export const StepOnePrompt = ({ state, onUpdate, onContinue }: StepOnePromptProp
           type="text"
           value={state.prompt}
           onChange={(e) => onUpdate({ prompt: e.target.value })}
-          placeholder="Describe what you want to create..."
+          placeholder="Enter your creative brief..."
           className="w-full h-14 bg-card border border-border rounded-2xl px-5 pr-14 focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 text-foreground placeholder:text-muted-foreground text-lg"
         />
         <button
