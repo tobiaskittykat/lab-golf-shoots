@@ -73,13 +73,16 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
     setBrands(typedBrands);
 
     // Set current brand to first one if not set
-    if (!currentBrand && typedBrands.length > 0) {
-      setCurrentBrand(typedBrands[0]);
-    }
+    setCurrentBrand(prev => {
+      if (!prev && typedBrands.length > 0) {
+        return typedBrands[0];
+      }
+      return prev;
+    });
 
     setLoadedUserId(user.id);
     setIsLoading(false);
-  }, [user, currentBrand]);
+  }, [user]);
 
   useEffect(() => {
     fetchBrands();
