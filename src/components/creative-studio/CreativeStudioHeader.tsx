@@ -1,4 +1,4 @@
-import { Sparkles, RefreshCw } from "lucide-react";
+import { RefreshCw, Send, Package, Users, Megaphone, Share2, Palette, FolderOpen, Image, Video, UserCircle } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -7,7 +7,14 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useBrands } from "@/hooks/useBrands";
-import { CreativeStudioState, typeCards, targetPersonas } from "./types";
+import { CreativeStudioState, targetPersonas } from "./types";
+
+const typeChips = [
+  { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500' },
+  { id: 'lifestyle', label: 'Lifestyle', icon: Users, colorClass: 'bg-purple-100 text-purple-500' },
+  { id: 'ad', label: 'Ad Creative', icon: Megaphone, colorClass: 'bg-orange-100 text-orange-500' },
+  { id: 'social', label: 'Social Post', icon: Share2, colorClass: 'bg-accent/10 text-accent' },
+];
 
 interface CreativeStudioHeaderProps {
   state: CreativeStudioState;
@@ -24,64 +31,59 @@ export const CreativeStudioHeader = ({
 }: CreativeStudioHeaderProps) => {
   const { brands, currentBrand } = useBrands();
 
-  const handleTypeCardClick = (cardId: string) => {
-    const card = typeCards.find(c => c.id === cardId);
-    if (card) {
-      onUpdate({ 
-        selectedTypeCard: cardId,
-        useCase: cardId as CreativeStudioState['useCase'],
-      });
-    }
+  const handleTypeChipClick = (chipId: string) => {
+    onUpdate({ 
+      selectedTypeCard: chipId,
+      useCase: chipId as CreativeStudioState['useCase'],
+    });
   };
+
+  const displayBrandName = currentBrand?.name || brands.find(b => b.id === state.selectedBrand)?.name || "your brand";
 
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-8">
-      {/* Centered Header with Gradient */}
+      {/* Conversational Header matching Landing Page */}
       <div className="text-center space-y-3">
-        <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
-          <Sparkles className="w-8 h-8 text-accent" />
-          <span className="text-gradient">Create</span>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+          How can <span className="text-gradient">KittyKat</span> help you with{" "}
+          <span className="text-gradient">{displayBrandName}</span> today?
         </h1>
         <p className="text-muted-foreground text-lg">
-          What would you like to create today?
+          Describe your vision and let us bring it to life
         </p>
       </div>
 
-      {/* Type Cards - KittyKat styled */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-        {typeCards.map((card) => (
-          <button
-            key={card.id}
-            onClick={() => handleTypeCardClick(card.id)}
-            className={`group flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-300 ${
-              state.selectedTypeCard === card.id
-                ? 'border-accent bg-accent/10 shadow-lg'
-                : 'border-border bg-card hover:border-accent/40 hover:shadow-md'
-            }`}
-            style={{
-              boxShadow: state.selectedTypeCard === card.id 
-                ? '0 8px 32px rgba(107, 124, 255, 0.2)' 
-                : undefined
-            }}
-          >
-            <span className="text-4xl mb-3 transition-transform duration-300 group-hover:scale-110">{card.icon}</span>
-            <span className={`font-medium transition-colors ${
-              state.selectedTypeCard === card.id ? 'text-accent' : 'text-foreground group-hover:text-accent'
-            }`}>
-              {card.label}
-            </span>
-          </button>
-        ))}
+      {/* Type Chips - Horizontal pills with colored icons */}
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        {typeChips.map((chip) => {
+          const Icon = chip.icon;
+          const isSelected = state.selectedTypeCard === chip.id;
+          return (
+            <button
+              key={chip.id}
+              onClick={() => handleTypeChipClick(chip.id)}
+              className={`action-chip ${isSelected ? 'border-accent bg-accent/10 text-accent' : ''}`}
+            >
+              <span className={`w-6 h-6 rounded-full flex items-center justify-center ${chip.colorClass}`}>
+                <Icon className="w-3.5 h-3.5" />
+              </span>
+              {chip.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Settings Pills Row - KittyKat action-chip style */}
+      {/* Settings Pills Row with colored icons */}
       <div className="flex items-center justify-center gap-3 flex-wrap">
-        {/* Brand Selector Pill */}
+        {/* Brand Selector */}
         <Select 
           value={state.selectedBrand || currentBrand?.id || ''} 
           onValueChange={(value) => onUpdate({ selectedBrand: value })}
         >
-          <SelectTrigger className="h-10 px-5 rounded-full bg-secondary border border-border text-sm font-medium hover:bg-accent/10 hover:border-accent/30 hover:text-accent transition-all duration-200 w-auto gap-2">
+          <SelectTrigger className="action-chip w-auto gap-2 border-border">
+            <span className="w-5 h-5 rounded-full bg-pink-100 flex items-center justify-center">
+              <Palette className="w-3 h-3 text-pink-500" />
+            </span>
             <SelectValue placeholder="Brand" />
           </SelectTrigger>
           <SelectContent>
@@ -93,9 +95,12 @@ export const CreativeStudioHeader = ({
           </SelectContent>
         </Select>
 
-        {/* Campaign Selector Pill */}
+        {/* Campaign Selector */}
         <Select value={state.selectedCampaign || ''} onValueChange={(value) => onUpdate({ selectedCampaign: value })}>
-          <SelectTrigger className="h-10 px-5 rounded-full bg-secondary border border-border text-sm font-medium hover:bg-accent/10 hover:border-accent/30 hover:text-accent transition-all duration-200 w-auto gap-2">
+          <SelectTrigger className="action-chip w-auto gap-2 border-border">
+            <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+              <FolderOpen className="w-3 h-3 text-purple-500" />
+            </span>
             <SelectValue placeholder="Campaign" />
           </SelectTrigger>
           <SelectContent>
@@ -110,12 +115,19 @@ export const CreativeStudioHeader = ({
           value={state.mediaType} 
           onValueChange={(value) => onUpdate({ mediaType: value as 'image' | 'video' })}
         >
-          <SelectTrigger className="h-10 px-5 rounded-full bg-secondary border border-border text-sm font-medium hover:bg-accent/10 hover:border-accent/30 hover:text-accent transition-all duration-200 w-auto gap-2">
+          <SelectTrigger className="action-chip w-auto gap-2 border-border">
+            <span className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+              {state.mediaType === 'video' ? (
+                <Video className="w-3 h-3 text-green-500" />
+              ) : (
+                <Image className="w-3 h-3 text-green-500" />
+              )}
+            </span>
             <SelectValue placeholder="Media Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="image">🖼️ Image</SelectItem>
-            <SelectItem value="video">🎬 Video</SelectItem>
+            <SelectItem value="image">Image</SelectItem>
+            <SelectItem value="video">Video</SelectItem>
           </SelectContent>
         </Select>
 
@@ -124,7 +136,10 @@ export const CreativeStudioHeader = ({
           value={state.targetPersona || ''} 
           onValueChange={(value) => onUpdate({ targetPersona: value })}
         >
-          <SelectTrigger className="h-10 px-5 rounded-full bg-secondary border border-border text-sm font-medium hover:bg-accent/10 hover:border-accent/30 hover:text-accent transition-all duration-200 w-auto gap-2">
+          <SelectTrigger className="action-chip w-auto gap-2 border-border">
+            <span className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
+              <UserCircle className="w-3 h-3 text-accent" />
+            </span>
             <SelectValue placeholder="Target Persona" />
           </SelectTrigger>
           <SelectContent>
@@ -137,26 +152,34 @@ export const CreativeStudioHeader = ({
         </Select>
       </div>
 
-      {/* Brief Input - KittyKat command-input style */}
-      <div className="w-full flex gap-3">
+      {/* Brief Input with embedded Send button */}
+      <div className="w-full relative">
         <input
           type="text"
           value={state.prompt}
           onChange={(e) => onUpdate({ prompt: e.target.value })}
-          placeholder="Enter your creative brief..."
-          className="command-input flex-1"
+          placeholder="Describe your ad creative..."
+          className="command-input pr-16"
         />
-        {showRegenerate && (
-          <button
-            onClick={onRegenerate}
-            className="h-14 px-6 rounded-2xl bg-secondary hover:bg-accent/10 border border-border hover:border-accent/30 transition-all duration-200 flex items-center gap-2 text-foreground hover:text-accent font-medium"
-            title="Regenerate concepts"
-          >
-            <RefreshCw className="w-5 h-5" />
-            <span className="hidden sm:inline">Regenerate</span>
-          </button>
-        )}
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl bg-accent text-accent-foreground flex items-center justify-center hover:opacity-90 transition-opacity shadow-md"
+          title="Generate"
+        >
+          <Send className="w-5 h-5" />
+        </button>
       </div>
+
+      {/* Regenerate button when showing */}
+      {showRegenerate && (
+        <button
+          onClick={onRegenerate}
+          className="action-chip"
+          title="Regenerate concepts"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Regenerate</span>
+        </button>
+      )}
     </div>
   );
 };
