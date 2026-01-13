@@ -155,7 +155,7 @@ export const CreativeStudioHeader = ({
           type="text"
           value={state.prompt}
           onChange={(e) => onUpdate({ prompt: e.target.value })}
-          placeholder="Describe your ad creative..."
+          placeholder="Enter your creative brief..."
           className="command-input pr-16"
         />
         <button
