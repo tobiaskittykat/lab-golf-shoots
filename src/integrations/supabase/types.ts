@@ -56,6 +56,77 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_images: {
+        Row: {
+          brand_id: string | null
+          concept_id: string | null
+          concept_title: string | null
+          context_reference_url: string | null
+          created_at: string | null
+          error_message: string | null
+          folder: string | null
+          id: string
+          image_url: string
+          moodboard_id: string | null
+          negative_prompt: string | null
+          product_reference_url: string | null
+          prompt: string
+          refined_prompt: string | null
+          settings: Json | null
+          status: string | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          concept_id?: string | null
+          concept_title?: string | null
+          context_reference_url?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          folder?: string | null
+          id?: string
+          image_url: string
+          moodboard_id?: string | null
+          negative_prompt?: string | null
+          product_reference_url?: string | null
+          prompt: string
+          refined_prompt?: string | null
+          settings?: Json | null
+          status?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          concept_id?: string | null
+          concept_title?: string | null
+          context_reference_url?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          folder?: string | null
+          id?: string
+          image_url?: string
+          moodboard_id?: string | null
+          negative_prompt?: string | null
+          product_reference_url?: string | null
+          prompt?: string
+          refined_prompt?: string | null
+          settings?: Json | null
+          status?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_images_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,1 +1,16 @@
 project_id = "zlvfvjefvyrnevxuaiyd"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.crawl-social-links]
+verify_jwt = false
+
+[functions.extract-brand-info]
+verify_jwt = false
+
+[functions.generate-concepts]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false

@@ -1,35 +1,14 @@
 import { useState, useCallback, useRef, useLayoutEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Image, ChevronDown, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CreativeStudioHeader } from "./CreativeStudioHeader";
 import { StepOnePrompt } from "./StepOnePrompt";
 import { StepTwoCustomize } from "./StepTwoCustomize";
-import { CreativeStudioState, initialCreativeStudioState, Concept } from "./types";
-
-// Mock concept generation - replace with actual AI call later
-const generateMockConcepts = (prompt: string): Concept[] => {
-  const concepts: Concept[] = [
-    {
-      id: 'concept-1',
-      title: 'Morning Light Collection',
-      description: 'Golden hour product shot with warm, inviting tones. Soft shadows on neutral backdrop emphasizing the natural beauty and craftsmanship.',
-      tags: ['Warm', 'Natural', 'Editorial']
-    },
-    {
-      id: 'concept-2', 
-      title: 'Urban Elegance',
-      description: 'Modern city setting with glass reflections and sophisticated architectural elements. Editorial feel with high-contrast lighting.',
-      tags: ['Modern', 'Bold', 'Sophisticated']
-    },
-    {
-      id: 'concept-3',
-      title: 'Natural Luxury',
-      description: 'Organic textures and earth tones celebrating sustainability and authenticity. Soft, diffused lighting with natural materials.',
-      tags: ['Organic', 'Sustainable', 'Soft']
-    }
-  ];
-  return concepts;
-};
+import { GeneratedImagesGallery } from "./GeneratedImagesGallery";
+import { CreativeStudioState, initialCreativeStudioState, GeneratedImage } from "./types";
+import { useImageGeneration } from "@/hooks/useImageGeneration";
+import { useBrands } from "@/hooks/useBrands";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -38,6 +17,16 @@ interface CreativeStudioWizardProps {
 
 export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWizardProps) => {
   const [state, setState] = useState<CreativeStudioState>(initialCreativeStudioState);
+  const navigate = useNavigate();
+  const { selectedBrand } = useBrands();
+  const { 
+    isGeneratingConcepts, 
+    isGeneratingImages, 
+    generateConcepts, 
+    generateImages,
+    generateVariations,
+    deleteImage 
+  } = useImageGeneration();
   
   // Refs for floating footer positioning
   const step2CardRef = useRef<HTMLDivElement>(null);
@@ -53,25 +42,76 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
 
   const handleContinue = useCallback(async () => {
     handleUpdate({ isLoadingConcepts: true, step: 2 });
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    const concepts = generateMockConcepts(state.prompt);
+    
+    // Call real AI to generate concepts
+    const concepts = await generateConcepts(
+      state.prompt,
+      selectedBrand?.name,
+      selectedBrand?.personality || undefined,
+      selectedBrand?.industry || undefined,
+      state.useCase,
+      state.targetPersona || undefined
+    );
+    
     handleUpdate({ 
       concepts, 
       isLoadingConcepts: false,
       selectedConcept: concepts[0]?.id || null
     });
-  }, [state.prompt, handleUpdate]);
+  }, [state.prompt, state.useCase, state.targetPersona, selectedBrand, handleUpdate, generateConcepts]);
 
   const handleBack = useCallback(() => {
-    handleUpdate({ step: 1 });
-  }, [handleUpdate]);
+    if (state.step === 3) {
+      handleUpdate({ step: 2 });
+    } else {
+      handleUpdate({ step: 1 });
+    }
+  }, [state.step, handleUpdate]);
 
   const handleGenerate = useCallback(async () => {
-    handleUpdate({ isGenerating: true });
-    console.log('Generating with state:', state);
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    handleUpdate({ isGenerating: false });
-  }, [state, handleUpdate]);
+    handleUpdate({ isGenerating: true, step: 3, generatedImages: [] });
+    
+    // Generate placeholder images for loading state
+    const placeholders: GeneratedImage[] = Array.from({ length: state.imageCount }).map((_, i) => ({
+      id: `pending-${i}`,
+      imageUrl: '',
+      status: 'pending' as const,
+      prompt: state.prompt,
+      index: i,
+    }));
+    handleUpdate({ generatedImages: placeholders });
+    
+    // Call real AI to generate images
+    const images = await generateImages(state);
+    
+    handleUpdate({ 
+      isGenerating: false, 
+      generatedImages: images.length > 0 ? images : placeholders.map(p => ({ ...p, status: 'failed' as const }))
+    });
+  }, [state, handleUpdate, generateImages]);
+
+  const handleVariation = useCallback(async (image: GeneratedImage) => {
+    const newImages = await generateVariations(state, image);
+    if (newImages.length > 0) {
+      handleUpdate({ 
+        generatedImages: [...state.generatedImages, ...newImages] 
+      });
+    }
+  }, [state, handleUpdate, generateVariations]);
+
+  const handleEdit = useCallback((image: GeneratedImage) => {
+    // Navigate to edit page with the image
+    navigate(`/edit-image?source=${encodeURIComponent(image.imageUrl)}`);
+  }, [navigate]);
+
+  const handleDelete = useCallback(async (image: GeneratedImage) => {
+    const success = await deleteImage(image.id);
+    if (success) {
+      handleUpdate({
+        generatedImages: state.generatedImages.filter(img => img.id !== image.id)
+      });
+    }
+  }, [state.generatedImages, handleUpdate, deleteImage]);
 
   // Track card position for floating footer
   useLayoutEffect(() => {
@@ -94,12 +134,10 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     const handleScroll = () => requestAnimationFrame(updateFloating);
     const handleResize = () => requestAnimationFrame(updateFloating);
 
-    // Measure footer height
     if (footerRef.current) {
       setFooterHeight(footerRef.current.offsetHeight);
     }
 
-    // Initial calculation
     updateFloating();
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -149,6 +187,12 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
               }`}>
                 2
               </div>
+              <div className="w-8 h-0.5 bg-border" />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                state.step === 3 ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
+              }`}>
+                3
+              </div>
             </div>
           </div>
 
@@ -173,18 +217,18 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   </div>
                   <button
                     onClick={handleContinue}
-                    disabled={!state.prompt.trim()}
+                    disabled={!state.prompt.trim() || isGeneratingConcepts}
                     className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
                     style={{
                       boxShadow: state.prompt.trim() ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                     }}
                   >
                     <Sparkles className="w-5 h-5" />
-                    Create Concepts
+                    {isGeneratingConcepts ? 'Generating...' : 'Create Concepts'}
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : state.step === 2 ? (
               <div ref={step2CardRef} className="glass-card p-6">
                 <CreativeStudioHeader
                   state={state}
@@ -193,7 +237,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   showRegenerate={true}
                 />
                 
-                {/* Content with dynamic bottom padding for floating footer */}
                 <div style={{ paddingBottom: footerHeight + 24 }}>
                   <StepTwoCustomize
                     state={state}
@@ -201,11 +244,24 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   />
                 </div>
               </div>
+            ) : (
+              <div className="glass-card p-6">
+                <GeneratedImagesGallery
+                  images={state.generatedImages}
+                  isGenerating={isGeneratingImages}
+                  imageCount={state.imageCount}
+                  onVariation={handleVariation}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onBack={handleBack}
+                  onRegenerate={handleGenerate}
+                />
+              </div>
             )}
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Floating Footer - Fixed to viewport but sized/positioned to match card */}
+        {/* Floating Footer */}
         {floating.active && state.step === 2 && (
           <div
             ref={footerRef}
@@ -230,14 +286,14 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
               
               <button
                 onClick={handleGenerate}
-                disabled={state.isGenerating}
+                disabled={isGeneratingImages}
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
                 style={{
-                  boxShadow: !state.isGenerating ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
+                  boxShadow: !isGeneratingImages ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                 }}
               >
                 <Sparkles className="w-5 h-5" />
-                Generate ({(1700 + (state.imageCount - 1) * 400).toLocaleString()} tokens)
+                {isGeneratingImages ? 'Generating...' : `Generate (${state.imageCount} images)`}
               </button>
             </div>
           </div>
