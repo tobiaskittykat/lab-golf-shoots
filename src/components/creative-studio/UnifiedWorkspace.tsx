@@ -133,7 +133,7 @@ export const UnifiedWorkspace = ({
 
   return (
     <div className="glass-card overflow-hidden">
-      {/* Quick Edit Bar - Collapsible Header */}
+      {/* Creative Tools Bar - Collapsible Header */}
       <div 
         className={cn(
           "border-b border-border transition-colors",
@@ -154,9 +154,9 @@ export const UnifiedWorkspace = ({
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Quick Edit</h3>
+                <h3 className="font-semibold">Creative Tools</h3>
                 <p className="text-sm text-muted-foreground">
-                  {isDragOver ? 'Drop image here to edit' : 'Drag an image here or click to expand'}
+                  {isDragOver ? 'Drop image here to edit' : 'Generate, edit, or create variations'}
                 </p>
               </div>
             </div>
@@ -172,8 +172,8 @@ export const UnifiedWorkspace = ({
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Quick Edit</h3>
-                  <p className="text-sm text-muted-foreground">Edit images or generate new ones</p>
+                  <h3 className="font-semibold">Creative Tools</h3>
+                  <p className="text-sm text-muted-foreground">Generate, edit images or create variations</p>
                 </div>
               </div>
               <button

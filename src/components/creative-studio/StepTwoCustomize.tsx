@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { 
   Sparkles, 
   ImageIcon, 
@@ -17,7 +17,8 @@ import {
   Wand2,
   ChevronRight,
   Package,
-  Layers
+  Layers,
+  BookmarkCheck
 } from "lucide-react";
 import { 
   Select, 
@@ -27,14 +28,19 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ConceptCard, AddConceptCard } from "./ConceptCard";
+import { ConceptCard, AddConceptCard, SavedConceptCard } from "./ConceptCard";
 import { CustomizationSection } from "./CustomizationSection";
 import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { ReferenceThumbnail } from "./ReferenceThumbnail";
 import { MoodboardModal } from "./MoodboardModal";
 import { ReferenceGalleryModal } from "./ReferenceGalleryModal";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   CreativeStudioState, 
+  Concept,
+  ConceptPresets,
   aspectRatios, 
   resolutions, 
   artisticStyles,
@@ -56,6 +62,9 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   const [showMoodboardModal, setShowMoodboardModal] = useState(false);
   const [showProductRefModal, setShowProductRefModal] = useState(false);
   const [showContextRefModal, setShowContextRefModal] = useState(false);
+  const [savingConceptId, setSavingConceptId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleAddKeyword = () => {
     if (newKeyword.trim() && !state.extraKeywords.includes(newKeyword.trim())) {
@@ -66,6 +75,148 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
 
   const handleRemoveKeyword = (keyword: string) => {
     onUpdate({ extraKeywords: state.extraKeywords.filter(k => k !== keyword) });
+  };
+
+  // Handle concept selection with preset application
+  const handleConceptSelect = useCallback((concept: Concept) => {
+    const updates: Partial<CreativeStudioState> = {
+      selectedConcept: concept.id
+    };
+
+    // Apply presets if the concept has them
+    if (concept.presets) {
+      const presets = concept.presets;
+      if (presets.artisticStyle) updates.artisticStyle = presets.artisticStyle;
+      if (presets.lightingStyle) updates.lightingStyle = presets.lightingStyle;
+      if (presets.cameraAngle) updates.cameraAngle = presets.cameraAngle;
+      if (presets.moodboardId) updates.moodboard = presets.moodboardId;
+      if (presets.extraKeywords?.length) {
+        updates.extraKeywords = [...state.extraKeywords, ...presets.extraKeywords.filter(k => !state.extraKeywords.includes(k))];
+      }
+      if (presets.useCase) updates.useCase = presets.useCase as CreativeStudioState['useCase'];
+    }
+
+    onUpdate(updates);
+  }, [state.extraKeywords, onUpdate]);
+
+  // Save concept to database
+  const handleSaveConcept = useCallback(async (concept: Concept) => {
+    if (!user) {
+      toast({ title: 'Please sign in to save concepts', variant: 'destructive' });
+      return;
+    }
+
+    setSavingConceptId(concept.id);
+
+    try {
+      // Get current customization settings as presets
+      const presets: ConceptPresets = {
+        artisticStyle: state.artisticStyle || undefined,
+        lightingStyle: state.lightingStyle !== 'auto' ? state.lightingStyle : undefined,
+        cameraAngle: state.cameraAngle !== 'auto' ? state.cameraAngle : undefined,
+        moodboardId: state.moodboard || undefined,
+        extraKeywords: state.extraKeywords.length > 0 ? state.extraKeywords : undefined,
+        useCase: state.useCase,
+      };
+
+      const { error } = await supabase.from('saved_concepts').insert({
+        user_id: user.id,
+        brand_id: state.selectedBrand,
+        title: concept.title,
+        description: concept.description,
+        tags: concept.tags,
+        artistic_style: presets.artisticStyle,
+        lighting_style: presets.lightingStyle,
+        camera_angle: presets.cameraAngle,
+        moodboard_id: presets.moodboardId,
+        extra_keywords: presets.extraKeywords || [],
+        use_case: presets.useCase,
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Concept saved!', description: 'You can reuse this concept later' });
+      
+      // Refresh saved concepts
+      fetchSavedConcepts();
+    } catch (err) {
+      console.error('Failed to save concept:', err);
+      toast({ title: 'Failed to save concept', variant: 'destructive' });
+    } finally {
+      setSavingConceptId(null);
+    }
+  }, [user, state, toast]);
+
+  // Fetch saved concepts
+  const fetchSavedConcepts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('saved_concepts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const savedConcepts = (data || []).map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        brandId: row.brand_id,
+        title: row.title,
+        description: row.description,
+        tags: row.tags || [],
+        presets: {
+          artisticStyle: row.artistic_style,
+          lightingStyle: row.lighting_style,
+          cameraAngle: row.camera_angle,
+          moodboardId: row.moodboard_id,
+          extraKeywords: row.extra_keywords,
+          useCase: row.use_case,
+        },
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+
+      onUpdate({ savedConcepts });
+    } catch (err) {
+      console.error('Failed to fetch saved concepts:', err);
+    }
+  }, [user, onUpdate]);
+
+  // Delete saved concept
+  const handleDeleteSavedConcept = useCallback(async (conceptId: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_concepts')
+        .delete()
+        .eq('id', conceptId);
+
+      if (error) throw error;
+
+      toast({ title: 'Concept removed' });
+      fetchSavedConcepts();
+    } catch (err) {
+      console.error('Failed to delete concept:', err);
+      toast({ title: 'Failed to remove concept', variant: 'destructive' });
+    }
+  }, [toast, fetchSavedConcepts]);
+
+  // Check if concept is already saved
+  const isConceptSaved = useCallback((conceptId: string) => {
+    return state.savedConcepts.some(sc => 
+      sc.title === state.concepts.find(c => c.id === conceptId)?.title
+    );
+  }, [state.savedConcepts, state.concepts]);
+
+  // Handle moodboard toggle (deselect if already selected)
+  const handleMoodboardSelect = (moodboardId: string) => {
+    if (state.moodboard === moodboardId) {
+      onUpdate({ moodboard: null }); // Deselect
+    } else {
+      onUpdate({ moodboard: moodboardId }); // Select
+    }
   };
 
   // Show first 6 moodboards, rest in modal
@@ -105,13 +256,35 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Saved Concepts */}
+            {state.savedConcepts.length > 0 && (
+              <div className="space-y-2 mb-4">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <BookmarkCheck className="w-3 h-3" /> Your saved concepts
+                </p>
+                {state.savedConcepts.slice(0, 3).map((concept) => (
+                  <SavedConceptCard
+                    key={concept.id}
+                    concept={concept}
+                    isSelected={state.selectedConcept === concept.id}
+                    onSelect={() => handleConceptSelect(concept)}
+                    onDelete={() => handleDeleteSavedConcept(concept.id)}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Generated Concepts */}
             {state.concepts.map((concept, index) => (
               <ConceptCard
                 key={concept.id}
                 concept={concept}
                 index={index}
                 isSelected={state.selectedConcept === concept.id}
-                onSelect={() => onUpdate({ selectedConcept: concept.id })}
+                onSelect={() => handleConceptSelect(concept)}
+                onSave={() => handleSaveConcept(concept)}
+                isSaved={isConceptSaved(concept.id)}
+                showSaveButton={!!user}
               />
             ))}
             <AddConceptCard onClick={() => {/* TODO: Add custom concept modal */}} />
@@ -140,7 +313,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                   key={moodboard.id}
                   moodboard={moodboard}
                   isSelected={state.moodboard === moodboard.id}
-                  onSelect={() => onUpdate({ moodboard: moodboard.id })}
+                  onSelect={() => handleMoodboardSelect(moodboard.id)}
                 />
               ))}
             </div>
@@ -192,13 +365,28 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         </CustomizationSection>
 
-        {/* ===== 4. CONTEXT REFERENCE SECTION ===== */}
+        {/* ===== 4. CONTEXT REFERENCE SECTION (Multi-select) ===== */}
         <CustomizationSection 
-          title="Context Reference" 
+          title="Context References" 
           icon={<Layers className="w-4 h-4" />}
         >
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product</p>
+            <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product (select multiple)</p>
+            
+            {/* Selected count badge */}
+            {state.contextReferences.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
+                  {state.contextReferences.length} selected
+                </span>
+                <button 
+                  onClick={() => onUpdate({ contextReferences: [] })}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
             
             {/* Context Reference Grid */}
             <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
@@ -206,8 +394,15 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 <ReferenceThumbnail
                   key={ref.id}
                   reference={ref}
-                  isSelected={state.contextReference === ref.id}
-                  onSelect={() => onUpdate({ contextReference: ref.id })}
+                  isSelected={state.contextReferences.includes(ref.id)}
+                  onSelect={() => {
+                    const isSelected = state.contextReferences.includes(ref.id);
+                    if (isSelected) {
+                      onUpdate({ contextReferences: state.contextReferences.filter(id => id !== ref.id) });
+                    } else {
+                      onUpdate({ contextReferences: [...state.contextReferences, ref.id] });
+                    }
+                  }}
                   showLabel={true}
                 />
               ))}
@@ -537,10 +732,18 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       <ReferenceGalleryModal
         isOpen={showContextRefModal}
         onClose={() => setShowContextRefModal(false)}
-        title="Context Reference"
+        title="Context References"
         references={sampleContextReferences}
-        selectedReference={state.contextReference}
-        onSelect={(id) => onUpdate({ contextReference: id })}
+        selectedReferences={state.contextReferences}
+        onSelect={(id) => {
+          const isSelected = state.contextReferences.includes(id);
+          if (isSelected) {
+            onUpdate({ contextReferences: state.contextReferences.filter(refId => refId !== id) });
+          } else {
+            onUpdate({ contextReferences: [...state.contextReferences, id] });
+          }
+        }}
+        multiSelect={true}
       />
     </div>
   );

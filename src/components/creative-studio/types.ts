@@ -3,6 +3,24 @@ export interface Concept {
   title: string;
   description: string;
   tags: string[];
+  // Preset settings that define the concept
+  presets?: ConceptPresets;
+}
+
+export interface ConceptPresets {
+  artisticStyle?: string;
+  lightingStyle?: string;
+  cameraAngle?: string;
+  moodboardId?: string;
+  extraKeywords?: string[];
+  useCase?: string;
+}
+
+export interface SavedConcept extends Concept {
+  userId: string;
+  brandId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Moodboard {
@@ -30,6 +48,7 @@ export interface GeneratedImage {
   index: number;
   productReferenceUrl?: string;
   contextReferenceUrl?: string;
+  contextReferenceUrls?: string[]; // Support multiple context references
 }
 
 export interface CreativeStudioState {
@@ -45,10 +64,11 @@ export interface CreativeStudioState {
 
   // Step 2
   concepts: Concept[];
+  savedConcepts: SavedConcept[];
   selectedConcept: string | null;
   moodboard: string | null;
   productReference: string | null;
-  contextReference: string | null;
+  contextReferences: string[]; // Changed from single to array
   styleReference: string | null;
   textOnImage: string;
   extraKeywords: string[];
@@ -71,7 +91,7 @@ export interface CreativeStudioState {
   isLoadingConcepts: boolean;
   generatedImages: GeneratedImage[];
   
-  // Edit mode (Advanced Edit Panel)
+  // Edit mode (Creative Tools Panel)
   editMode: 'generate' | 'edit' | 'variation';
   baseImage: GeneratedImage | null;
   editDescription: string;
@@ -89,10 +109,11 @@ export const initialCreativeStudioState: CreativeStudioState = {
   selectedTypeCard: null,
 
   concepts: [],
+  savedConcepts: [],
   selectedConcept: null,
   moodboard: null,
   productReference: null,
-  contextReference: null,
+  contextReferences: [], // Changed to array
   styleReference: null,
   textOnImage: '',
   extraKeywords: [],

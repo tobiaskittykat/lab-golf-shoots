@@ -13,8 +13,10 @@ interface ReferenceGalleryModalProps {
   onClose: () => void;
   title: string;
   references: ReferenceImage[];
-  selectedReference: string | null;
+  selectedReference?: string | null;
+  selectedReferences?: string[]; // For multi-select mode
   onSelect: (referenceId: string) => void;
+  multiSelect?: boolean;
 }
 
 export const ReferenceGalleryModal = ({ 
@@ -23,18 +25,37 @@ export const ReferenceGalleryModal = ({
   title,
   references,
   selectedReference, 
-  onSelect 
+  selectedReferences = [],
+  onSelect,
+  multiSelect = false
 }: ReferenceGalleryModalProps) => {
   const handleSelect = (referenceId: string) => {
     onSelect(referenceId);
-    onClose();
+    // Only close on single select mode
+    if (!multiSelect) {
+      onClose();
+    }
+  };
+
+  const isSelected = (refId: string) => {
+    if (multiSelect) {
+      return selectedReferences.includes(refId);
+    }
+    return selectedReference === refId;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl">{title}</DialogTitle>
+            {multiSelect && selectedReferences.length > 0 && (
+              <span className="text-sm bg-accent/20 text-accent px-3 py-1 rounded-full">
+                {selectedReferences.length} selected
+              </span>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto mt-4 space-y-6">
@@ -44,7 +65,7 @@ export const ReferenceGalleryModal = ({
               <ReferenceThumbnail
                 key={ref.id}
                 reference={ref}
-                isSelected={selectedReference === ref.id}
+                isSelected={isSelected(ref.id)}
                 onSelect={() => handleSelect(ref.id)}
                 showLabel={true}
               />
@@ -63,6 +84,18 @@ export const ReferenceGalleryModal = ({
             </button>
           </div>
         </div>
+
+        {/* Done button for multi-select */}
+        {multiSelect && (
+          <div className="pt-4 border-t border-border">
+            <button
+              onClick={onClose}
+              className="w-full py-2.5 rounded-lg bg-accent text-accent-foreground font-medium hover:bg-accent/90 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

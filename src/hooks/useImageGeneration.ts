@@ -77,7 +77,11 @@ export function useImageGeneration() {
       
       // Get reference URLs (for now using placeholder - in real app these would be actual image URLs)
       const productRef = sampleProductReferences.find(r => r.id === state.productReference);
-      const contextRef = sampleContextReferences.find(r => r.id === state.contextReference);
+      // Support multiple context references
+      const contextRefs = state.contextReferences.map(id => 
+        sampleContextReferences.find(r => r.id === id)
+      ).filter(Boolean);
+      const contextRefUrls = contextRefs.map(ref => ref?.url).filter(Boolean) as string[];
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
@@ -93,7 +97,7 @@ export function useImageGeneration() {
           
           // Reference URLs - these would be actual image URLs in production
           productReferenceUrl: productRef?.url,
-          contextReferenceUrl: contextRef?.url,
+          contextReferenceUrls: contextRefUrls, // Now an array
           
           extraKeywords: state.extraKeywords,
           negativePrompt: state.negativePrompt,
@@ -130,7 +134,7 @@ export function useImageGeneration() {
         error: img.error,
         index: img.index,
         productReferenceUrl: productRef?.url,
-        contextReferenceUrl: contextRef?.url,
+        contextReferenceUrls: contextRefUrls,
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;

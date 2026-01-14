@@ -19,10 +19,15 @@ export const MoodboardThumbnail = ({
 }: MoodboardThumbnailProps) => {
   const [isFullView, setIsFullView] = useState(false);
 
+  // Toggle selection - clicking selected moodboard deselects it
+  const handleClick = () => {
+    onSelect(); // Parent will handle toggle logic
+  };
+
   return (
     <>
       <button
-        onClick={onSelect}
+        onClick={handleClick}
         className={`group relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all hover:shadow-md ${
           isSelected
             ? 'border-accent ring-2 ring-accent/30 shadow-md'

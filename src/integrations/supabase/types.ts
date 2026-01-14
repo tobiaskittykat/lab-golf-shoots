@@ -127,6 +127,65 @@ export type Database = {
           },
         ]
       }
+      saved_concepts: {
+        Row: {
+          artistic_style: string | null
+          brand_id: string | null
+          camera_angle: string | null
+          created_at: string
+          description: string
+          extra_keywords: string[] | null
+          id: string
+          lighting_style: string | null
+          moodboard_id: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          use_case: string | null
+          user_id: string
+        }
+        Insert: {
+          artistic_style?: string | null
+          brand_id?: string | null
+          camera_angle?: string | null
+          created_at?: string
+          description: string
+          extra_keywords?: string[] | null
+          id?: string
+          lighting_style?: string | null
+          moodboard_id?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          use_case?: string | null
+          user_id: string
+        }
+        Update: {
+          artistic_style?: string | null
+          brand_id?: string | null
+          camera_angle?: string | null
+          created_at?: string
+          description?: string
+          extra_keywords?: string[] | null
+          id?: string
+          lighting_style?: string | null
+          moodboard_id?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          use_case?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_concepts_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
