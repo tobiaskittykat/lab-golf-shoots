@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, Check } from "lucide-react";
 import { ReferenceImage } from "./types";
+import { ReferenceThumbnail } from "./ReferenceThumbnail";
 
 interface ReferenceGalleryModalProps {
   isOpen: boolean;
@@ -40,30 +41,13 @@ export const ReferenceGalleryModal = ({
           {/* Reference Grid */}
           <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
             {references.map((ref) => (
-              <button
+              <ReferenceThumbnail
                 key={ref.id}
-                onClick={() => handleSelect(ref.id)}
-                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] hover:shadow-md ${
-                  selectedReference === ref.id
-                    ? 'border-accent ring-2 ring-accent/30'
-                    : 'border-border hover:border-accent/50'
-                }`}
-              >
-                <img 
-                  src={ref.thumbnail} 
-                  alt={ref.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-2">
-                  <p className="text-xs font-medium text-white truncate">{ref.name}</p>
-                </div>
-                {selectedReference === ref.id && (
-                  <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                    <Check className="w-3 h-3 text-accent-foreground" />
-                  </div>
-                )}
-              </button>
+                reference={ref}
+                isSelected={selectedReference === ref.id}
+                onSelect={() => handleSelect(ref.id)}
+                showLabel={true}
+              />
             ))}
           </div>
 

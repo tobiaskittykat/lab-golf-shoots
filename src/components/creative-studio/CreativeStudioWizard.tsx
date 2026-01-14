@@ -40,35 +40,47 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   const [footerHeight, setFooterHeight] = useState(80);
 
   // Fetch previously generated images
+  const fetchPreviousImages = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('generated_images')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (data && !error) {
+      const images: GeneratedImage[] = data.map((img, index) => ({
+        id: img.id,
+        imageUrl: img.image_url,
+        status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
+        prompt: img.prompt,
+        refinedPrompt: img.refined_prompt || undefined,
+        index,
+        productReferenceUrl: img.product_reference_url || undefined,
+        contextReferenceUrl: img.context_reference_url || undefined,
+      }));
+      setPreviousImages(images);
+    } else if (error) {
+      console.error('Error fetching images:', error);
+    }
+  }, []);
+
+  // Initial fetch on mount
   useEffect(() => {
-    const fetchPreviousImages = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('generated_images')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (data && !error) {
-        const images: GeneratedImage[] = data.map((img, index) => ({
-          id: img.id,
-          imageUrl: img.image_url,
-          status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
-          prompt: img.prompt,
-          refinedPrompt: img.refined_prompt || undefined,
-          index,
-          productReferenceUrl: img.product_reference_url || undefined,
-          contextReferenceUrl: img.context_reference_url || undefined,
-        }));
-        setPreviousImages(images);
-      }
-    };
-
     fetchPreviousImages();
-  }, [state.generatedImages]); // Refetch when new images are generated
+  }, [fetchPreviousImages]);
+
+  // Refetch when new images are generated
+  useEffect(() => {
+    if (state.generatedImages.length > 0) {
+      // Small delay to allow DB to update
+      const timer = setTimeout(fetchPreviousImages, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.generatedImages, fetchPreviousImages]);
 
   const handleUpdate = useCallback((updates: Partial<CreativeStudioState>) => {
     setState(prev => ({ ...prev, ...updates }));
