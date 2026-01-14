@@ -1,6 +1,6 @@
 import { GeneratedImage } from './types';
 import { GeneratedImageCard, GeneratedImageCardSkeleton } from './GeneratedImageCard';
-import { RefreshCw, Images, MousePointerClick } from 'lucide-react';
+import { RefreshCw, Images, MousePointerClick, GripVertical } from 'lucide-react';
 
 interface GeneratedImagesGalleryProps {
   images: GeneratedImage[];
@@ -14,6 +14,7 @@ interface GeneratedImagesGalleryProps {
   showBackButton?: boolean;
   onBack?: () => void;
   compact?: boolean;
+  enableDrag?: boolean;
 }
 
 export const GeneratedImagesGallery = ({
@@ -28,21 +29,22 @@ export const GeneratedImagesGallery = ({
   showBackButton = false,
   onBack,
   compact = false,
+  enableDrag = false,
 }: GeneratedImagesGalleryProps) => {
   const successfulImages = images.filter(img => img.status === 'completed');
   const failedImages = images.filter(img => img.status === 'failed');
 
-  // Empty state for persistent gallery
-  if (!isGenerating && images.length === 0 && !compact) {
+  // Empty state - show different message based on context
+  if (!isGenerating && images.length === 0) {
     return (
-      <div className="glass-card p-8">
-        <div className="text-center py-12">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center mx-auto mb-4">
-            <Images className="w-8 h-8 text-muted-foreground" />
+      <div className={compact ? "" : "glass-card p-8"}>
+        <div className="text-center py-8">
+          <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center mx-auto mb-3">
+            <Images className="w-6 h-6 text-muted-foreground" />
           </div>
-          <h3 className="font-semibold text-lg mb-2">Your Generated Images</h3>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Generated images will appear here. Use the Creative Studio above to create your first images!
+          <h3 className="font-medium text-base mb-1">No images yet</h3>
+          <p className="text-muted-foreground text-sm">
+            {compact ? 'Generate images to see them here' : 'Use the Creative Studio above to create your first images!'}
           </p>
         </div>
       </div>
@@ -50,27 +52,22 @@ export const GeneratedImagesGallery = ({
   }
 
   return (
-    <div className={compact ? "space-y-4" : "glass-card p-6 space-y-6"}>
+    <div className={compact ? "space-y-3" : "glass-card p-6 space-y-6"}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
-            <Images className="w-5 h-5 text-foreground" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg">Generated Images</h3>
-            <p className="text-sm text-muted-foreground">
-              {successfulImages.length} image{successfulImages.length !== 1 ? 's' : ''} 
-              {isGenerating && ` • Generating ${imageCount}...`}
-            </p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Images className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            {successfulImages.length} image{successfulImages.length !== 1 ? 's' : ''}
+            {isGenerating && <span className="text-muted-foreground"> • Generating...</span>}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {onSelectForEdit && successfulImages.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 rounded-lg text-xs text-accent">
-              <MousePointerClick className="w-3.5 h-3.5" />
-              Click image to edit
+          {enableDrag && successfulImages.length > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-secondary/50 rounded-md text-xs text-muted-foreground">
+              <GripVertical className="w-3 h-3" />
+              Drag to edit
             </div>
           )}
           
@@ -78,9 +75,9 @@ export const GeneratedImagesGallery = ({
             <button
               onClick={onRegenerate}
               disabled={isGenerating}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground border border-border transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-xs border border-border transition-all disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
               Regenerate
             </button>
           )}
@@ -95,7 +92,7 @@ export const GeneratedImagesGallery = ({
       )}
 
       {/* Image Grid - 4 columns */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {isGenerating && images.length === 0 ? (
           // Show skeleton cards while generating
           Array.from({ length: imageCount }).map((_, i) => (
@@ -111,6 +108,7 @@ export const GeneratedImagesGallery = ({
               onEdit={onEdit}
               onDelete={onDelete}
               onSelect={onSelectForEdit}
+              enableDrag={enableDrag}
             />
           ))
         )}
