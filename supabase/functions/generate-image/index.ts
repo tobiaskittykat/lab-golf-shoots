@@ -200,12 +200,10 @@ Deno.serve(async (req) => {
     const refinedPrompt = buildPrompt(body);
     console.log("Refined prompt:", refinedPrompt);
 
-    // Generate images
-    const generatedImages: any[] = [];
-    
-    for (let i = 0; i < imageCount; i++) {
+    // Generate images in parallel for faster response
+    const generateSingleImage = async (index: number): Promise<any> => {
       try {
-        console.log(`Generating image ${i + 1}/${imageCount}...`);
+        console.log(`Generating image ${index + 1}/${imageCount}...`);
         
         // Build multimodal content
         const messageContent: any[] = [
@@ -269,55 +267,49 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`Image generation error for image ${i + 1}:`, response.status, errorText);
-          
-          // Record failed generation
-          generatedImages.push({
+          console.error(`Image generation error for image ${index + 1}:`, response.status, errorText);
+          return {
             status: 'failed',
             error: `Generation failed: ${response.status}`,
-            index: i
-          });
-          continue;
+            index
+          };
         }
 
         const aiResponse = await response.json();
-        console.log(`AI response for image ${i + 1}:`, JSON.stringify(aiResponse).slice(0, 500));
+        console.log(`AI response for image ${index + 1}:`, JSON.stringify(aiResponse).slice(0, 500));
         
         // Extract the image from the response
         const images = aiResponse.choices?.[0]?.message?.images;
         if (!images || images.length === 0) {
-          console.error(`No images in response for image ${i + 1}`);
-          generatedImages.push({
+          console.error(`No images in response for image ${index + 1}`);
+          return {
             status: 'failed',
             error: 'No image in response',
-            index: i
-          });
-          continue;
+            index
+          };
         }
 
         const imageData = images[0];
         const imageUrl = imageData.image_url?.url;
         
         if (!imageUrl || !imageUrl.startsWith('data:image')) {
-          console.error(`Invalid image URL format for image ${i + 1}`);
-          generatedImages.push({
+          console.error(`Invalid image URL format for image ${index + 1}`);
+          return {
             status: 'failed',
             error: 'Invalid image format',
-            index: i
-          });
-          continue;
+            index
+          };
         }
 
         // Extract base64 data
         const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
         if (!base64Match) {
-          console.error(`Could not parse base64 for image ${i + 1}`);
-          generatedImages.push({
+          console.error(`Could not parse base64 for image ${index + 1}`);
+          return {
             status: 'failed',
             error: 'Could not parse image data',
-            index: i
-          });
-          continue;
+            index
+          };
         }
 
         const imageFormat = base64Match[1];
@@ -338,13 +330,12 @@ Deno.serve(async (req) => {
           });
 
         if (uploadError) {
-          console.error(`Upload error for image ${i + 1}:`, uploadError);
-          generatedImages.push({
+          console.error(`Upload error for image ${index + 1}:`, uploadError);
+          return {
             status: 'failed',
             error: 'Failed to save image',
-            index: i
-          });
-          continue;
+            index
+          };
         }
 
         // Get public URL
@@ -353,7 +344,7 @@ Deno.serve(async (req) => {
           .getPublicUrl(filename);
 
         const publicUrl = urlData.publicUrl;
-        console.log(`Image ${i + 1} uploaded to:`, publicUrl);
+        console.log(`Image ${index + 1} uploaded to:`, publicUrl);
 
         // Save to database
         const { data: dbRecord, error: dbError } = await supabase
@@ -380,7 +371,7 @@ Deno.serve(async (req) => {
               extraKeywords: body.extraKeywords,
               textOnImage: body.textOnImage,
             },
-            concept_id: body.conceptTitle ? `concept-${i}` : null,
+            concept_id: body.conceptTitle ? `concept-${index}` : null,
             concept_title: body.conceptTitle || null,
             status: 'completed',
             folder: body.folder || 'Uncategorized',
@@ -389,28 +380,31 @@ Deno.serve(async (req) => {
           .single();
 
         if (dbError) {
-          console.error(`Database error for image ${i + 1}:`, dbError);
-          // Image was uploaded successfully, just couldn't save metadata
+          console.error(`Database error for image ${index + 1}:`, dbError);
         }
 
-        generatedImages.push({
-          id: dbRecord?.id || `temp-${i}`,
+        return {
+          id: dbRecord?.id || `temp-${index}`,
           imageUrl: publicUrl,
           status: 'completed',
           prompt: body.prompt,
           refinedPrompt,
-          index: i
-        });
+          index
+        };
 
       } catch (imageError) {
-        console.error(`Error generating image ${i + 1}:`, imageError);
-        generatedImages.push({
+        console.error(`Error generating image ${index + 1}:`, imageError);
+        return {
           status: 'failed',
           error: imageError instanceof Error ? imageError.message : 'Unknown error',
-          index: i
-        });
+          index
+        };
       }
-    }
+    };
+
+    // Generate all images in parallel
+    const imagePromises = Array.from({ length: imageCount }, (_, i) => generateSingleImage(i));
+    const generatedImages = await Promise.all(imagePromises);
 
     // Check if any images were generated
     const successfulImages = generatedImages.filter(img => img.status === 'completed');
