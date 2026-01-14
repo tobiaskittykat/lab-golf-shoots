@@ -64,9 +64,10 @@ export const MoodboardModal = ({
                       : 'border-border hover:border-accent/50'
                   }`}
                 >
-                  <div 
-                    className="absolute inset-0"
-                    style={{ background: moodboard.thumbnail }}
+                  <img 
+                    src={moodboard.thumbnail} 
+                    alt={moodboard.name}
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3">

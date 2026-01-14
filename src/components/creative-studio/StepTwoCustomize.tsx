@@ -175,9 +175,10 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                       : 'border-border hover:border-accent/50'
                   }`}
                 >
-                  <div 
-                    className="absolute inset-0"
-                    style={{ background: ref.thumbnail }}
+                  <img 
+                    src={ref.thumbnail} 
+                    alt={ref.name}
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                 </button>
               ))}
@@ -219,9 +220,10 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                       : 'border-border hover:border-accent/50'
                   }`}
                 >
-                  <div 
-                    className="absolute inset-0"
-                    style={{ background: ref.thumbnail }}
+                  <img 
+                    src={ref.thumbnail} 
+                    alt={ref.name}
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white truncate">
