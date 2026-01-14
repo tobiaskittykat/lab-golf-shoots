@@ -7,13 +7,15 @@ interface GeneratedImageCardProps {
   onVariation: (image: GeneratedImage) => void;
   onEdit: (image: GeneratedImage) => void;
   onDelete: (image: GeneratedImage) => void;
+  onSelect?: (image: GeneratedImage) => void;
 }
 
 export const GeneratedImageCard = ({ 
   image, 
   onVariation, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onSelect 
 }: GeneratedImageCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -72,11 +74,18 @@ export const GeneratedImageCard = ({
     }
   };
 
+  const handleClick = () => {
+    if (onSelect && image.status === 'completed') {
+      onSelect(image);
+    }
+  };
+
   return (
     <div 
-      className="group relative rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-shadow"
+      className={`group relative rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-shadow ${onSelect && image.status === 'completed' ? 'cursor-pointer' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
     >
       {/* Image Container */}
       <div className="aspect-square relative bg-secondary/30">

@@ -23,6 +23,10 @@ interface GenerateImageRequest {
   productReferenceUrl?: string;
   contextReferenceUrl?: string;
   
+  // Edit mode
+  sourceImageUrl?: string;
+  editMode?: boolean;
+  
   // Extra prompt settings
   extraKeywords?: string[];
   negativePrompt?: string;
@@ -207,6 +211,18 @@ Deno.serve(async (req) => {
         const messageContent: any[] = [
           { type: "text", text: refinedPrompt }
         ];
+        
+        // Add source image for editing (image-to-image)
+        if (body.editMode && body.sourceImageUrl && body.sourceImageUrl.startsWith('http')) {
+          messageContent.unshift({
+            type: "image_url",
+            image_url: { url: body.sourceImageUrl }
+          });
+          messageContent.unshift({
+            type: "text",
+            text: "Edit the following image according to these instructions:"
+          });
+        }
         
         // Add product reference as visual input
         if (body.productReferenceUrl && body.productReferenceUrl.startsWith('http')) {

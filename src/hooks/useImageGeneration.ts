@@ -177,6 +177,80 @@ export function useImageGeneration() {
     return generateImages(variationState);
   }, [generateImages]);
 
+  // Edit an existing image with a description
+  const editImage = useCallback(async (
+    sourceImage: GeneratedImage,
+    editDescription: string,
+    state: CreativeStudioState
+  ): Promise<GeneratedImage[]> => {
+    setIsGeneratingImages(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          prompt: editDescription,
+          
+          // Pass the source image URL for image-to-image editing
+          sourceImageUrl: sourceImage.imageUrl,
+          editMode: true,
+          
+          // Keep other settings
+          artisticStyle: state.artisticStyle,
+          lightingStyle: state.lightingStyle,
+          cameraAngle: state.cameraAngle,
+          
+          imageCount: state.imageCount,
+          resolution: state.resolution,
+          aspectRatio: state.aspectRatio,
+          
+          aiModel: state.aiModel,
+          guidanceScale: state.guidanceScale,
+        },
+      });
+
+      if (error) {
+        console.error('Error editing image:', error);
+        toast({
+          title: 'Failed to edit image',
+          description: error.message || 'Please try again',
+          variant: 'destructive',
+        });
+        return [];
+      }
+
+      const images: GeneratedImage[] = (data.images || []).map((img: any) => ({
+        id: img.id || `temp-${img.index}`,
+        imageUrl: img.imageUrl || '',
+        status: img.status || 'failed',
+        prompt: editDescription,
+        refinedPrompt: img.refinedPrompt,
+        error: img.error,
+        index: img.index,
+      }));
+
+      const successCount = images.filter(i => i.status === 'completed').length;
+      
+      if (successCount > 0) {
+        toast({
+          title: 'Image edited!',
+          description: `Successfully created ${successCount} edited image(s)`,
+        });
+      }
+
+      return images;
+    } catch (err) {
+      console.error('Error editing image:', err);
+      toast({
+        title: 'Failed to edit image',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  }, [toast]);
+
   // Delete a generated image
   const deleteImage = useCallback(async (imageId: string): Promise<boolean> => {
     try {
@@ -212,6 +286,7 @@ export function useImageGeneration() {
     generateConcepts,
     generateImages,
     generateVariations,
+    editImage,
     deleteImage,
   };
 }

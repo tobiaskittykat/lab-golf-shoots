@@ -34,7 +34,7 @@ export interface GeneratedImage {
 
 export interface CreativeStudioState {
   // Step 1
-  step: 1 | 2 | 3; // Added step 3 for results
+  step: 1 | 2 | 3;
   selectedBrand: string | null;
   selectedCampaign: string | null;
   mediaType: 'image' | 'video';
@@ -70,6 +70,12 @@ export interface CreativeStudioState {
   isGenerating: boolean;
   isLoadingConcepts: boolean;
   generatedImages: GeneratedImage[];
+  
+  // Edit mode (Advanced Edit Panel)
+  editMode: 'generate' | 'edit' | 'variation';
+  baseImage: GeneratedImage | null;
+  editDescription: string;
+  isEditPanelOpen: boolean;
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -106,6 +112,12 @@ export const initialCreativeStudioState: CreativeStudioState = {
   isGenerating: false,
   isLoadingConcepts: false,
   generatedImages: [],
+  
+  // Edit mode defaults
+  editMode: 'generate',
+  baseImage: null,
+  editDescription: '',
+  isEditPanelOpen: false,
 };
 
 export const typeCards = [
@@ -221,72 +233,146 @@ export const targetPersonas = [
   { value: 'fitness', label: 'Fitness Enthusiasts' },
 ];
 
-// Sample moodboards with visual gradients
+// Sample moodboards with Unsplash images
 export const sampleMoodboards: Moodboard[] = [
   { 
     id: 'minimal-clean', 
     name: 'Minimal & Clean', 
-    thumbnail: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
     description: 'Clean whites, soft grays, simple compositions'
   },
   { 
     id: 'warm-earthy', 
     name: 'Warm & Earthy', 
-    thumbnail: 'linear-gradient(135deg, #fef3c7 0%, #d97706 50%, #78350f 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=300&fit=crop',
     description: 'Terracotta, sand, warm browns'
   },
   { 
     id: 'bold-vibrant', 
     name: 'Bold & Vibrant', 
-    thumbnail: 'linear-gradient(135deg, #f43f5e 0%, #8b5cf6 50%, #06b6d4 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1525909002-1b05e0c869d8?w=400&h=300&fit=crop',
     description: 'High contrast, saturated colors'
   },
   { 
     id: 'moody-dark', 
     name: 'Moody & Dark', 
-    thumbnail: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #0f172a 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=300&fit=crop',
     description: 'Deep shadows, dramatic contrast'
   },
   { 
     id: 'pastel-soft', 
     name: 'Pastel & Soft', 
-    thumbnail: 'linear-gradient(135deg, #fce7f3 0%, #ddd6fe 50%, #cffafe 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
     description: 'Gentle pastels, dreamy atmosphere'
   },
   { 
     id: 'nature-organic', 
     name: 'Nature & Organic', 
-    thumbnail: 'linear-gradient(135deg, #86efac 0%, #22c55e 50%, #166534 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
     description: 'Lush greens, natural textures'
   },
   { 
     id: 'luxury-gold', 
     name: 'Luxury & Gold', 
-    thumbnail: 'linear-gradient(135deg, #fef9c3 0%, #eab308 50%, #854d0e 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop',
     description: 'Rich golds, sophisticated elegance'
   },
   { 
     id: 'ocean-breeze', 
     name: 'Ocean Breeze', 
-    thumbnail: 'linear-gradient(135deg, #e0f2fe 0%, #38bdf8 50%, #0369a1 100%)',
+    thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
     description: 'Cool blues, coastal vibes'
   },
 ];
 
-// Sample product references
+// Sample product references with real shoe images
 export const sampleProductReferences: ReferenceImage[] = [
-  { id: 'product-1', name: 'White Background', thumbnail: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)', category: 'product' },
-  { id: 'product-2', name: 'Marble Surface', thumbnail: 'linear-gradient(135deg, #f8fafc 0%, #cbd5e1 30%, #f1f5f9 70%, #e2e8f0 100%)', category: 'product' },
-  { id: 'product-3', name: 'Wood Texture', thumbnail: 'linear-gradient(135deg, #d4a574 0%, #8b6914 50%, #a67c52 100%)', category: 'product' },
-  { id: 'product-4', name: 'Fabric Background', thumbnail: 'linear-gradient(135deg, #fef3c7 0%, #fcd34d 50%, #f59e0b 100%)', category: 'product' },
+  { 
+    id: 'product-1', 
+    name: 'White Sneakers', 
+    thumbnail: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
+    category: 'product' 
+  },
+  { 
+    id: 'product-2', 
+    name: 'Running Shoes', 
+    thumbnail: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
+    category: 'product' 
+  },
+  { 
+    id: 'product-3', 
+    name: 'Classic Leather', 
+    thumbnail: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800',
+    category: 'product' 
+  },
+  { 
+    id: 'product-4', 
+    name: 'High Top Sneakers', 
+    thumbnail: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
+    category: 'product' 
+  },
+  { 
+    id: 'product-5', 
+    name: 'Sports Sneakers', 
+    thumbnail: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=800',
+    category: 'product' 
+  },
+  { 
+    id: 'product-6', 
+    name: 'Minimal White', 
+    thumbnail: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=800',
+    category: 'product' 
+  },
 ];
 
-// Sample context references
+// Sample context references with real lifestyle images
 export const sampleContextReferences: ReferenceImage[] = [
-  { id: 'context-1', name: 'Coffee Shop', thumbnail: 'linear-gradient(135deg, #78350f 0%, #92400e 50%, #451a03 100%)', category: 'context' },
-  { id: 'context-2', name: 'Beach Scene', thumbnail: 'linear-gradient(135deg, #0ea5e9 0%, #fcd34d 50%, #f59e0b 100%)', category: 'context' },
-  { id: 'context-3', name: 'Urban Street', thumbnail: 'linear-gradient(135deg, #64748b 0%, #475569 50%, #1e293b 100%)', category: 'context' },
-  { id: 'context-4', name: 'Kitchen', thumbnail: 'linear-gradient(135deg, #fafaf9 0%, #e7e5e4 50%, #a8a29e 100%)', category: 'context' },
-  { id: 'context-5', name: 'Office Space', thumbnail: 'linear-gradient(135deg, #f1f5f9 0%, #94a3b8 50%, #475569 100%)', category: 'context' },
-  { id: 'context-6', name: 'Garden', thumbnail: 'linear-gradient(135deg, #86efac 0%, #4ade80 50%, #166534 100%)', category: 'context' },
+  { 
+    id: 'context-1', 
+    name: 'Urban Street', 
+    thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800',
+    category: 'context' 
+  },
+  { 
+    id: 'context-2', 
+    name: 'Beach Scene', 
+    thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+    category: 'context' 
+  },
+  { 
+    id: 'context-3', 
+    name: 'City Skyline', 
+    thumbnail: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800',
+    category: 'context' 
+  },
+  { 
+    id: 'context-4', 
+    name: 'Modern Studio', 
+    thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
+    category: 'context' 
+  },
+  { 
+    id: 'context-5', 
+    name: 'Nature Trail', 
+    thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+    category: 'context' 
+  },
+  { 
+    id: 'context-6', 
+    name: 'Gym Interior', 
+    thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
+    category: 'context' 
+  },
 ];

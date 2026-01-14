@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useLayoutEffect } from "react";
+import { useState, useCallback, useRef, useLayoutEffect, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Image, ChevronDown, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -6,9 +6,11 @@ import { CreativeStudioHeader } from "./CreativeStudioHeader";
 import { StepOnePrompt } from "./StepOnePrompt";
 import { StepTwoCustomize } from "./StepTwoCustomize";
 import { GeneratedImagesGallery } from "./GeneratedImagesGallery";
+import { AdvancedEditPanel } from "./AdvancedEditPanel";
 import { CreativeStudioState, initialCreativeStudioState, GeneratedImage } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -17,6 +19,7 @@ interface CreativeStudioWizardProps {
 
 export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWizardProps) => {
   const [state, setState] = useState<CreativeStudioState>(initialCreativeStudioState);
+  const [previousImages, setPreviousImages] = useState<GeneratedImage[]>([]);
   const navigate = useNavigate();
   const { currentBrand } = useBrands();
   const { 
@@ -25,7 +28,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     generateConcepts, 
     generateImages,
     generateVariations,
-    deleteImage 
+    deleteImage,
+    editImage
   } = useImageGeneration();
   
   // Refs for floating footer positioning
@@ -35,6 +39,37 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   // State for floating footer
   const [floating, setFloating] = useState({ active: false, left: 0, width: 0 });
   const [footerHeight, setFooterHeight] = useState(80);
+
+  // Fetch previously generated images
+  useEffect(() => {
+    const fetchPreviousImages = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('generated_images')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (data && !error) {
+        const images: GeneratedImage[] = data.map((img, index) => ({
+          id: img.id,
+          imageUrl: img.image_url,
+          status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
+          prompt: img.prompt,
+          refinedPrompt: img.refined_prompt || undefined,
+          index,
+          productReferenceUrl: img.product_reference_url || undefined,
+          contextReferenceUrl: img.context_reference_url || undefined,
+        }));
+        setPreviousImages(images);
+      }
+    };
+
+    fetchPreviousImages();
+  }, [state.generatedImages]); // Refetch when new images are generated
 
   const handleUpdate = useCallback((updates: Partial<CreativeStudioState>) => {
     setState(prev => ({ ...prev, ...updates }));
@@ -61,15 +96,11 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   }, [state.prompt, state.useCase, state.targetPersona, currentBrand, handleUpdate, generateConcepts]);
 
   const handleBack = useCallback(() => {
-    if (state.step === 3) {
-      handleUpdate({ step: 2 });
-    } else {
-      handleUpdate({ step: 1 });
-    }
-  }, [state.step, handleUpdate]);
+    handleUpdate({ step: 1 });
+  }, [handleUpdate]);
 
   const handleGenerate = useCallback(async () => {
-    handleUpdate({ isGenerating: true, step: 3, generatedImages: [] });
+    handleUpdate({ isGenerating: true, generatedImages: [] });
     
     // Generate placeholder images for loading state
     const placeholders: GeneratedImage[] = Array.from({ length: state.imageCount }).map((_, i) => ({
@@ -110,8 +141,61 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       handleUpdate({
         generatedImages: state.generatedImages.filter(img => img.id !== image.id)
       });
+      // Also update previous images
+      setPreviousImages(prev => prev.filter(img => img.id !== image.id));
     }
   }, [state.generatedImages, handleUpdate, deleteImage]);
+
+  // Handle selecting an image for editing in the Advanced Edit Panel
+  const handleSelectForEdit = useCallback((image: GeneratedImage) => {
+    handleUpdate({ 
+      baseImage: image, 
+      editMode: 'edit',
+      isEditPanelOpen: true 
+    });
+  }, [handleUpdate]);
+
+  // Handle edit from Advanced Edit Panel
+  const handleAdvancedEdit = useCallback(async () => {
+    if (state.editMode === 'generate') {
+      // Text-to-image generation using the edit description
+      handleUpdate({ isGenerating: true, generatedImages: [] });
+      
+      const placeholders: GeneratedImage[] = Array.from({ length: state.imageCount }).map((_, i) => ({
+        id: `pending-${i}`,
+        imageUrl: '',
+        status: 'pending' as const,
+        prompt: state.editDescription,
+        index: i,
+      }));
+      handleUpdate({ generatedImages: placeholders });
+
+      // Use editDescription as the prompt
+      const editState = { ...state, prompt: state.editDescription };
+      const images = await generateImages(editState);
+      
+      handleUpdate({ 
+        isGenerating: false, 
+        generatedImages: images.length > 0 ? images : placeholders.map(p => ({ ...p, status: 'failed' as const }))
+      });
+    } else if (state.editMode === 'edit' && state.baseImage) {
+      // Image-to-image editing
+      const newImages = await editImage(state.baseImage, state.editDescription, state);
+      if (newImages.length > 0) {
+        handleUpdate({ 
+          generatedImages: [...state.generatedImages, ...newImages] 
+        });
+      }
+    } else if (state.editMode === 'variation' && state.baseImage) {
+      // Generate variations
+      const newImages = await generateVariations(state, state.baseImage);
+      if (newImages.length > 0) {
+        handleUpdate({ 
+          generatedImages: [...state.generatedImages, ...newImages] 
+        });
+      }
+    }
+  }, [state, handleUpdate, generateImages, editImage, generateVariations]);
 
   // Track card position for floating footer
   useLayoutEffect(() => {
@@ -149,9 +233,15 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     };
   }, [state.step, isOpen]);
 
+  // Combine recent generated + previous images for gallery
+  const allImages = state.generatedImages.length > 0 
+    ? state.generatedImages 
+    : previousImages;
+
   return (
     <section className="px-8 py-16 border-t border-border bg-secondary/20">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Main Creative Studio Section */}
         <Collapsible open={isOpen} onOpenChange={onOpenChange}>
           <div className="flex items-center gap-3 mb-6">
             <CollapsibleTrigger asChild>
@@ -186,12 +276,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 state.step === 2 ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
               }`}>
                 2
-              </div>
-              <div className="w-8 h-0.5 bg-border" />
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                state.step === 3 ? 'bg-accent text-accent-foreground' : 'bg-secondary text-muted-foreground'
-              }`}>
-                3
               </div>
             </div>
           </div>
@@ -228,7 +312,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   </button>
                 </div>
               </div>
-            ) : state.step === 2 ? (
+            ) : (
               <div ref={step2CardRef} className="glass-card p-6">
                 <CreativeStudioHeader
                   state={state}
@@ -244,24 +328,33 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   />
                 </div>
               </div>
-            ) : (
-              <div className="glass-card p-6">
-                <GeneratedImagesGallery
-                  images={state.generatedImages}
-                  isGenerating={isGeneratingImages}
-                  imageCount={state.imageCount}
-                  onVariation={handleVariation}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onBack={handleBack}
-                  onRegenerate={handleGenerate}
-                />
-              </div>
             )}
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Floating Footer */}
+        {/* Advanced Edit Panel - Always visible after first generation */}
+        {(allImages.length > 0 || state.isEditPanelOpen) && (
+          <AdvancedEditPanel
+            state={state}
+            onUpdate={handleUpdate}
+            onEdit={handleAdvancedEdit}
+            isEditing={isGeneratingImages}
+          />
+        )}
+        
+        {/* Persistent Gallery at Bottom - Always visible */}
+        <GeneratedImagesGallery
+          images={allImages}
+          isGenerating={isGeneratingImages && state.generatedImages.length === 0}
+          imageCount={state.imageCount}
+          onVariation={handleVariation}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onRegenerate={state.step === 2 ? handleGenerate : undefined}
+          onSelectForEdit={handleSelectForEdit}
+        />
+        
+        {/* Floating Footer for Step 2 */}
         {floating.active && state.step === 2 && (
           <div
             ref={footerRef}
