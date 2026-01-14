@@ -30,6 +30,7 @@ import { Slider } from "@/components/ui/slider";
 import { ConceptCard, AddConceptCard } from "./ConceptCard";
 import { CustomizationSection } from "./CustomizationSection";
 import { MoodboardThumbnail } from "./MoodboardThumbnail";
+import { ReferenceThumbnail } from "./ReferenceThumbnail";
 import { MoodboardModal } from "./MoodboardModal";
 import { ReferenceGalleryModal } from "./ReferenceGalleryModal";
 import { 
@@ -166,21 +167,12 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             {/* Product Reference Grid */}
             <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
               {sampleProductReferences.slice(0, 4).map((ref) => (
-                <button
+                <ReferenceThumbnail
                   key={ref.id}
-                  onClick={() => onUpdate({ productReference: ref.id })}
-                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-sm ${
-                    state.productReference === ref.id
-                      ? 'border-accent ring-1 ring-accent/30'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <img 
-                    src={ref.thumbnail} 
-                    alt={ref.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </button>
+                  reference={ref}
+                  isSelected={state.productReference === ref.id}
+                  onSelect={() => onUpdate({ productReference: ref.id })}
+                />
               ))}
               
               {/* Upload Button */}
@@ -211,25 +203,13 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             {/* Context Reference Grid */}
             <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
               {sampleContextReferences.slice(0, 5).map((ref) => (
-                <button
+                <ReferenceThumbnail
                   key={ref.id}
-                  onClick={() => onUpdate({ contextReference: ref.id })}
-                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-sm ${
-                    state.contextReference === ref.id
-                      ? 'border-accent ring-1 ring-accent/30'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <img 
-                    src={ref.thumbnail} 
-                    alt={ref.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white truncate">
-                    {ref.name}
-                  </span>
-                </button>
+                  reference={ref}
+                  isSelected={state.contextReference === ref.id}
+                  onSelect={() => onUpdate({ contextReference: ref.id })}
+                  showLabel={true}
+                />
               ))}
               
               {/* Upload Button */}
