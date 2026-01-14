@@ -29,10 +29,11 @@ export const MoodboardThumbnail = ({
             : 'border-border hover:border-accent/50'
         }`}
       >
-        {/* Gradient Background */}
-        <div 
-          className="absolute inset-0"
-          style={{ background: moodboard.thumbnail }}
+        {/* Background Image */}
+        <img 
+          src={moodboard.thumbnail} 
+          alt={moodboard.name}
+          className="absolute inset-0 w-full h-full object-cover"
         />
         
         {/* Gradient overlay for text */}
@@ -65,9 +66,10 @@ export const MoodboardThumbnail = ({
       {/* Full View Dialog */}
       <Dialog open={isFullView} onOpenChange={setIsFullView}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
-          <div 
-            className="aspect-video w-full"
-            style={{ background: moodboard.thumbnail }}
+          <img 
+            src={moodboard.thumbnail} 
+            alt={moodboard.name}
+            className="aspect-video w-full object-cover"
           />
           <div className="p-4">
             <h3 className="font-semibold text-lg">{moodboard.name}</h3>
