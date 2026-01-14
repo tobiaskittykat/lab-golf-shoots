@@ -16,12 +16,25 @@ export interface ReferenceImage {
   id: string;
   name: string;
   thumbnail: string;
+  url?: string; // Actual image URL for AI input
   category: 'product' | 'context';
+}
+
+export interface GeneratedImage {
+  id: string;
+  imageUrl: string;
+  status: 'pending' | 'completed' | 'failed' | 'nsfw';
+  prompt: string;
+  refinedPrompt?: string;
+  error?: string;
+  index: number;
+  productReferenceUrl?: string;
+  contextReferenceUrl?: string;
 }
 
 export interface CreativeStudioState {
   // Step 1
-  step: 1 | 2;
+  step: 1 | 2 | 3; // Added step 3 for results
   selectedBrand: string | null;
   selectedCampaign: string | null;
   mediaType: 'image' | 'video';
@@ -56,7 +69,7 @@ export interface CreativeStudioState {
   // Generation
   isGenerating: boolean;
   isLoadingConcepts: boolean;
-  generatedImages: string[];
+  generatedImages: GeneratedImage[];
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -181,10 +194,20 @@ export const cameraAngles = [
   { value: 'dutch-angle', label: 'Dutch Angle' },
 ];
 
+// Updated AI models - only Lovable AI supported models
 export const aiModels = [
-  { value: 'auto', label: 'Auto (Recommended)' },
-  { value: 'gemini', label: 'Gemini Image' },
-  { value: 'flux', label: 'Flux' },
+  { 
+    value: 'auto', 
+    label: 'Auto', 
+    description: 'Best quality',
+    model: 'google/gemini-3-pro-image-preview' 
+  },
+  { 
+    value: 'nano-banana', 
+    label: 'Nano Banana Pro', 
+    description: 'Fast iteration',
+    model: 'google/gemini-2.5-flash-image-preview' 
+  },
 ];
 
 export const targetPersonas = [
