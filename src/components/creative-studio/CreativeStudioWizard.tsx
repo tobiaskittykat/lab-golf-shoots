@@ -5,8 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { CreativeStudioHeader } from "./CreativeStudioHeader";
 import { StepOnePrompt } from "./StepOnePrompt";
 import { StepTwoCustomize } from "./StepTwoCustomize";
-import { GeneratedImagesGallery } from "./GeneratedImagesGallery";
-import { AdvancedEditPanel } from "./AdvancedEditPanel";
+import { UnifiedWorkspace } from "./UnifiedWorkspace";
 import { CreativeStudioState, initialCreativeStudioState, GeneratedImage } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
@@ -145,15 +144,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       setPreviousImages(prev => prev.filter(img => img.id !== image.id));
     }
   }, [state.generatedImages, handleUpdate, deleteImage]);
-
-  // Handle selecting an image for editing in the Advanced Edit Panel
-  const handleSelectForEdit = useCallback((image: GeneratedImage) => {
-    handleUpdate({ 
-      baseImage: image, 
-      editMode: 'edit',
-      isEditPanelOpen: true 
-    });
-  }, [handleUpdate]);
 
   // Handle edit from Advanced Edit Panel
   const handleAdvancedEdit = useCallback(async () => {
@@ -332,26 +322,18 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Advanced Edit Panel - Always visible after first generation */}
-        {(allImages.length > 0 || state.isEditPanelOpen) && (
-          <AdvancedEditPanel
-            state={state}
-            onUpdate={handleUpdate}
-            onEdit={handleAdvancedEdit}
-            isEditing={isGeneratingImages}
-          />
-        )}
-        
-        {/* Persistent Gallery at Bottom - Always visible */}
-        <GeneratedImagesGallery
+        {/* Unified Workspace - Combines Quick Edit Bar + Gallery */}
+        <UnifiedWorkspace
+          state={state}
+          onUpdate={handleUpdate}
           images={allImages}
           isGenerating={isGeneratingImages && state.generatedImages.length === 0}
-          imageCount={state.imageCount}
+          onEdit={handleAdvancedEdit}
           onVariation={handleVariation}
-          onEdit={handleEdit}
+          onEditImage={handleEdit}
           onDelete={handleDelete}
           onRegenerate={state.step === 2 ? handleGenerate : undefined}
-          onSelectForEdit={handleSelectForEdit}
+          isEditing={isGeneratingImages}
         />
         
         {/* Floating Footer for Step 2 */}

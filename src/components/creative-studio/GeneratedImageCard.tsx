@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check } from 'lucide-react';
+import { useState, DragEvent } from 'react';
+import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check, GripVertical } from 'lucide-react';
 import { GeneratedImage } from './types';
+import { cn } from '@/lib/utils';
 
 interface GeneratedImageCardProps {
   image: GeneratedImage;
@@ -8,6 +9,7 @@ interface GeneratedImageCardProps {
   onEdit: (image: GeneratedImage) => void;
   onDelete: (image: GeneratedImage) => void;
   onSelect?: (image: GeneratedImage) => void;
+  enableDrag?: boolean;
 }
 
 export const GeneratedImageCard = ({ 
@@ -15,10 +17,34 @@ export const GeneratedImageCard = ({
   onVariation, 
   onEdit, 
   onDelete,
-  onSelect 
+  onSelect,
+  enableDrag = false
 }: GeneratedImageCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    if (!enableDrag || image.status !== 'completed') {
+      e.preventDefault();
+      return;
+    }
+    
+    e.dataTransfer.setData('application/json', JSON.stringify(image));
+    e.dataTransfer.effectAllowed = 'copy';
+    setIsDragging(true);
+    
+    // Create a drag image
+    const dragImage = document.createElement('div');
+    dragImage.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
 
   const handleDownload = async () => {
     if (!image.imageUrl) return;
@@ -80,12 +106,22 @@ export const GeneratedImageCard = ({
     }
   };
 
+  const canDrag = enableDrag && image.status === 'completed';
+
   return (
     <div 
-      className={`group relative rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-shadow ${onSelect && image.status === 'completed' ? 'cursor-pointer' : ''}`}
+      className={cn(
+        "group relative rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all",
+        onSelect && image.status === 'completed' && 'cursor-pointer',
+        isDragging && 'opacity-50 scale-95',
+        canDrag && 'cursor-grab active:cursor-grabbing'
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
+      draggable={canDrag}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {/* Image Container */}
       <div className="aspect-square relative bg-secondary/30">
@@ -130,32 +166,39 @@ export const GeneratedImageCard = ({
           </>
         )}
 
+        {/* Drag Handle Indicator */}
+        {canDrag && isHovered && (
+          <div className="absolute top-2 left-2 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="w-3 h-3" />
+          </div>
+        )}
+
         {/* Hover Overlay with Actions */}
         {isHovered && image.status === 'completed' && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 transition-opacity">
             <button
-              onClick={() => onVariation(image)}
+              onClick={(e) => { e.stopPropagation(); onVariation(image); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
               title="Generate Variations"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onEdit(image)}
+              onClick={(e) => { e.stopPropagation(); onEdit(image); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
               title="Edit Image"
             >
               <Pencil className="w-4 h-4" />
             </button>
             <button
-              onClick={handleDownload}
+              onClick={(e) => { e.stopPropagation(); handleDownload(); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
               title="Download"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onDelete(image)}
+              onClick={(e) => { e.stopPropagation(); onDelete(image); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-destructive transition-colors"
               title="Delete"
             >
