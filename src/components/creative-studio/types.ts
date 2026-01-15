@@ -55,10 +55,10 @@ export interface CreativeStudioState {
   // Step 1
   step: 1 | 2 | 3;
   selectedBrand: string | null;
-  selectedCampaign: string | null;
+  outputFormat: string | null;
   mediaType: 'image' | 'video';
   targetPersona: string | null;
-  useCase: 'ad' | 'lifestyle' | 'newsletter' | 'social' | 'product';
+  useCase: 'product' | 'lifestyle' | 'localization' | 'ugc';
   prompt: string;
   selectedTypeCard: string | null;
 
@@ -101,7 +101,7 @@ export interface CreativeStudioState {
 export const initialCreativeStudioState: CreativeStudioState = {
   step: 1,
   selectedBrand: null,
-  selectedCampaign: null,
+  outputFormat: 'social-post',
   mediaType: 'image',
   targetPersona: null,
   useCase: 'product',
@@ -157,27 +157,35 @@ export const typeCards = [
     promptTemplate: 'Lifestyle photography showing [product] in natural setting, authentic, warm tones, editorial feel'
   },
   { 
-    id: 'ad', 
-    label: 'Ad Creative', 
-    icon: '📢',
-    description: 'Marketing-ready visuals',
-    promptTemplate: 'Bold advertising creative for [product], eye-catching, modern design, perfect for digital campaigns'
+    id: 'localization', 
+    label: 'Media Localization', 
+    icon: '🌍',
+    description: 'Adapt visuals for different markets',
+    promptTemplate: 'Localized marketing visual for [product], culturally adapted, market-specific appeal, authentic regional aesthetic'
   },
   { 
-    id: 'social', 
-    label: 'Social Post', 
+    id: 'ugc', 
+    label: 'UGC Content', 
     icon: '📱',
-    description: 'Platform-optimized content',
-    promptTemplate: 'Social media ready content featuring [product], engaging, shareable, trendy aesthetic'
+    description: 'User-generated style content',
+    promptTemplate: 'Authentic user-generated style content featuring [product], casual, relatable, social media native aesthetic'
   },
 ];
 
 export const useCaseOptions = [
-  { value: 'ad', label: 'Ad Creative' },
-  { value: 'lifestyle', label: 'Lifestyle' },
-  { value: 'newsletter', label: 'Newsletter' },
-  { value: 'social', label: 'Social Post' },
   { value: 'product', label: 'Product Shot' },
+  { value: 'lifestyle', label: 'Lifestyle' },
+  { value: 'localization', label: 'Media Localization' },
+  { value: 'ugc', label: 'UGC Content' },
+];
+
+// Output format options with default aspect ratios
+export const outputFormats = [
+  { value: 'social-post', label: 'Social Post', aspectRatio: '1:1', description: 'Square format for feeds' },
+  { value: 'stories-reels', label: 'Stories & Reels', aspectRatio: '9:16', description: 'Vertical for Stories/TikTok/Shorts' },
+  { value: 'email-banner', label: 'Email & Banner', aspectRatio: '3:1', description: 'Wide horizontal headers' },
+  { value: 'website-hero', label: 'Website Hero', aspectRatio: '16:9', description: 'Standard widescreen' },
+  { value: 'ecommerce', label: 'E-commerce', aspectRatio: '1:1', description: 'Product listings' },
 ];
 
 export const aspectRatios = ['1:1', '4:5', '16:9', '9:16', '4:3', '3:4'];

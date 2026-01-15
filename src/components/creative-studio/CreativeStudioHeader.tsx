@@ -1,4 +1,4 @@
-import { RefreshCw, Package, Users, Megaphone, Share2, Palette, FolderOpen, Image, Video, UserCircle } from "lucide-react";
+import { RefreshCw, Package, Users, Globe, Camera, Palette, Layout, Image, Video, UserCircle } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -7,13 +7,14 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useBrands } from "@/hooks/useBrands";
-import { CreativeStudioState, targetPersonas } from "./types";
+import { CreativeStudioState, targetPersonas, outputFormats } from "./types";
+import { Badge } from "@/components/ui/badge";
 
 const typeChips = [
   { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500' },
   { id: 'lifestyle', label: 'Lifestyle', icon: Users, colorClass: 'bg-purple-100 text-purple-500' },
-  { id: 'ad', label: 'Ad Creative', icon: Megaphone, colorClass: 'bg-orange-100 text-orange-500' },
-  { id: 'social', label: 'Social Post', icon: Share2, colorClass: 'bg-accent/10 text-accent' },
+  { id: 'localization', label: 'Media Localization', icon: Globe, colorClass: 'bg-blue-100 text-blue-500' },
+  { id: 'ugc', label: 'UGC Content', icon: Camera, colorClass: 'bg-orange-100 text-orange-500' },
 ];
 
 interface CreativeStudioHeaderProps {
@@ -38,8 +39,45 @@ export const CreativeStudioHeader = ({
     });
   };
 
+  const handleOutputFormatChange = (format: string) => {
+    const formatConfig = outputFormats.find(f => f.value === format);
+    const updates: Partial<CreativeStudioState> = { outputFormat: format };
+    if (formatConfig?.aspectRatio) {
+      updates.aspectRatio = formatConfig.aspectRatio;
+    }
+    onUpdate(updates);
+  };
+
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-8">
+      {/* Image/Video Toggle - Top Right */}
+      <div className="w-full flex justify-end">
+        <Select 
+          value={state.mediaType} 
+          onValueChange={(value) => onUpdate({ mediaType: value as 'image' | 'video' })}
+        >
+          <SelectTrigger className="action-chip w-auto gap-2 border-border">
+            <span className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+              {state.mediaType === 'video' ? (
+                <Video className="w-3 h-3 text-green-500" />
+              ) : (
+                <Image className="w-3 h-3 text-green-500" />
+              )}
+            </span>
+            <SelectValue placeholder="Media Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="image">Image</SelectItem>
+            <SelectItem value="video" disabled>
+              <span className="flex items-center gap-2">
+                Video
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">Coming Soon</Badge>
+              </span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Visual-focused Header */}
       <div className="text-center space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
@@ -92,39 +130,23 @@ export const CreativeStudioHeader = ({
           </SelectContent>
         </Select>
 
-        {/* Campaign Selector */}
-        <Select value={state.selectedCampaign || ''} onValueChange={(value) => onUpdate({ selectedCampaign: value })}>
-          <SelectTrigger className="action-chip w-auto gap-2 border-border">
-            <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
-              <FolderOpen className="w-3 h-3 text-purple-500" />
-            </span>
-            <SelectValue placeholder="Campaign" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="summer-2025">Summer 2025</SelectItem>
-            <SelectItem value="holiday-collection">Holiday Collection</SelectItem>
-            <SelectItem value="new-arrivals">New Arrivals</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Media Type Dropdown */}
+        {/* Output Format Selector */}
         <Select 
-          value={state.mediaType} 
-          onValueChange={(value) => onUpdate({ mediaType: value as 'image' | 'video' })}
+          value={state.outputFormat || 'social-post'} 
+          onValueChange={handleOutputFormatChange}
         >
           <SelectTrigger className="action-chip w-auto gap-2 border-border">
-            <span className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-              {state.mediaType === 'video' ? (
-                <Video className="w-3 h-3 text-green-500" />
-              ) : (
-                <Image className="w-3 h-3 text-green-500" />
-              )}
+            <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+              <Layout className="w-3 h-3 text-purple-500" />
             </span>
-            <SelectValue placeholder="Media Type" />
+            <SelectValue placeholder="Output Format" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="image">Image</SelectItem>
-            <SelectItem value="video">Video</SelectItem>
+            {outputFormats.map((format) => (
+              <SelectItem key={format.value} value={format.value}>
+                {format.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
