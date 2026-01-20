@@ -793,32 +793,38 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             </div>
           </CustomizationSection>
 
-          {/* ===== 4. SHOT REFERENCES SECTION (Multi-select) ===== */}
+          {/* ===== 4. SHOT TYPE SECTION (Content guidance, multi-select) ===== */}
           <CustomizationSection 
-            title="Shot References" 
-            icon={<Focus className="w-4 h-4" />}
-          >
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product (select multiple)</p>
-              
-              {/* Selected count badge */}
-              {state.contextReferences.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
+            title={
+              <span className="flex items-center gap-2">
+                Shot Type
+                {state.contextReferences.length > 0 && (
+                  <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
                     {state.contextReferences.length} selected
                   </span>
+                )}
+              </span>
+            }
+            icon={<Focus className="w-4 h-4" />}
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Select shot composition to guide the AI
+                </p>
+                {state.contextReferences.length > 0 && (
                   <button 
                     onClick={() => onUpdate({ contextReferences: [] })}
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
-                    Clear all
+                    Clear
                   </button>
-                </div>
-              )}
+                )}
+              </div>
               
-              {/* Shot Reference Grid */}
-              <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                {sampleContextReferences.slice(0, 5).map((ref) => (
+              {/* Shot Type Grid - All 4 Bandolier types in a row */}
+              <div className="grid grid-cols-4 gap-3">
+                {sampleContextReferences.map((ref) => (
                   <ReferenceThumbnail
                     key={ref.id}
                     reference={ref}
@@ -834,21 +840,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                     showLabel={true}
                   />
                 ))}
-                
-                {/* Upload Button */}
-                <button className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 bg-secondary/30 flex items-center justify-center transition-colors">
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                </button>
               </div>
-
-              {/* View More */}
-              <button 
-                onClick={() => setShowContextRefModal(true)}
-                className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
-              >
-                View more options
-                <ChevronRight className="w-4 h-4" />
-              </button>
             </div>
           </CustomizationSection>
 

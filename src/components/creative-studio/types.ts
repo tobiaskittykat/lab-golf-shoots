@@ -112,6 +112,7 @@ export interface ReferenceImage {
   thumbnail: string;
   url?: string; // Actual image URL for AI input
   category: 'product' | 'context';
+  shotPrompt?: string; // Text guidance for AI when used as shot type
 }
 
 export interface GeneratedImage {
@@ -399,48 +400,43 @@ export const sampleProductReferences: ReferenceImage[] = [
   },
 ];
 
-// Bandolier context references - urban lifestyle settings
+// Bandolier shot type references - content-focused guidance for AI
+import shotProductFocus from '@/assets/shot-references/product-focus.jpg';
+import shotProductInHand from '@/assets/shot-references/product-in-hand.jpg';
+import shotProductComposition from '@/assets/shot-references/product-composition.jpg';
+import shotProductOnModel from '@/assets/shot-references/product-on-model.jpg';
+
 export const sampleContextReferences: ReferenceImage[] = [
   { 
-    id: 'context-1', 
-    name: 'City Street', 
-    thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800',
-    category: 'context' 
+    id: 'shot-product-focus', 
+    name: 'Product Focus', 
+    thumbnail: shotProductFocus,
+    url: shotProductFocus,
+    category: 'context',
+    shotPrompt: 'Product-only shot, isolated on surface, no hands or models'
   },
   { 
-    id: 'context-2', 
-    name: 'Coffee Shop', 
-    thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800',
-    category: 'context' 
+    id: 'shot-in-hand', 
+    name: 'In Hand', 
+    thumbnail: shotProductInHand,
+    url: shotProductInHand,
+    category: 'context',
+    shotPrompt: 'Close-up of hands holding the product'
   },
   { 
-    id: 'context-3', 
-    name: 'Airport Terminal', 
-    thumbnail: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800',
-    category: 'context' 
+    id: 'shot-composition', 
+    name: 'Composition', 
+    thumbnail: shotProductComposition,
+    url: shotProductComposition,
+    category: 'context',
+    shotPrompt: 'Styled arrangement with lifestyle props'
   },
   { 
-    id: 'context-4', 
-    name: 'Evening Event', 
-    thumbnail: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800',
-    category: 'context' 
-  },
-  { 
-    id: 'context-5', 
-    name: 'Winter Street', 
-    thumbnail: 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=800',
-    category: 'context' 
-  },
-  { 
-    id: 'context-6', 
-    name: 'Boutique Interior', 
-    thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
-    category: 'context' 
+    id: 'shot-on-model', 
+    name: 'On Model', 
+    thumbnail: shotProductOnModel,
+    url: shotProductOnModel,
+    category: 'context',
+    shotPrompt: 'Model wearing the crossbody product'
   },
 ];

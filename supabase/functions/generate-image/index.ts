@@ -20,9 +20,9 @@ interface GenerateImageRequest {
   lightingStyle?: string;
   cameraAngle?: string;
   
-  // References (URLs) - now arrays for multiple references
-  productReferenceUrls?: string[];
-  contextReferenceUrls?: string[];
+  // References
+  productReferenceUrls?: string[]; // Product images as visual refs
+  shotTypePrompts?: string[]; // Shot type text guidance (not image URLs)
   
   // Edit mode
   sourceImageUrl?: string;
@@ -116,6 +116,11 @@ function buildPrompt(request: GenerateImageRequest): string {
       'dutch-angle': 'dutch angle tilted composition',
     };
     parts.push(angleDescriptions[request.cameraAngle] || request.cameraAngle);
+  }
+  
+  // Shot type guidance (content direction - lightweight text, not dominant)
+  if (request.shotTypePrompts && request.shotTypePrompts.length > 0) {
+    parts.push(request.shotTypePrompts.join(', '));
   }
   
   // Extra keywords
@@ -253,22 +258,8 @@ Deno.serve(async (req) => {
           });
         }
         
-        // Add context references as visual inputs (multiple environments/scenes)
-        const contextUrls = body.contextReferenceUrls || [];
-        if (contextUrls.length > 0) {
-          for (const url of contextUrls) {
-            if (url && url.startsWith('http')) {
-              messageContent.push({
-                type: "image_url",
-                image_url: { url }
-              });
-            }
-          }
-          messageContent.push({
-            type: "text",
-            text: `Use the above image(s) as the SCENE/ENVIRONMENT context reference(s). Place the product in a similar setting.`
-          });
-        }
+        // Note: Shot type guidance is now in the text prompt via buildPrompt()
+        // No image attachment for shot references - they guide via text only
 
         // Call Lovable AI Gateway for image generation
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -381,7 +372,7 @@ Deno.serve(async (req) => {
             negative_prompt: body.negativePrompt || null,
             image_url: publicUrl,
             product_reference_url: (body.productReferenceUrls && body.productReferenceUrls[0]) || null,
-            context_reference_url: (body.contextReferenceUrls && body.contextReferenceUrls[0]) || null,
+            context_reference_url: null, // Shot types are now text prompts, not image URLs
             moodboard_id: body.moodboardId || null,
             settings: {
               aiModel: body.aiModel,
@@ -400,7 +391,7 @@ Deno.serve(async (req) => {
                 moodboardUrl: body.moodboardUrl || null,
                 moodboardDescription: body.moodboardDescription || null,
                 productReferenceUrls: body.productReferenceUrls || [],
-                contextReferenceUrls: body.contextReferenceUrls || [],
+                shotTypePrompts: body.shotTypePrompts || [],
                 sourceImageUrl: body.sourceImageUrl || null,
               },
             },

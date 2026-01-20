@@ -147,16 +147,17 @@ export function useImageGeneration() {
         }
       }
 
-      // Support multiple context references
-      const contextRefs = state.contextReferences
+      // Extract shot type prompts from selected shot references (text guidance, not image URLs)
+      const shotTypePrompts = state.contextReferences
         .map(id => sampleContextReferences.find(r => r.id === id))
-        .filter(Boolean);
-      const contextRefUrls = contextRefs.map(ref => ref?.url).filter(Boolean) as string[];
+        .filter(Boolean)
+        .map(ref => ref?.shotPrompt)
+        .filter(Boolean) as string[];
       
       console.log('Generating with references:', {
         moodboardUrl,
         productReferenceUrls,
-        contextRefUrls
+        shotTypePrompts
       });
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -172,9 +173,10 @@ export function useImageGeneration() {
           lightingStyle: state.lightingStyle,
           cameraAngle: state.cameraAngle,
           
-          // Reference URLs (now arrays)
+          // Reference URLs (product images as visual refs)
           productReferenceUrls,
-          contextReferenceUrls: contextRefUrls,
+          // Shot type as text prompt guidance (not image attachment)
+          shotTypePrompts,
           
           extraKeywords: state.extraKeywords,
           negativePrompt: state.negativePrompt,
@@ -215,7 +217,6 @@ export function useImageGeneration() {
         moodboardUrl: moodboardUrl || undefined,
         productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
         productReferenceUrl: productReferenceUrls[0], // Keep first for backwards compat
-        contextReferenceUrls: contextRefUrls.length > 0 ? contextRefUrls : undefined,
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;
