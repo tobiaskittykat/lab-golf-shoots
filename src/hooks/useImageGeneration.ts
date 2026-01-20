@@ -160,6 +160,9 @@ export function useImageGeneration() {
         shotTypePrompts
       });
 
+      // Track when we started to find newly generated images if timeout occurs
+      const generationStartTime = new Date().toISOString();
+      
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
           prompt: state.prompt,
@@ -194,8 +197,42 @@ export function useImageGeneration() {
         },
       });
 
+      // Handle timeout/connection errors by checking if images were actually created
       if (error) {
         console.error('Error generating images:', error);
+        
+        // Check if images were actually generated despite the error (e.g., timeout)
+        // Wait a moment then check the database for recently created images
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const { data: recentImages } = await supabase
+          .from('generated_images')
+          .select('*')
+          .gte('created_at', generationStartTime)
+          .order('created_at', { ascending: false })
+          .limit(state.imageCount);
+        
+        if (recentImages && recentImages.length > 0) {
+          // Images were generated successfully despite connection error
+          toast({
+            title: 'Images generated!',
+            description: `Generated ${recentImages.length} image(s) - connection recovered`,
+          });
+          
+          return recentImages.map((img: any, idx: number) => ({
+            id: img.id,
+            imageUrl: img.image_url,
+            status: 'completed' as const,
+            prompt: img.prompt,
+            refinedPrompt: img.refined_prompt,
+            index: idx,
+            moodboardId: state.moodboard || undefined,
+            moodboardUrl: moodboardUrl || undefined,
+            productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+            productReferenceUrl: productReferenceUrls[0],
+          }));
+        }
+        
         toast({
           title: 'Failed to generate images',
           description: error.message || 'Please try again',
