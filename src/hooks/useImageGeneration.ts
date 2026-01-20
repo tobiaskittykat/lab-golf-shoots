@@ -93,23 +93,24 @@ export function useImageGeneration() {
       // Get moodboard description
       const moodboard = sampleMoodboards.find(m => m.id === state.moodboard);
 
-      // Resolve product reference URL (supports both sample + scraped products)
-      let productReferenceUrl: string | undefined;
-      if (state.productReference) {
-        if (state.productReference.startsWith('scraped-')) {
-          const dbId = state.productReference.replace('scraped-', '');
+      // Resolve product reference URLs (supports both sample + scraped products, now array)
+      const productReferenceUrls: string[] = [];
+      for (const productRef of state.productReferences) {
+        if (productRef.startsWith('scraped-')) {
+          const dbId = productRef.replace('scraped-', '');
           const { data: scrapedRow, error: scrapedErr } = await supabase
             .from('scraped_products')
             .select('full_url, thumbnail_url')
             .eq('id', dbId)
             .maybeSingle();
 
-          if (!scrapedErr) {
-            productReferenceUrl = scrapedRow?.full_url || scrapedRow?.thumbnail_url || undefined;
+          if (!scrapedErr && scrapedRow) {
+            const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+            if (url) productReferenceUrls.push(url);
           }
         } else {
-          const productRef = sampleProductReferences.find(r => r.id === state.productReference);
-          productReferenceUrl = productRef?.url;
+          const ref = sampleProductReferences.find(r => r.id === productRef);
+          if (ref?.url) productReferenceUrls.push(ref.url);
         }
       }
 
@@ -131,9 +132,9 @@ export function useImageGeneration() {
           lightingStyle: state.lightingStyle,
           cameraAngle: state.cameraAngle,
           
-          // Reference URLs
-          productReferenceUrl,
-          contextReferenceUrls: contextRefUrls, // Now an array
+          // Reference URLs (now arrays)
+          productReferenceUrls,
+          contextReferenceUrls: contextRefUrls,
           
           extraKeywords: state.extraKeywords,
           negativePrompt: state.negativePrompt,
@@ -169,7 +170,7 @@ export function useImageGeneration() {
         refinedPrompt: img.refinedPrompt,
         error: img.error,
         index: img.index,
-        productReferenceUrl,
+        productReferenceUrl: productReferenceUrls[0], // Keep first for backwards compat
         contextReferenceUrls: contextRefUrls,
       }));
 

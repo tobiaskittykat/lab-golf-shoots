@@ -143,7 +143,7 @@ export interface CreativeStudioState {
   savedConcepts: SavedConcept[];
   selectedConcept: string | null;
   moodboard: string | null;
-  productReference: string | null;
+  productReferences: string[]; // Changed to array, max 3
   contextReferences: string[]; // Changed from single to array
   styleReference: string | null;
   textOnImage: string;
@@ -172,6 +172,10 @@ export interface CreativeStudioState {
   baseImage: GeneratedImage | null;
   editDescription: string;
   isEditPanelOpen: boolean;
+  
+  // Curated options from smart-match
+  curatedMoodboards: string[];
+  curatedProducts: string[];
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -188,7 +192,7 @@ export const initialCreativeStudioState: CreativeStudioState = {
   savedConcepts: [],
   selectedConcept: null,
   moodboard: null,
-  productReference: null,
+  productReferences: [], // Changed to array, max 3
   contextReferences: [], // Changed to array
   styleReference: null,
   textOnImage: '',
@@ -215,6 +219,10 @@ export const initialCreativeStudioState: CreativeStudioState = {
   baseImage: null,
   editDescription: '',
   isEditPanelOpen: false,
+  
+  // Curated options from smart-match
+  curatedMoodboards: [],
+  curatedProducts: [],
 };
 
 export const typeCards = [

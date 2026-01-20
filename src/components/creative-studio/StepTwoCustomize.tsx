@@ -45,6 +45,7 @@ import {
   SavedConcept,
   ConceptPresets,
   Moodboard,
+  ReferenceImage,
   aspectRatios, 
   resolutions, 
   lightingStyles,
@@ -192,8 +193,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       if (error) throw error;
       
       // Clear selection if this product was selected
-      if (state.productReference === productId) {
-        onUpdate({ productReference: null });
+      if (state.productReferences.includes(productId)) {
+        onUpdate({ productReferences: state.productReferences.filter(id => id !== productId) });
       }
       
       refetchScrapedProducts();
@@ -218,7 +219,12 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   // Handle concept selection with preset application
   const handleConceptSelect = useCallback((concept: Concept) => {
     const updates: Partial<CreativeStudioState> = {
-      selectedConcept: concept.id
+      selectedConcept: concept.id,
+      // Reset curated options when concept changes (will be repopulated by smart-match)
+      curatedMoodboards: [],
+      curatedProducts: [],
+      moodboard: null,
+      productReferences: [],
     };
 
     // Apply presets if the concept has them
@@ -227,17 +233,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       if (presets.artisticStyle) updates.artisticStyle = presets.artisticStyle;
       if (presets.lightingStyle) updates.lightingStyle = presets.lightingStyle;
       if (presets.cameraAngle) updates.cameraAngle = presets.cameraAngle;
-      if (presets.moodboardId) updates.moodboard = presets.moodboardId;
       if (presets.aspectRatio) updates.aspectRatio = presets.aspectRatio;
       if (presets.extraKeywords?.length) {
         updates.extraKeywords = [...state.extraKeywords, ...presets.extraKeywords.filter(k => !state.extraKeywords.includes(k))];
       }
       if (presets.useCase) updates.useCase = presets.useCase as CreativeStudioState['useCase'];
-    }
-    
-    // Apply aspect ratio from presets if available
-    if (concept.presets?.aspectRatio) {
-      updates.aspectRatio = concept.presets.aspectRatio;
     }
 
     onUpdate(updates);
@@ -419,6 +419,20 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     }
   };
 
+  // Handle product selection (multi-select, max 3)
+  const handleProductSelect = (productId: string) => {
+    const isSelected = state.productReferences.includes(productId);
+    if (isSelected) {
+      // Deselect
+      onUpdate({ productReferences: state.productReferences.filter(id => id !== productId) });
+    } else if (state.productReferences.length < 3) {
+      // Select (only if under limit)
+      onUpdate({ productReferences: [...state.productReferences, productId] });
+    } else {
+      toast({ title: 'Maximum 3 products', description: 'Deselect one to add another' });
+    }
+  };
+
   // Fetch moodboards from database
   const { data: customMoodboards = [], isLoading: loadingMoodboards } = useQuery({
     queryKey: ['custom-moodboards-preview', user?.id],
@@ -441,8 +455,21 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     enabled: !!user?.id,
   });
 
-  // Show first 6 moodboards
-  const visibleMoodboards = customMoodboards.slice(0, 6);
+  // Get curated moodboards (filter from custom moodboards based on curated IDs)
+  const curatedMoodboardItems = useMemo(() => {
+    if (state.curatedMoodboards.length === 0) return [];
+    return state.curatedMoodboards
+      .map(id => customMoodboards.find(m => m.id === id))
+      .filter(Boolean) as Moodboard[];
+  }, [state.curatedMoodboards, customMoodboards]);
+
+  // Get curated products (filter from all products based on curated IDs)
+  const curatedProductItems = useMemo(() => {
+    if (state.curatedProducts.length === 0) return [];
+    return state.curatedProducts
+      .map(id => allProductReferences.find(p => p.id === id))
+      .filter(Boolean) as ReferenceImage[];
+  }, [state.curatedProducts, allProductReferences]);
 
   // Smart AI-powered auto-selection of moodboard and product based on selected concept
   useEffect(() => {
@@ -489,25 +516,24 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
 
         const updates: Partial<CreativeStudioState> = {};
         
-        if (data?.moodboardId) {
-          updates.moodboard = data.moodboardId;
+        // Store curated options
+        if (data?.rankedMoodboards?.length > 0) {
+          updates.curatedMoodboards = data.rankedMoodboards;
+          updates.moodboard = data.rankedMoodboards[0]; // Pre-select best
         }
-        if (data?.productId) {
-          updates.productReference = data.productId;
+        if (data?.rankedProducts?.length > 0) {
+          updates.curatedProducts = data.rankedProducts;
+          updates.productReferences = [data.rankedProducts[0]]; // Pre-select best
         }
 
         if (Object.keys(updates).length > 0) {
           onUpdate(updates);
           
-          // Show toast with matching reasons
-          const reasons: string[] = [];
-          if (data?.moodboardReason) reasons.push(`🎨 ${data.moodboardReason}`);
-          if (data?.productReason) reasons.push(`📦 ${data.productReason}`);
-          
-          if (reasons.length > 0) {
+          // Show toast with matching reason
+          if (data?.matchReason) {
             toast({ 
-              title: 'Smart match complete', 
-              description: reasons.join('\n'),
+              title: 'AI matched your creative assets', 
+              description: data.matchReason,
             });
           }
         }
@@ -603,463 +629,489 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         </div>
       </div>
 
-      {/* ===== CUSTOMIZATION PANEL ===== */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-border bg-secondary/30">
-          <h3 className="font-semibold text-foreground">Customize your creative</h3>
+      {/* ===== CUSTOMIZATION PANEL (CONDITIONAL) ===== */}
+      {!state.selectedConcept ? (
+        <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <Sparkles className="w-10 h-10 mx-auto mb-4 text-muted-foreground/50" />
+          <h4 className="font-medium text-foreground mb-2">Select a concept above</h4>
+          <p className="text-sm text-muted-foreground">
+            Choose a concept to unlock AI-curated moodboards and product references
+          </p>
         </div>
-
-        {/* ===== 2. MOODBOARD SECTION ===== */}
-        <CustomizationSection 
-          title={
-            <span className="flex items-center gap-2">
-              Moodboard
-              {isSmartMatching && (
-                <span className="flex items-center gap-1 text-xs text-accent">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  matching...
-                </span>
-              )}
-            </span>
-          } 
-          icon={<Palette className="w-4 h-4" />}
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Set the visual mood and color palette</p>
-            
-            {/* Moodboard Grid */}
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-              {loadingMoodboards ? (
-                <>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="aspect-[4/3] rounded-xl bg-secondary/50 animate-pulse" />
-                  ))}
-                </>
-              ) : visibleMoodboards.length > 0 ? (
-                visibleMoodboards.map((moodboard) => (
-                  <MoodboardThumbnail
-                    key={moodboard.id}
-                    moodboard={moodboard}
-                    isSelected={state.moodboard === moodboard.id}
-                    onSelect={() => handleMoodboardSelect(moodboard.id)}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-6 text-muted-foreground text-sm">
-                  No moodboards uploaded yet. Click below to add some.
-                </div>
-              )}
-            </div>
-
-            {/* View More Button */}
-            <button 
-              onClick={() => setShowMoodboardModal(true)}
-              className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
-            >
-              View more moodboards
-              <ChevronRight className="w-4 h-4" />
-            </button>
+      ) : (
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border bg-secondary/30">
+            <h3 className="font-semibold text-foreground">Customize your creative</h3>
           </div>
-        </CustomizationSection>
 
-        {/* ===== 3. PRODUCT REFERENCE SECTION ===== */}
-        <CustomizationSection 
-          title={
-            <span className="flex items-center gap-2">
-              Product Reference
-              {isSmartMatching && (
-                <span className="flex items-center gap-1 text-xs text-accent">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  matching...
-                </span>
-              )}
-            </span>
-          } 
-          icon={<Package className="w-4 h-4" />}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Your product image for the creative</p>
-              {scrapedProducts.length > 0 && (
-                <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
-                  {scrapedProducts.length} from Bandolier
-                </span>
-              )}
+          {/* ===== 2. MOODBOARD SECTION (Curated 3) ===== */}
+          <CustomizationSection 
+            title={
+              <span className="flex items-center gap-2">
+                Moodboard
+                {isSmartMatching && (
+                  <span className="flex items-center gap-1 text-xs text-accent">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    matching...
+                  </span>
+                )}
+              </span>
+            } 
+            icon={<Palette className="w-4 h-4" />}
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                AI-curated visual moods for your campaign (select one)
+              </p>
+              
+              {/* Curated Moodboard Grid - 3 large items */}
+              <div className="grid grid-cols-3 gap-4">
+                {isSmartMatching || loadingMoodboards ? (
+                  <>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="aspect-[4/3] rounded-xl bg-secondary/50 animate-pulse" />
+                    ))}
+                  </>
+                ) : curatedMoodboardItems.length > 0 ? (
+                  curatedMoodboardItems.map((moodboard) => (
+                    <MoodboardThumbnail
+                      key={moodboard.id}
+                      moodboard={moodboard}
+                      isSelected={state.moodboard === moodboard.id}
+                      onSelect={() => handleMoodboardSelect(moodboard.id)}
+                      size="large"
+                    />
+                  ))
+                ) : customMoodboards.length > 0 ? (
+                  // Fallback: show first 3 moodboards if no curated ones
+                  customMoodboards.slice(0, 3).map((moodboard) => (
+                    <MoodboardThumbnail
+                      key={moodboard.id}
+                      moodboard={moodboard}
+                      isSelected={state.moodboard === moodboard.id}
+                      onSelect={() => handleMoodboardSelect(moodboard.id)}
+                      size="large"
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-3 text-center py-8 text-muted-foreground text-sm">
+                    No moodboards available. Upload some in the library.
+                  </div>
+                )}
+              </div>
             </div>
-            
-            {/* Product Reference Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-              {loadingScrapedProducts ? (
-                <>
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="aspect-square rounded-lg bg-secondary/50 animate-pulse" />
-                  ))}
-                </>
-              ) : (
-                <>
-                  {allProductReferences.slice(0, 4).map((ref) => (
+          </CustomizationSection>
+
+          {/* ===== 3. PRODUCT REFERENCE SECTION (Curated 5, Multi-select up to 3) ===== */}
+          <CustomizationSection 
+            title={
+              <span className="flex items-center gap-2">
+                Product Reference
+                {isSmartMatching && (
+                  <span className="flex items-center gap-1 text-xs text-accent">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    matching...
+                  </span>
+                )}
+                {state.productReferences.length > 0 && (
+                  <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
+                    {state.productReferences.length}/3 selected
+                  </span>
+                )}
+              </span>
+            } 
+            icon={<Package className="w-4 h-4" />}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  AI-curated products for your campaign (select up to 3)
+                </p>
+                {state.productReferences.length > 0 && (
+                  <button 
+                    onClick={() => onUpdate({ productReferences: [] })}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+              
+              {/* Curated Product Grid - 5 items */}
+              <div className="grid grid-cols-5 gap-3">
+                {isSmartMatching || loadingScrapedProducts ? (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="aspect-square rounded-lg bg-secondary/50 animate-pulse" />
+                    ))}
+                  </>
+                ) : curatedProductItems.length > 0 ? (
+                  curatedProductItems.map((ref) => (
                     <ReferenceThumbnail
                       key={ref.id}
                       reference={ref}
-                      isSelected={state.productReference === ref.id}
-                      onSelect={() => onUpdate({ productReference: ref.id })}
+                      isSelected={state.productReferences.includes(ref.id)}
+                      onSelect={() => handleProductSelect(ref.id)}
+                      showLabel={true}
                     />
-                  ))}
-                </>
+                  ))
+                ) : allProductReferences.length > 0 ? (
+                  // Fallback: show first 5 products if no curated ones
+                  allProductReferences.slice(0, 5).map((ref) => (
+                    <ReferenceThumbnail
+                      key={ref.id}
+                      reference={ref}
+                      isSelected={state.productReferences.includes(ref.id)}
+                      onSelect={() => handleProductSelect(ref.id)}
+                      showLabel={true}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-5 text-center py-6 text-muted-foreground text-sm">
+                    No products available. Sync from Bandolier below.
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Row */}
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleScrapeProducts}
+                  disabled={isScrapingProducts}
+                  className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-accent transition-colors disabled:opacity-50"
+                >
+                  {isScrapingProducts ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  )}
+                  {isScrapingProducts ? 'Syncing...' : 'Sync from Bandolier'}
+                </button>
+              </div>
+            </div>
+          </CustomizationSection>
+
+          {/* ===== 4. SHOT REFERENCES SECTION (Multi-select) ===== */}
+          <CustomizationSection 
+            title="Shot References" 
+            icon={<Focus className="w-4 h-4" />}
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product (select multiple)</p>
+              
+              {/* Selected count badge */}
+              {state.contextReferences.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
+                    {state.contextReferences.length} selected
+                  </span>
+                  <button 
+                    onClick={() => onUpdate({ contextReferences: [] })}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear all
+                  </button>
+                </div>
               )}
               
-              {/* Upload Button */}
-              <button className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 bg-secondary/30 flex items-center justify-center transition-colors">
-                <Upload className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
+              {/* Shot Reference Grid */}
+              <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                {sampleContextReferences.slice(0, 5).map((ref) => (
+                  <ReferenceThumbnail
+                    key={ref.id}
+                    reference={ref}
+                    isSelected={state.contextReferences.includes(ref.id)}
+                    onSelect={() => {
+                      const isSelected = state.contextReferences.includes(ref.id);
+                      if (isSelected) {
+                        onUpdate({ contextReferences: state.contextReferences.filter(id => id !== ref.id) });
+                      } else {
+                        onUpdate({ contextReferences: [...state.contextReferences, ref.id] });
+                      }
+                    }}
+                    showLabel={true}
+                  />
+                ))}
+                
+                {/* Upload Button */}
+                <button className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 bg-secondary/30 flex items-center justify-center transition-colors">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
 
-            {/* Actions Row */}
-            <div className="flex items-center gap-3">
+              {/* View More */}
               <button 
-                onClick={() => setShowProductRefModal(true)}
+                onClick={() => setShowContextRefModal(true)}
                 className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
               >
                 View more options
                 <ChevronRight className="w-4 h-4" />
               </button>
-              
-              <button 
-                onClick={handleScrapeProducts}
-                disabled={isScrapingProducts}
-                className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-accent transition-colors disabled:opacity-50"
-              >
-                {isScrapingProducts ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                )}
-                {isScrapingProducts ? 'Syncing...' : 'Sync from Bandolier'}
-              </button>
             </div>
-          </div>
-        </CustomizationSection>
+          </CustomizationSection>
 
-        {/* ===== 4. SHOT REFERENCES SECTION (Multi-select) ===== */}
-        <CustomizationSection 
-          title="Shot References" 
-          icon={<Focus className="w-4 h-4" />}
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product (select multiple)</p>
-            
-            {/* Selected count badge */}
-            {state.contextReferences.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
-                  {state.contextReferences.length} selected
-                </span>
-                <button 
-                  onClick={() => onUpdate({ contextReferences: [] })}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
-            
-            {/* Shot Reference Grid */}
-            <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-              {sampleContextReferences.slice(0, 5).map((ref) => (
-                <ReferenceThumbnail
-                  key={ref.id}
-                  reference={ref}
-                  isSelected={state.contextReferences.includes(ref.id)}
-                  onSelect={() => {
-                    const isSelected = state.contextReferences.includes(ref.id);
-                    if (isSelected) {
-                      onUpdate({ contextReferences: state.contextReferences.filter(id => id !== ref.id) });
-                    } else {
-                      onUpdate({ contextReferences: [...state.contextReferences, ref.id] });
-                    }
-                  }}
-                  showLabel={true}
-                />
-              ))}
-              
-              {/* Upload Button */}
-              <button className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/50 bg-secondary/30 flex items-center justify-center transition-colors">
-                <Upload className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
-
-            {/* View More */}
-            <button 
-              onClick={() => setShowContextRefModal(true)}
-              className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
-            >
-              View more options
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </CustomizationSection>
-
-        {/* ===== 5. PROMPT REFINEMENT SECTION ===== */}
-        <CustomizationSection 
-          title="Prompt Refinement" 
-          icon={<Type className="w-4 h-4" />}
-        >
-          <div className="space-y-5">
-            {/* Lighting & Camera Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Sun className="w-3 h-3" /> Lighting
-                </label>
-                <Select 
-                  value={state.lightingStyle} 
-                  onValueChange={(v) => onUpdate({ lightingStyle: v })}
-                >
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lightingStyles.map((l) => (
-                      <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Camera className="w-3 h-3" /> Camera Angle
-                </label>
-                <Select 
-                  value={state.cameraAngle} 
-                  onValueChange={(v) => onUpdate({ cameraAngle: v })}
-                >
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cameraAngles.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Extra Keywords */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Extra Keywords</label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {state.extraKeywords.map((keyword) => (
-                  <span 
-                    key={keyword}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent text-sm"
+          {/* ===== 5. PROMPT REFINEMENT SECTION ===== */}
+          <CustomizationSection 
+            title="Prompt Refinement" 
+            icon={<Type className="w-4 h-4" />}
+          >
+            <div className="space-y-5">
+              {/* Lighting & Camera Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Sun className="w-3 h-3" /> Lighting
+                  </label>
+                  <Select 
+                    value={state.lightingStyle} 
+                    onValueChange={(v) => onUpdate({ lightingStyle: v })}
                   >
-                    {keyword}
-                    <button 
-                      onClick={() => handleRemoveKeyword(keyword)}
-                      className="hover:text-destructive transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lightingStyles.map((l) => (
+                        <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Camera className="w-3 h-3" /> Camera Angle
+                  </label>
+                  <Select 
+                    value={state.cameraAngle} 
+                    onValueChange={(v) => onUpdate({ cameraAngle: v })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cameraAngles.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="flex gap-2">
+
+              {/* Extra Keywords */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Extra Keywords</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {state.extraKeywords.map((keyword) => (
+                    <span 
+                      key={keyword}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent text-sm"
+                    >
+                      {keyword}
+                      <button 
+                        onClick={() => handleRemoveKeyword(keyword)}
+                        className="hover:text-destructive transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newKeyword}
+                    onChange={(e) => setNewKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
+                    placeholder="Add keyword..."
+                    className="flex-1 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  />
+                  <button 
+                    onClick={handleAddKeyword}
+                    className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm font-medium"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Negative Prompt */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Negative Prompt</label>
                 <input
                   type="text"
-                  value={newKeyword}
-                  onChange={(e) => setNewKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
-                  placeholder="Add keyword..."
-                  className="flex-1 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                  value={state.negativePrompt}
+                  onChange={(e) => onUpdate({ negativePrompt: e.target.value })}
+                  placeholder="e.g., 'blurry, low quality, text artifacts'"
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
                 />
-                <button 
-                  onClick={handleAddKeyword}
-                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm font-medium"
-                >
-                  Add
-                </button>
               </div>
-            </div>
 
-            {/* Negative Prompt */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Negative Prompt</label>
-              <input
-                type="text"
-                value={state.negativePrompt}
-                onChange={(e) => onUpdate({ negativePrompt: e.target.value })}
-                placeholder="e.g., 'blurry, low quality, text artifacts'"
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-              />
-            </div>
-
-            {/* Text on Image */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Text on Image</label>
-              <input
-                type="text"
-                value={state.textOnImage}
-                onChange={(e) => onUpdate({ textOnImage: e.target.value })}
-                placeholder="e.g., 'New Collection' or 'Sale 50% Off'"
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-              />
-            </div>
-          </div>
-        </CustomizationSection>
-
-        {/* ===== 6. OUTPUT SETTINGS SECTION ===== */}
-        <CustomizationSection 
-          title="Output" 
-          icon={<Settings2 className="w-4 h-4" />}
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              {/* Number of Images */}
+              {/* Text on Image */}
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Images</label>
-                <Select 
-                  value={String(state.imageCount)} 
-                  onValueChange={(v) => onUpdate({ imageCount: Number(v) })}
-                >
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 4, 8].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Resolution */}
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Resolution</label>
-                <Select 
-                  value={state.resolution} 
-                  onValueChange={(v) => onUpdate({ resolution: v })}
-                >
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {resolutions.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Aspect Ratio */}
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">Aspect Ratio</label>
-                <Select 
-                  value={state.aspectRatio} 
-                  onValueChange={(v) => onUpdate({ aspectRatio: v })}
-                >
-                  <SelectTrigger className="bg-secondary">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {aspectRatios.map((ar) => (
-                      <SelectItem key={ar} value={ar}>{ar}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm text-muted-foreground">Text on Image</label>
+                <input
+                  type="text"
+                  value={state.textOnImage}
+                  onChange={(e) => onUpdate({ textOnImage: e.target.value })}
+                  placeholder="e.g., 'New Collection' or 'Sale 50% Off'"
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
               </div>
             </div>
-          </div>
-        </CustomizationSection>
+          </CustomizationSection>
 
-        {/* ===== 8. AI MODEL SECTION ===== */}
-        <CustomizationSection 
-          title="AI Model" 
-          icon={<Cpu className="w-4 h-4" />}
-        >
-          <div className="grid grid-cols-3 gap-3">
-            {aiModels.map((model) => (
-              <button
-                key={model.value}
-                onClick={() => onUpdate({ aiModel: model.value })}
-                className={`p-4 rounded-xl border-2 text-center transition-all ${
-                  state.aiModel === model.value
-                    ? 'border-accent bg-accent/10 shadow-md'
-                    : 'border-border bg-secondary/30 hover:border-accent/50'
-                }`}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  {model.value === 'auto' && <Wand2 className="w-5 h-5 text-accent" />}
-                  {model.value === 'gemini' && <span className="text-lg">✨</span>}
-                  {model.value === 'flux' && <span className="text-lg">⚡</span>}
-                  <span className="text-sm font-medium text-foreground">{model.label}</span>
+          {/* ===== 6. OUTPUT SETTINGS SECTION ===== */}
+          <CustomizationSection 
+            title="Output" 
+            icon={<Settings2 className="w-4 h-4" />}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                {/* Number of Images */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Images</label>
+                  <Select 
+                    value={String(state.imageCount)} 
+                    onValueChange={(v) => onUpdate({ imageCount: Number(v) })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 4, 8].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </button>
-            ))}
-          </div>
-        </CustomizationSection>
 
-        {/* ===== 9. ADVANCED SETTINGS ===== */}
-        <CustomizationSection 
-          title="Advanced Settings" 
-          icon={<Settings2 className="w-4 h-4" />}
-          defaultOpen={false}
-        >
-          <div className="space-y-4">
-            {/* Guidance Scale */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-muted-foreground">Guidance Scale</label>
-                <span className="text-sm font-medium text-foreground">{state.guidanceScale}</span>
+                {/* Resolution */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Resolution</label>
+                  <Select 
+                    value={state.resolution} 
+                    onValueChange={(v) => onUpdate({ resolution: v })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resolutions.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Aspect Ratio */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Aspect Ratio</label>
+                  <Select 
+                    value={state.aspectRatio} 
+                    onValueChange={(v) => onUpdate({ aspectRatio: v })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aspectRatios.map((ar) => (
+                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <Slider
-                value={[state.guidanceScale]}
-                onValueChange={([v]) => onUpdate({ guidanceScale: v })}
-                min={1}
-                max={20}
-                step={0.5}
-                className="w-full"
-              />
             </div>
+          </CustomizationSection>
 
-            {/* Seed */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground flex items-center gap-1">
-                <Hash className="w-3 h-3" /> Seed (optional)
-              </label>
-              <input
-                type="number"
-                value={state.seed || ''}
-                onChange={(e) => onUpdate({ seed: e.target.value ? Number(e.target.value) : null })}
-                placeholder="Random"
-                className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-              />
+          {/* ===== 8. AI MODEL SECTION ===== */}
+          <CustomizationSection 
+            title="AI Model" 
+            icon={<Cpu className="w-4 h-4" />}
+          >
+            <div className="grid grid-cols-3 gap-3">
+              {aiModels.map((model) => (
+                <button
+                  key={model.value}
+                  onClick={() => onUpdate({ aiModel: model.value })}
+                  className={`p-4 rounded-xl border-2 text-center transition-all ${
+                    state.aiModel === model.value
+                      ? 'border-accent bg-accent/10 shadow-md'
+                      : 'border-border bg-secondary/30 hover:border-accent/50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    {model.value === 'auto' && <Wand2 className="w-5 h-5 text-accent" />}
+                    {model.value === 'gemini' && <span className="text-lg">✨</span>}
+                    {model.value === 'flux' && <span className="text-lg">⚡</span>}
+                    <span className="text-sm font-medium text-foreground">{model.label}</span>
+                  </div>
+                </button>
+              ))}
             </div>
+          </CustomizationSection>
 
-            {/* Save to Folder */}
-            <div className="space-y-2">
-              <label className="text-sm text-muted-foreground flex items-center gap-1">
-                <FolderOpen className="w-3 h-3" /> Save to Folder
-              </label>
-              <Select 
-                value={state.saveToFolder || ''} 
-                onValueChange={(v) => onUpdate({ saveToFolder: v })}
-              >
-                <SelectTrigger className="bg-secondary">
-                  <SelectValue placeholder="Select folder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="campaign-assets">Campaign Assets</SelectItem>
-                  <SelectItem value="product-photos">Product Photos</SelectItem>
-                  <SelectItem value="social-content">Social Content</SelectItem>
-                  <SelectItem value="archive">Archive</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* ===== 9. ADVANCED SETTINGS ===== */}
+          <CustomizationSection 
+            title="Advanced Settings" 
+            icon={<Settings2 className="w-4 h-4" />}
+            defaultOpen={false}
+          >
+            <div className="space-y-4">
+              {/* Guidance Scale */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-muted-foreground">Guidance Scale</label>
+                  <span className="text-sm font-medium text-foreground">{state.guidanceScale}</span>
+                </div>
+                <Slider
+                  value={[state.guidanceScale]}
+                  onValueChange={([v]) => onUpdate({ guidanceScale: v })}
+                  min={1}
+                  max={20}
+                  step={0.5}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Seed */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Hash className="w-3 h-3" /> Seed (optional)
+                </label>
+                <input
+                  type="number"
+                  value={state.seed || ''}
+                  onChange={(e) => onUpdate({ seed: e.target.value ? Number(e.target.value) : null })}
+                  placeholder="Random"
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+
+              {/* Save to Folder */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground flex items-center gap-1">
+                  <FolderOpen className="w-3 h-3" /> Save to Folder
+                </label>
+                <Select 
+                  value={state.saveToFolder || ''} 
+                  onValueChange={(v) => onUpdate({ saveToFolder: v })}
+                >
+                  <SelectTrigger className="bg-secondary">
+                    <SelectValue placeholder="Select folder..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="campaign-assets">Campaign Assets</SelectItem>
+                    <SelectItem value="product-photos">Product Photos</SelectItem>
+                    <SelectItem value="social-content">Social Content</SelectItem>
+                    <SelectItem value="archive">Archive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
-        </CustomizationSection>
-      </div>
+          </CustomizationSection>
+        </div>
+      )}
 
       {/* ===== MODALS ===== */}
       <MoodboardModal
@@ -1074,9 +1126,10 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         onClose={() => setShowProductRefModal(false)}
         title="Product Reference"
         references={allProductReferences}
-        selectedReference={state.productReference}
-        onSelect={(id) => onUpdate({ productReference: id })}
+        selectedReferences={state.productReferences}
+        onSelect={(id) => handleProductSelect(id)}
         onDelete={handleDeleteScrapedProduct}
+        multiSelect={true}
       />
 
       <ReferenceGalleryModal

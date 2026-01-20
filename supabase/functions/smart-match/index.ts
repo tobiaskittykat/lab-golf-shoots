@@ -94,26 +94,25 @@ serve(async (req) => {
 Given this campaign concept:
 ${conceptDescription}
 
-Match the BEST moodboard and product from these options:
+Rank the BEST options from these libraries:
 
-MOODBOARDS:
+MOODBOARDS (select top 3 most relevant):
 ${moodboardsList || '(none available)'}
 
-PRODUCTS:
+PRODUCTS (select top 5 most relevant):
 ${productsList || '(none available)'}
 
 Instructions:
-1. For moodboard: Find the one whose name/description best matches the visual world, atmosphere, and tonality of the concept.
-2. For product: Find the one whose name/category best matches the product focus category.
+1. For moodboards: Rank the top 3 whose name/description best matches the visual world, atmosphere, and tonality of the concept. The #1 should be the absolute best match.
+2. For products: Rank the top 5 whose name/category best matches the product focus category. The #1 should be the absolute best match.
 3. Be intelligent about semantic matching - "urban night" matches "Tokyo Nights", "luxury bag" matches "crossbody", etc.
-4. If no good match exists for either, return null for that field.
+4. Return empty arrays if no good matches exist.
 
 Return ONLY valid JSON (no markdown):
 {
-  "moodboardId": "the exact id string or null",
-  "moodboardReason": "1-sentence reason",
-  "productId": "the exact id string or null", 
-  "productReason": "1-sentence reason"
+  "rankedMoodboards": ["id1", "id2", "id3"],
+  "rankedProducts": ["id1", "id2", "id3", "id4", "id5"],
+  "matchReason": "1-sentence summary of why these were chosen"
 }`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -156,34 +155,32 @@ Return ONLY valid JSON (no markdown):
       console.error('Failed to parse AI response:', parseError);
       // Return empty result if parsing fails
       matchResult = {
-        moodboardId: null,
-        moodboardReason: 'Could not determine best match',
-        productId: null,
-        productReason: 'Could not determine best match'
+        rankedMoodboards: [],
+        rankedProducts: [],
+        matchReason: 'Could not determine best matches'
       };
     }
 
-    // Validate the IDs actually exist
-    const validMoodboardId = moodboards.some(m => m.id === matchResult.moodboardId) 
-      ? matchResult.moodboardId 
-      : null;
-    const validProductId = products.some(p => p.id === matchResult.productId)
-      ? matchResult.productId
-      : null;
+    // Validate the IDs actually exist and filter to valid ones
+    const validMoodboards = (matchResult.rankedMoodboards || [])
+      .filter((id: string) => moodboards.some(m => m.id === id))
+      .slice(0, 3);
+    
+    const validProducts = (matchResult.rankedProducts || [])
+      .filter((id: string) => products.some(p => p.id === id))
+      .slice(0, 5);
 
     console.log('Match result:', { 
-      moodboardId: validMoodboardId, 
-      productId: validProductId,
-      moodboardReason: matchResult.moodboardReason,
-      productReason: matchResult.productReason 
+      rankedMoodboards: validMoodboards, 
+      rankedProducts: validProducts,
+      matchReason: matchResult.matchReason 
     });
 
     return new Response(
       JSON.stringify({
-        moodboardId: validMoodboardId,
-        moodboardReason: matchResult.moodboardReason,
-        productId: validProductId,
-        productReason: matchResult.productReason,
+        rankedMoodboards: validMoodboards,
+        rankedProducts: validProducts,
+        matchReason: matchResult.matchReason,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
