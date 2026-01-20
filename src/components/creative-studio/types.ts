@@ -1,17 +1,76 @@
+// ============= 9-POINT CAMPAIGN CONCEPT FRAMEWORK =============
+
+// Product Focus - what's in frame
+export interface ProductFocus {
+  heroProduct: string;        // "crossbody phone case with card pocket"
+  keyDetails: string[];       // ["leather grain", "clasp", "pocket open"]
+  accessories: string[];      // ["strap", "pouch"]
+  contextCues: string[];      // ["coats", "coffee", "commute"]
+}
+
+// Visual World - art direction rules
+export interface VisualWorld {
+  atmosphere: string;         // "Night city glow + steam breath + wool coats"
+  materials: string[];        // ["leather", "metal", "knit"]
+  palette: string[];          // ["black", "cream", "deep green", "chrome"]
+  composition: string;        // "60% on-body, 40% macro details"
+  mustHave: string[];         // ["always show strap line across torso"]
+}
+
+// Content Pillar - repeatable story bucket
+export interface ContentPillar {
+  name: string;               // "Cold commute proof"
+  description: string;        // "gloves + tap + quick access"
+}
+
+// Target Audience - persona + situation
+export interface TargetAudience {
+  persona: string;            // "Style-led urban women 25–45"
+  situation: string;          // "who commute, travel, want bag-level polish"
+}
+
+// Tonality - 3 adjectives + 2 "never" rules
+export interface Tonality {
+  adjectives: string[];       // ["polished", "confident", "warm"]
+  neverRules: string[];       // ["techy", "cheap hacks"]
+}
+
+// ============= MAIN CONCEPT INTERFACE =============
 export interface Concept {
   id: string;
+  
+  // 1. Name (title)
   title: string;
-  description: string;
+  
+  // 2. Product Focus
+  productFocus?: ProductFocus;
+  
+  // 3. Single-minded Idea (core idea)
+  coreIdea?: string;
+  
+  // 4. Visual World
+  visualWorld?: VisualWorld;
+  
+  // 5. Taglines (set of options)
+  taglines?: string[];
+  
+  // 6. Content Pillars
+  contentPillars?: ContentPillar[];
+  
+  // 7. Target Audience
+  targetAudience?: TargetAudience;
+  
+  // 8. Consumer Insight
+  consumerInsight?: string;
+  
+  // 9. Tonality
+  tonality?: Tonality;
+  
+  // Legacy/simplified fields (for backwards compatibility and quick display)
+  description: string;        // Can be derived from coreIdea + visualWorld
   tags: string[];
   
-  // Campaign Context (NEW)
-  objective?: string;           // "awareness", "engagement", "conversion", etc.
-  targetPersona?: string;       // "gen-z", "millennials", etc.
-  keyMessage?: string;          // Core message or tagline
-  outputFormat?: string;        // "social-post", "stories", etc.
-  callToAction?: string;        // "Shop Now", "Learn More"
-  
-  // Preset settings that define the concept
+  // Generation presets
   presets?: ConceptPresets;
 }
 
@@ -22,7 +81,7 @@ export interface ConceptPresets {
   moodboardId?: string;
   extraKeywords?: string[];
   useCase?: string;
-  aspectRatio?: string;         // NEW: Pre-selected aspect ratio
+  aspectRatio?: string;
 }
 
 export interface SavedConcept extends Concept {

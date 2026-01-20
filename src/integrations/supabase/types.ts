@@ -134,6 +134,9 @@ export type Database = {
           brand_id: string | null
           call_to_action: string | null
           camera_angle: string | null
+          consumer_insight: string | null
+          content_pillars: Json | null
+          core_idea: string | null
           created_at: string
           description: string
           extra_keywords: string[] | null
@@ -143,12 +146,17 @@ export type Database = {
           moodboard_id: string | null
           objective: string | null
           output_format: string | null
+          product_focus: Json | null
+          taglines: string[] | null
           tags: string[] | null
+          target_audience: Json | null
           target_persona: string | null
           title: string
+          tonality: Json | null
           updated_at: string
           use_case: string | null
           user_id: string
+          visual_world: Json | null
         }
         Insert: {
           artistic_style?: string | null
@@ -156,6 +164,9 @@ export type Database = {
           brand_id?: string | null
           call_to_action?: string | null
           camera_angle?: string | null
+          consumer_insight?: string | null
+          content_pillars?: Json | null
+          core_idea?: string | null
           created_at?: string
           description: string
           extra_keywords?: string[] | null
@@ -165,12 +176,17 @@ export type Database = {
           moodboard_id?: string | null
           objective?: string | null
           output_format?: string | null
+          product_focus?: Json | null
+          taglines?: string[] | null
           tags?: string[] | null
+          target_audience?: Json | null
           target_persona?: string | null
           title: string
+          tonality?: Json | null
           updated_at?: string
           use_case?: string | null
           user_id: string
+          visual_world?: Json | null
         }
         Update: {
           artistic_style?: string | null
@@ -178,6 +194,9 @@ export type Database = {
           brand_id?: string | null
           call_to_action?: string | null
           camera_angle?: string | null
+          consumer_insight?: string | null
+          content_pillars?: Json | null
+          core_idea?: string | null
           created_at?: string
           description?: string
           extra_keywords?: string[] | null
@@ -187,12 +206,17 @@ export type Database = {
           moodboard_id?: string | null
           objective?: string | null
           output_format?: string | null
+          product_focus?: Json | null
+          taglines?: string[] | null
           tags?: string[] | null
+          target_audience?: Json | null
           target_persona?: string | null
           title?: string
+          tonality?: Json | null
           updated_at?: string
           use_case?: string | null
           user_id?: string
+          visual_world?: Json | null
         }
         Relationships: [
           {

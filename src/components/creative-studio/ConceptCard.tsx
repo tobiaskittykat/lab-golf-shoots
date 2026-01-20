@@ -1,5 +1,6 @@
-import { Check, Plus, Bookmark, BookmarkCheck, Pencil, Target, Users } from "lucide-react";
-import { Concept, SavedConcept, campaignObjectives, targetPersonas } from "./types";
+import { Check, Plus, Bookmark, BookmarkCheck, Pencil, Users, Palette, MessageSquareQuote, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Concept, SavedConcept } from "./types";
 
 interface ConceptCardProps {
   concept: Concept;
@@ -12,13 +13,6 @@ interface ConceptCardProps {
   showSaveButton?: boolean;
 }
 
-// Helper to get label from value
-const getObjectiveLabel = (value?: string) => 
-  campaignObjectives.find(o => o.value === value)?.label || value;
-
-const getPersonaLabel = (value?: string) => 
-  targetPersonas.find(p => p.value === value)?.label || value;
-
 export const ConceptCard = ({ 
   concept, 
   index, 
@@ -29,6 +23,11 @@ export const ConceptCard = ({
   isSaved = false,
   showSaveButton = true
 }: ConceptCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Check if concept has rich data
+  const hasRichData = !!(concept.productFocus || concept.visualWorld || concept.taglines?.length || concept.contentPillars?.length);
+  
   return (
     <div
       className={`w-full text-left rounded-xl border-2 transition-all duration-200 overflow-hidden ${
@@ -61,26 +60,45 @@ export const ConceptCard = ({
             
             {/* Content - clicking selects */}
             <button onClick={onSelect} className="flex-1 min-w-0 text-left">
-              <h4 className="font-semibold text-foreground text-base mb-2">{concept.title}</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">{concept.description}</p>
+              <h4 className="font-semibold text-foreground text-base mb-1">{concept.title}</h4>
               
-              {/* Campaign context badges (NEW) */}
-              {(concept.targetPersona || concept.objective) && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {concept.targetPersona && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-medium">
-                      <Users className="w-3 h-3" />
-                      {getPersonaLabel(concept.targetPersona)}
-                    </span>
-                  )}
-                  {concept.objective && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-medium">
-                      <Target className="w-3 h-3" />
-                      {getObjectiveLabel(concept.objective)}
-                    </span>
-                  )}
-                </div>
+              {/* Core Idea (prominent) */}
+              {concept.coreIdea && (
+                <p className="text-sm text-accent italic mb-2">"{concept.coreIdea}"</p>
               )}
+              
+              {/* Description / Visual World preview */}
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                {concept.description || concept.visualWorld?.atmosphere}
+              </p>
+              
+              {/* Quick info badges */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {/* Target Audience */}
+                {concept.targetAudience?.persona && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-medium">
+                    <Users className="w-3 h-3" />
+                    {concept.targetAudience.persona.slice(0, 30)}
+                    {concept.targetAudience.persona.length > 30 && '...'}
+                  </span>
+                )}
+                
+                {/* Visual World indicator */}
+                {concept.visualWorld?.palette && concept.visualWorld.palette.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/10 text-purple-500 text-xs font-medium">
+                    <Palette className="w-3 h-3" />
+                    {concept.visualWorld.palette.slice(0, 3).join(', ')}
+                  </span>
+                )}
+                
+                {/* Taglines indicator */}
+                {concept.taglines && concept.taglines.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium">
+                    <MessageSquareQuote className="w-3 h-3" />
+                    {concept.taglines.length} tagline{concept.taglines.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
               
               {/* Tags */}
               {concept.tags.length > 0 && (
@@ -93,20 +111,31 @@ export const ConceptCard = ({
                       {tag}
                     </span>
                   ))}
-                </div>
-              )}
-              
-              {/* Presets indicator */}
-              {concept.presets && (
-                <div className="mt-2 flex items-center gap-1 text-xs text-accent">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                  Has style presets
+                  {concept.tags.length > 4 && (
+                    <span className="px-2.5 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                      +{concept.tags.length - 4}
+                    </span>
+                  )}
                 </div>
               )}
             </button>
             
             {/* Action buttons - isolated from selection */}
             <div className="flex items-start gap-1 shrink-0">
+              {/* Expand button for rich concepts */}
+              {hasRichData && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  title={isExpanded ? "Collapse details" : "Expand details"}
+                >
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+              )}
+              
               {/* Edit button */}
               {onEdit && (
                 <button
@@ -144,6 +173,87 @@ export const ConceptCard = ({
               )}
             </div>
           </div>
+          
+          {/* Expanded Details */}
+          {isExpanded && hasRichData && (
+            <div className="mt-4 pt-4 border-t border-border space-y-4 text-sm">
+              {/* Product Focus */}
+              {concept.productFocus && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Product Focus</p>
+                  <p className="text-foreground">{concept.productFocus.heroProduct}</p>
+                  {concept.productFocus.keyDetails.length > 0 && (
+                    <p className="text-muted-foreground mt-1">
+                      Details: {concept.productFocus.keyDetails.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Visual World */}
+              {concept.visualWorld && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Visual World</p>
+                  <p className="text-foreground">{concept.visualWorld.atmosphere}</p>
+                  {concept.visualWorld.composition && (
+                    <p className="text-muted-foreground mt-1">Composition: {concept.visualWorld.composition}</p>
+                  )}
+                </div>
+              )}
+              
+              {/* Taglines */}
+              {concept.taglines && concept.taglines.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Taglines</p>
+                  <div className="flex flex-wrap gap-2">
+                    {concept.taglines.map((tagline, i) => (
+                      <span key={i} className="px-2 py-1 rounded bg-secondary text-foreground">
+                        "{tagline}"
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Content Pillars */}
+              {concept.contentPillars && concept.contentPillars.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Content Pillars</p>
+                  <div className="space-y-1">
+                    {concept.contentPillars.map((pillar, i) => (
+                      <p key={i} className="text-foreground">
+                        <span className="font-medium">{pillar.name}</span>
+                        <span className="text-muted-foreground"> — {pillar.description}</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Tonality */}
+              {concept.tonality && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Tonality</p>
+                  <p className="text-foreground">
+                    {concept.tonality.adjectives.join(', ')}
+                    {concept.tonality.neverRules.length > 0 && (
+                      <span className="text-muted-foreground">
+                        {' '}· Never: {concept.tonality.neverRules.join(', ')}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+              
+              {/* Consumer Insight */}
+              {concept.consumerInsight && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Consumer Insight</p>
+                  <p className="text-foreground italic">"{concept.consumerInsight}"</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -212,21 +322,29 @@ export const SavedConceptCard = ({
             {/* Content - clicking selects */}
             <button onClick={onSelect} className="flex-1 min-w-0 text-left">
               <h4 className="font-semibold text-foreground text-sm">{concept.title}</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1">{concept.description}</p>
               
-              {/* Campaign badges */}
-              {(concept.targetPersona || concept.objective) && (
+              {/* Core idea preview */}
+              {concept.coreIdea && (
+                <p className="text-xs text-accent italic mt-0.5">"{concept.coreIdea}"</p>
+              )}
+              
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1">
+                {concept.description || concept.visualWorld?.atmosphere}
+              </p>
+              
+              {/* Quick badges */}
+              {(concept.targetAudience?.persona || concept.taglines?.length) && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {concept.targetPersona && (
+                  {concept.targetAudience?.persona && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-medium">
                       <Users className="w-2.5 h-2.5" />
-                      {getPersonaLabel(concept.targetPersona)}
+                      {concept.targetAudience.persona.slice(0, 20)}...
                     </span>
                   )}
-                  {concept.objective && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-500 text-[10px] font-medium">
-                      <Target className="w-2.5 h-2.5" />
-                      {getObjectiveLabel(concept.objective)}
+                  {concept.taglines && concept.taglines.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-medium">
+                      <MessageSquareQuote className="w-2.5 h-2.5" />
+                      {concept.taglines.length}
                     </span>
                   )}
                 </div>

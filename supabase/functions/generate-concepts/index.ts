@@ -14,15 +14,49 @@ interface ConceptRequest {
   targetPersona?: string;
 }
 
+interface ProductFocus {
+  heroProduct: string;
+  keyDetails: string[];
+  accessories: string[];
+  contextCues: string[];
+}
+
+interface VisualWorld {
+  atmosphere: string;
+  materials: string[];
+  palette: string[];
+  composition: string;
+  mustHave: string[];
+}
+
+interface ContentPillar {
+  name: string;
+  description: string;
+}
+
+interface TargetAudience {
+  persona: string;
+  situation: string;
+}
+
+interface Tonality {
+  adjectives: string[];
+  neverRules: string[];
+}
+
 interface Concept {
   id: string;
   title: string;
   description: string;
   tags: string[];
-  objective?: string;
-  targetPersona?: string;
-  keyMessage?: string;
-  outputFormat?: string;
+  coreIdea: string;
+  consumerInsight: string;
+  productFocus: ProductFocus;
+  visualWorld: VisualWorld;
+  taglines: string[];
+  contentPillars: ContentPillar[];
+  targetAudience: TargetAudience;
+  tonality: Tonality;
 }
 
 Deno.serve(async (req) => {
@@ -47,44 +81,91 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Generating concepts for prompt:", prompt);
+    console.log("Generating 9-point campaign concepts for prompt:", prompt);
 
-    // Build the system prompt for concept generation with enhanced structure
-    const systemPrompt = `You are a world-class creative director specializing in visual marketing and product photography.
-Your task is to generate 3 distinct, creative visual concepts based on the brief provided.
+    // Build the system prompt for comprehensive concept generation
+    const systemPrompt = `You are a world-class creative director at a top advertising agency. Generate 3 distinct campaign concepts using a professional 9-point creative brief structure.
 
 ${brandName ? `Brand: ${brandName}` : ""}
 ${brandPersonality ? `Brand Personality: ${brandPersonality}` : ""}
 ${brandIndustry ? `Industry: ${brandIndustry}` : ""}
 ${useCase ? `Use Case: ${useCase}` : ""}
-${targetPersona ? `Target Audience: ${targetPersona}` : ""}
+${targetPersona ? `Target Audience Hint: ${targetPersona}` : ""}
 
-Each concept should be unique, commercially viable, and include campaign context.
+Each concept must include ALL 9 elements:
 
-Return EXACTLY 3 concepts in the following JSON format:
+1. **Name** (title): Catchy campaign title (3-5 words)
+2. **Product Focus** (productFocus): What's "in frame"
+   - heroProduct: The main product being showcased
+   - keyDetails: Specific details to highlight (textures, features)
+   - accessories: Supporting items
+   - contextCues: Environmental hints (season, setting)
+3. **Single-minded Idea** (coreIdea): One sentence that captures the core concept
+4. **Visual World** (visualWorld): Art direction rules
+   - atmosphere: Mood, lighting, environment description
+   - materials: Key textures and materials
+   - palette: Color scheme (3-5 colors)
+   - composition: Framing rules
+   - mustHave: Non-negotiable visual elements
+5. **Taglines** (taglines): 3 tagline options
+6. **Content Pillars** (contentPillars): 3 repeatable story themes
+   - Each with name and description
+7. **Target Audience** (targetAudience):
+   - persona: Who they are (demographic + psychographic)
+   - situation: When/where they engage
+8. **Consumer Insight** (consumerInsight): One sentence tension or truth
+9. **Tonality** (tonality):
+   - adjectives: 3 words that define the tone
+   - neverRules: 2 things to never do/say
+
+Also include:
+- description: A 2-3 sentence visual description (can be derived from visual world)
+- tags: 3-5 relevant tags for categorization
+
+Return EXACTLY 3 concepts in this JSON format:
 {
   "concepts": [
     {
       "id": "concept-1",
-      "title": "Short compelling title (3-5 words)",
-      "description": "Vivid visual description of the concept (2-3 sentences describing the scene, mood, lighting, and key visual elements)",
-      "tags": ["Tag1", "Tag2", "Tag3"],
-      "objective": "awareness" | "engagement" | "conversion" | "launch" | "seasonal" | "ugc",
-      "targetPersona": "gen-z" | "millennials" | "gen-x" | "professionals" | "parents" | "luxury" | "eco-conscious" | "fitness",
-      "keyMessage": "Core campaign message or tagline (short phrase)",
-      "outputFormat": "social-post" | "stories-reels" | "email-banner" | "website-hero" | "ecommerce"
+      "title": "Campaign Name",
+      "description": "Visual description of the concept",
+      "tags": ["tag1", "tag2", "tag3"],
+      "coreIdea": "Single sentence core concept",
+      "consumerInsight": "The tension or truth driving this concept",
+      "productFocus": {
+        "heroProduct": "Main product description",
+        "keyDetails": ["detail1", "detail2"],
+        "accessories": ["accessory1"],
+        "contextCues": ["cue1", "cue2"]
+      },
+      "visualWorld": {
+        "atmosphere": "Mood and environment description",
+        "materials": ["material1", "material2"],
+        "palette": ["color1", "color2", "color3"],
+        "composition": "Framing rules",
+        "mustHave": ["essential visual element"]
+      },
+      "taglines": ["Tagline 1", "Tagline 2", "Tagline 3"],
+      "contentPillars": [
+        {"name": "Pillar 1", "description": "Description"},
+        {"name": "Pillar 2", "description": "Description"},
+        {"name": "Pillar 3", "description": "Description"}
+      ],
+      "targetAudience": {
+        "persona": "Who they are",
+        "situation": "When they engage"
+      },
+      "tonality": {
+        "adjectives": ["adj1", "adj2", "adj3"],
+        "neverRules": ["never1", "never2"]
+      }
     }
   ]
 }
 
-IMPORTANT:
-- Each concept should target a different objective or approach
-- The description should be highly visual and specific - describe colors, lighting, composition, mood
-- Tags should be relevant for visual search and categorization
-- Key message should be memorable and brand-aligned
-- Be creative and think like a high-end advertising agency`;
+Make each concept unique and commercially viable. Think like a high-end creative agency.`;
 
-    const userPrompt = `Generate 3 creative visual concepts for: ${prompt}`;
+    const userPrompt = `Generate 3 complete campaign concepts for: ${prompt}`;
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -100,7 +181,7 @@ IMPORTANT:
           { role: "user", content: userPrompt }
         ],
         temperature: 0.9,
-        max_tokens: 2000,
+        max_tokens: 4000,
       }),
     });
 
@@ -117,7 +198,7 @@ IMPORTANT:
       throw new Error("No content in AI response");
     }
 
-    console.log("AI response:", content);
+    console.log("AI response received, parsing...");
 
     // Parse the JSON from the response
     let concepts: Concept[];
@@ -132,37 +213,112 @@ IMPORTANT:
       }
     } catch (parseError) {
       console.error("Parse error:", parseError);
-      // Fallback to mock concepts if parsing fails
+      // Fallback to example concepts if parsing fails
       concepts = [
         {
           id: "concept-1",
           title: "Modern Elegance",
-          description: `A sophisticated take on ${prompt}. Clean lines, premium materials, and subtle lighting create an aspirational mood that speaks to discerning customers.`,
+          description: `A sophisticated take on ${prompt}. Clean lines, premium materials, and subtle lighting create an aspirational mood.`,
           tags: ["Premium", "Clean", "Sophisticated"],
-          objective: "awareness",
-          targetPersona: targetPersona || "millennials",
-          keyMessage: "Elevate your everyday",
-          outputFormat: "social-post"
+          coreIdea: "Elevate the everyday with refined simplicity.",
+          consumerInsight: "People want luxury that doesn't feel try-hard.",
+          productFocus: {
+            heroProduct: "The featured product in premium context",
+            keyDetails: ["texture", "finish", "hardware"],
+            accessories: ["complementary items"],
+            contextCues: ["modern interior", "natural light"]
+          },
+          visualWorld: {
+            atmosphere: "Bright, airy spaces with clean architectural lines",
+            materials: ["marble", "brass", "linen"],
+            palette: ["cream", "charcoal", "gold", "white"],
+            composition: "Centered subject, negative space emphasis",
+            mustHave: ["shadow play", "texture close-ups"]
+          },
+          taglines: ["Simply Elevated", "Refined. Redefined.", "The Art of Less"],
+          contentPillars: [
+            { name: "Material Moments", description: "Close-up texture studies" },
+            { name: "Daily Rituals", description: "Product in routine contexts" },
+            { name: "Design Details", description: "The craftsmanship story" }
+          ],
+          targetAudience: {
+            persona: "Design-conscious professionals 30-45",
+            situation: "Upgrading their personal aesthetic"
+          },
+          tonality: {
+            adjectives: ["refined", "confident", "understated"],
+            neverRules: ["loud", "trendy"]
+          }
         },
         {
           id: "concept-2",
           title: "Natural Authenticity",
-          description: `An organic approach to ${prompt}. Warm natural light, authentic textures, and candid moments that build trust and connection with the audience.`,
+          description: `An organic approach to ${prompt}. Warm natural light, authentic textures, and candid moments that build trust.`,
           tags: ["Authentic", "Natural", "Warm"],
-          objective: "engagement",
-          targetPersona: targetPersona || "gen-z",
-          keyMessage: "Real moments, real connection",
-          outputFormat: "stories-reels"
+          coreIdea: "Real moments, real connection, real value.",
+          consumerInsight: "Consumers are tired of perfection—they crave authenticity.",
+          productFocus: {
+            heroProduct: "Product in genuine use",
+            keyDetails: ["wear marks", "natural patina", "lived-in look"],
+            accessories: ["everyday items"],
+            contextCues: ["home setting", "outdoor moments"]
+          },
+          visualWorld: {
+            atmosphere: "Golden hour, candid captures, imperfect beauty",
+            materials: ["wood", "cotton", "leather", "ceramics"],
+            palette: ["terracotta", "sage", "cream", "natural brown"],
+            composition: "Off-center, documentary style",
+            mustHave: ["human hands/touch", "natural light flares"]
+          },
+          taglines: ["Made for Real Life", "Honestly Yours", "Where Stories Begin"],
+          contentPillars: [
+            { name: "Behind the Scenes", description: "Making-of content" },
+            { name: "Customer Stories", description: "UGC and testimonials" },
+            { name: "Honest Moments", description: "Unposed product shots" }
+          ],
+          targetAudience: {
+            persona: "Values-driven millennials 28-40",
+            situation: "Seeking meaning in purchases"
+          },
+          tonality: {
+            adjectives: ["genuine", "warm", "approachable"],
+            neverRules: ["salesy", "clinical"]
+          }
         },
         {
           id: "concept-3",
           title: "Bold Impact",
-          description: `A striking visual for ${prompt}. High contrast, dynamic composition, and confident colors that demand attention in crowded feeds.`,
+          description: `A striking visual for ${prompt}. High contrast, dynamic composition, and confident colors that demand attention.`,
           tags: ["Bold", "Dynamic", "Eye-catching"],
-          objective: "conversion",
-          targetPersona: targetPersona || "professionals",
-          keyMessage: "Make your move",
-          outputFormat: "website-hero"
+          coreIdea: "Stand out or sit down.",
+          consumerInsight: "In a scroll-past world, subtlety is invisible.",
+          productFocus: {
+            heroProduct: "Product as hero object",
+            keyDetails: ["color pop", "graphic angles", "scale contrast"],
+            accessories: ["statement pieces"],
+            contextCues: ["urban", "architectural", "graphic backgrounds"]
+          },
+          visualWorld: {
+            atmosphere: "High contrast, dramatic shadows, bold geometry",
+            materials: ["glass", "metal", "neon", "concrete"],
+            palette: ["electric blue", "hot pink", "black", "white"],
+            composition: "Dynamic angles, rule-breaking crops",
+            mustHave: ["color blocking", "strong shadows"]
+          },
+          taglines: ["Make Your Move", "Be Unmissable", "This Is Your Moment"],
+          contentPillars: [
+            { name: "Statement Shots", description: "Hero product imagery" },
+            { name: "In Action", description: "Dynamic use cases" },
+            { name: "The Drop", description: "Launch and limited content" }
+          ],
+          targetAudience: {
+            persona: "Confident Gen-Z and young millennials 18-32",
+            situation: "Building their personal brand"
+          },
+          tonality: {
+            adjectives: ["confident", "energetic", "unapologetic"],
+            neverRules: ["boring", "safe"]
+          }
         }
       ];
     }
@@ -173,7 +329,7 @@ IMPORTANT:
       id: `concept-${i + 1}`
     }));
 
-    console.log("Returning concepts:", concepts.length);
+    console.log("Returning", concepts.length, "concepts");
 
     return new Response(
       JSON.stringify({ concepts }),
