@@ -1,25 +1,23 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { 
   Sparkles, 
-  ImageIcon, 
   Type, 
   Settings2, 
   FolderOpen,
   Palette,
   Sun,
   Camera,
-  Sliders,
   Hash,
   X,
   Upload,
-  Plus,
   Cpu,
   Wand2,
   ChevronRight,
   Package,
-  Layers,
+  Focus,
   BookmarkCheck,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import { 
   Select, 
@@ -44,17 +42,17 @@ import {
   Concept,
   SavedConcept,
   ConceptPresets,
+  Moodboard,
   aspectRatios, 
   resolutions, 
-  artisticStyles,
   lightingStyles,
   cameraAngles,
   aiModels,
-  sampleMoodboards,
   sampleProductReferences,
   sampleContextReferences,
   outputFormats
 } from "./types";
+import { useQuery } from "@tanstack/react-query";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StepTwoCustomizeProps {
@@ -293,8 +291,72 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     }
   };
 
-  // Show first 6 moodboards, rest in modal
-  const visibleMoodboards = sampleMoodboards.slice(0, 6);
+  // Fetch moodboards from database
+  const { data: customMoodboards = [], isLoading: loadingMoodboards } = useQuery({
+    queryKey: ['custom-moodboards-preview', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('custom_moodboards')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(m => ({
+        id: `custom-${m.id}`,
+        name: m.name,
+        thumbnail: m.thumbnail_url,
+        description: m.description || 'Custom moodboard',
+      })) as Moodboard[];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Show first 6 moodboards
+  const visibleMoodboards = customMoodboards.slice(0, 6);
+
+  // Smart auto-selection of moodboard based on selected concept
+  useEffect(() => {
+    if (!state.selectedConcept || state.moodboard || customMoodboards.length === 0) return;
+    
+    const selectedConcept = state.concepts.find(c => c.id === state.selectedConcept) || 
+                           state.savedConcepts.find(c => c.id === state.selectedConcept);
+    
+    if (!selectedConcept) return;
+    
+    // Build search terms from concept metadata
+    const searchTerms: string[] = [];
+    if (selectedConcept.title) searchTerms.push(...selectedConcept.title.toLowerCase().split(' '));
+    if (selectedConcept.coreIdea) searchTerms.push(...selectedConcept.coreIdea.toLowerCase().split(' '));
+    if (selectedConcept.visualWorld?.atmosphere) searchTerms.push(...selectedConcept.visualWorld.atmosphere.toLowerCase().split(' '));
+    if (selectedConcept.visualWorld?.palette) searchTerms.push(...selectedConcept.visualWorld.palette.map(p => p.toLowerCase()));
+    
+    // Find best matching moodboard
+    let bestMatch: Moodboard | null = null;
+    let bestScore = 0;
+    
+    for (const moodboard of customMoodboards) {
+      const moodboardText = `${moodboard.name} ${moodboard.description || ''}`.toLowerCase();
+      let score = 0;
+      
+      for (const term of searchTerms) {
+        if (term.length > 2 && moodboardText.includes(term)) {
+          score++;
+        }
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = moodboard;
+      }
+    }
+    
+    // Only auto-select if we found a decent match
+    if (bestMatch && bestScore >= 2) {
+      onUpdate({ moodboard: bestMatch.id });
+    }
+  }, [state.selectedConcept, customMoodboards, state.concepts, state.savedConcepts]);
 
   return (
     <div className="space-y-8">
@@ -394,14 +456,26 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             
             {/* Moodboard Grid */}
             <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-              {visibleMoodboards.map((moodboard) => (
-                <MoodboardThumbnail
-                  key={moodboard.id}
-                  moodboard={moodboard}
-                  isSelected={state.moodboard === moodboard.id}
-                  onSelect={() => handleMoodboardSelect(moodboard.id)}
-                />
-              ))}
+              {loadingMoodboards ? (
+                <>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="aspect-[4/3] rounded-xl bg-secondary/50 animate-pulse" />
+                  ))}
+                </>
+              ) : visibleMoodboards.length > 0 ? (
+                visibleMoodboards.map((moodboard) => (
+                  <MoodboardThumbnail
+                    key={moodboard.id}
+                    moodboard={moodboard}
+                    isSelected={state.moodboard === moodboard.id}
+                    onSelect={() => handleMoodboardSelect(moodboard.id)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-6 text-muted-foreground text-sm">
+                  No moodboards uploaded yet. Click below to add some.
+                </div>
+              )}
             </div>
 
             {/* View More Button */}
@@ -451,10 +525,10 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         </CustomizationSection>
 
-        {/* ===== 4. CONTEXT REFERENCE SECTION (Multi-select) ===== */}
+        {/* ===== 4. SHOT REFERENCES SECTION (Multi-select) ===== */}
         <CustomizationSection 
-          title="Context References" 
-          icon={<Layers className="w-4 h-4" />}
+          title="Shot References" 
+          icon={<Focus className="w-4 h-4" />}
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Scene, environment, or setting for your product (select multiple)</p>
@@ -474,7 +548,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
               </div>
             )}
             
-            {/* Context Reference Grid */}
+            {/* Shot Reference Grid */}
             <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
               {sampleContextReferences.slice(0, 5).map((ref) => (
                 <ReferenceThumbnail
@@ -510,33 +584,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         </CustomizationSection>
 
-        {/* ===== 5. ARTISTIC STYLE SECTION ===== */}
-        <CustomizationSection 
-          title="Artistic Style" 
-          icon={<ImageIcon className="w-4 h-4" />}
-        >
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Choose the visual rendering style</p>
-            <div className="flex flex-wrap gap-2">
-              {artisticStyles.map((style) => (
-                <button
-                  key={style.value}
-                  onClick={() => onUpdate({ artisticStyle: state.artisticStyle === style.value ? null : style.value })}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    state.artisticStyle === style.value
-                      ? 'bg-accent text-accent-foreground shadow-md'
-                      : 'bg-secondary hover:bg-secondary/80 text-foreground border border-border hover:border-accent/50'
-                  }`}
-                >
-                  <span>{style.icon}</span>
-                  <span>{style.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </CustomizationSection>
-
-        {/* ===== 6. PROMPT REFINEMENT SECTION ===== */}
+        {/* ===== 5. PROMPT REFINEMENT SECTION ===== */}
         <CustomizationSection 
           title="Prompt Refinement" 
           icon={<Type className="w-4 h-4" />}
@@ -613,9 +661,9 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 />
                 <button 
                   onClick={handleAddKeyword}
-                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm"
+                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-sm font-medium"
                 >
-                  <Plus className="w-4 h-4" />
+                  Add
                 </button>
               </div>
             </div>
@@ -646,10 +694,10 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         </CustomizationSection>
 
-        {/* ===== 7. OUTPUT SETTINGS SECTION ===== */}
+        {/* ===== 6. OUTPUT SETTINGS SECTION ===== */}
         <CustomizationSection 
           title="Output" 
-          icon={<Sliders className="w-4 h-4" />}
+          icon={<Settings2 className="w-4 h-4" />}
         >
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -818,7 +866,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       <ReferenceGalleryModal
         isOpen={showContextRefModal}
         onClose={() => setShowContextRefModal(false)}
-        title="Context References"
+        title="Shot References"
         references={sampleContextReferences}
         selectedReferences={state.contextReferences}
         onSelect={(id) => {
