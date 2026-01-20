@@ -701,6 +701,15 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                   </div>
                 )}
               </div>
+              
+              {/* View All Moodboards */}
+              <button 
+                onClick={() => setShowMoodboardModal(true)}
+                className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+              >
+                Browse all moodboards
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </CustomizationSection>
 
@@ -776,7 +785,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
               </div>
 
               {/* Actions Row */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button 
                   onClick={handleScrapeProducts}
                   disabled={isScrapingProducts}
@@ -788,6 +797,14 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                     <RefreshCw className="w-3.5 h-3.5" />
                   )}
                   {isScrapingProducts ? 'Syncing...' : 'Sync from Bandolier'}
+                </button>
+                
+                <button 
+                  onClick={() => setShowProductRefModal(true)}
+                  className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+                >
+                  Browse all products
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -841,6 +858,15 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                   />
                 ))}
               </div>
+              
+              {/* Custom Shot Upload */}
+              <button 
+                onClick={() => setShowContextRefModal(true)}
+                className="flex items-center gap-1 text-sm font-medium text-accent hover:text-accent/80 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Upload custom shot reference
+              </button>
             </div>
           </CustomizationSection>
 
