@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
         const publicUrl = urlData.publicUrl;
         console.log(`Image ${index + 1} uploaded to:`, publicUrl);
 
-        // Save to database
+        // Save to database with references stored in settings for reliable retrieval
         const { data: dbRecord, error: dbError } = await supabase
           .from('generated_images')
           .insert({
@@ -394,6 +394,15 @@ Deno.serve(async (req) => {
               seed: body.seed,
               extraKeywords: body.extraKeywords,
               textOnImage: body.textOnImage,
+              // Store all references for reliable UI display
+              references: {
+                moodboardId: body.moodboardId || null,
+                moodboardUrl: body.moodboardUrl || null,
+                moodboardDescription: body.moodboardDescription || null,
+                productReferenceUrls: body.productReferenceUrls || [],
+                contextReferenceUrls: body.contextReferenceUrls || [],
+                sourceImageUrl: body.sourceImageUrl || null,
+              },
             },
             concept_id: body.conceptTitle ? `concept-${index}` : null,
             concept_title: body.conceptTitle || null,
