@@ -38,21 +38,33 @@ export const ReferenceThumbnail = ({
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
           </div>
         )}
-        
+
         {/* Image */}
-        <img 
-          src={reference.thumbnail} 
+        <img
+          src={reference.thumbnail}
           alt={reference.name}
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-opacity",
-            isLoaded ? "opacity-100" : "opacity-0"
+            isLoaded && !hasError ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
+          onError={() => {
+            setHasError(true);
+            setIsLoaded(true);
+          }}
         />
-        
+
+        {/* Fallback when image fails to load */}
+        {hasError && (
+          <div className="absolute inset-0 bg-secondary flex items-center justify-center p-2">
+            <span className="text-xs text-muted-foreground text-center line-clamp-3">
+              {reference.name}
+            </span>
+          </div>
+        )}
+
         {/* Gradient overlay for label */}
-        {showLabel && (
+        {showLabel && !hasError && (
           <>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white truncate">

@@ -99,15 +99,34 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         url: p.full_url,
         category: 'product' as const,
         isScraped: true,
+        productType: p.category || undefined,
       }));
     },
     enabled: !!user?.id,
   });
 
+  // Infer product type for grouping when category is missing or too generic
+  const inferProductType = useCallback((name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('case') || n.includes('magsafe') || n.includes('duet')) return 'phone-case';
+    if (n.includes('strap')) return 'strap';
+    if (n.includes('wallet') || n.includes('card')) return 'wallet';
+    if (n.includes('bag') || n.includes('crossbody') || n.includes('pouch')) return 'bag';
+    return 'accessory';
+  }, []);
+
   // Combine scraped products with sample products (scraped first)
   const allProductReferences = useMemo(() => {
-    return [...scrapedProducts, ...sampleProductReferences];
-  }, [scrapedProducts]);
+    const normalizedSamples = sampleProductReferences.map(r => ({
+      ...r,
+      productType: inferProductType(r.name),
+    }));
+    const normalizedScraped = scrapedProducts.map(r => ({
+      ...r,
+      productType: (r as any).productType || inferProductType(r.name),
+    }));
+    return [...normalizedScraped, ...normalizedSamples];
+  }, [scrapedProducts, inferProductType]);
 
   // Handle scraping products from Bandolier
   const handleScrapeProducts = async () => {
@@ -124,17 +143,18 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
 
       if (error) throw error;
 
-      if (data.success && data.products?.length > 0) {
-        // Insert products into database (upsert to avoid duplicates)
-        const productsToInsert = data.products.map((p: any) => ({
-          user_id: user.id,
-          external_id: p.id,
-          name: p.name,
-          thumbnail_url: p.thumbnail,
-          full_url: p.url || p.thumbnail,
-          category: 'product',
-          collection: 'bandolier',
-        }));
+        if (data.success && data.products?.length > 0) {
+          // Insert products into database (upsert to avoid duplicates)
+          const productsToInsert = data.products.map((p: any) => ({
+            user_id: user.id,
+            // Use URL as a stable external identifier (index-based IDs change between runs)
+            external_id: p.url || p.thumbnail || p.id,
+            name: p.name,
+            thumbnail_url: p.thumbnail,
+            full_url: p.url || p.thumbnail,
+            category: p.category || inferProductType(p.name),
+            collection: p.collection || 'bandolier',
+          }));
 
         const { error: insertError } = await supabase
           .from('scraped_products')

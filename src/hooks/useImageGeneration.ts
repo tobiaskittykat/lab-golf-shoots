@@ -92,13 +92,31 @@ export function useImageGeneration() {
       
       // Get moodboard description
       const moodboard = sampleMoodboards.find(m => m.id === state.moodboard);
-      
-      // Get reference URLs (for now using placeholder - in real app these would be actual image URLs)
-      const productRef = sampleProductReferences.find(r => r.id === state.productReference);
+
+      // Resolve product reference URL (supports both sample + scraped products)
+      let productReferenceUrl: string | undefined;
+      if (state.productReference) {
+        if (state.productReference.startsWith('scraped-')) {
+          const dbId = state.productReference.replace('scraped-', '');
+          const { data: scrapedRow, error: scrapedErr } = await supabase
+            .from('scraped_products')
+            .select('full_url, thumbnail_url')
+            .eq('id', dbId)
+            .maybeSingle();
+
+          if (!scrapedErr) {
+            productReferenceUrl = scrapedRow?.full_url || scrapedRow?.thumbnail_url || undefined;
+          }
+        } else {
+          const productRef = sampleProductReferences.find(r => r.id === state.productReference);
+          productReferenceUrl = productRef?.url;
+        }
+      }
+
       // Support multiple context references
-      const contextRefs = state.contextReferences.map(id => 
-        sampleContextReferences.find(r => r.id === id)
-      ).filter(Boolean);
+      const contextRefs = state.contextReferences
+        .map(id => sampleContextReferences.find(r => r.id === id))
+        .filter(Boolean);
       const contextRefUrls = contextRefs.map(ref => ref?.url).filter(Boolean) as string[];
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -113,8 +131,8 @@ export function useImageGeneration() {
           lightingStyle: state.lightingStyle,
           cameraAngle: state.cameraAngle,
           
-          // Reference URLs - these would be actual image URLs in production
-          productReferenceUrl: productRef?.url,
+          // Reference URLs
+          productReferenceUrl,
           contextReferenceUrls: contextRefUrls, // Now an array
           
           extraKeywords: state.extraKeywords,
@@ -151,7 +169,7 @@ export function useImageGeneration() {
         refinedPrompt: img.refinedPrompt,
         error: img.error,
         index: img.index,
-        productReferenceUrl: productRef?.url,
+        productReferenceUrl,
         contextReferenceUrls: contextRefUrls,
       }));
 

@@ -11,6 +11,7 @@ import { ReferenceThumbnail } from "./ReferenceThumbnail";
 interface ExtendedReferenceImage extends ReferenceImage {
   isScraped?: boolean;
   dbId?: string;
+  productType?: string; // e.g. "phone-case", "strap", "bag"
 }
 
 interface ReferenceGalleryModalProps {
@@ -55,6 +56,23 @@ export const ReferenceGalleryModal = ({
   const scrapedRefs = references.filter(r => (r as ExtendedReferenceImage).isScraped);
   const sampleRefs = references.filter(r => !(r as ExtendedReferenceImage).isScraped);
 
+  const labelType = (t?: string) => {
+    if (!t) return "Other";
+    return t
+      .split(/[-_\s]+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  };
+
+  const groupByType = (refs: ExtendedReferenceImage[]) => {
+    const groups = new Map<string, ExtendedReferenceImage[]>();
+    for (const ref of refs) {
+      const key = (ref.productType || 'other').toLowerCase();
+      groups.set(key, [...(groups.get(key) || []), ref]);
+    }
+    return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -79,26 +97,34 @@ export const ReferenceGalleryModal = ({
                   {scrapedRefs.length}
                 </span>
               </p>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                {scrapedRefs.map((ref) => (
-                  <div key={ref.id} className="relative group">
-                    <ReferenceThumbnail
-                      reference={ref}
-                      isSelected={isSelected(ref.id)}
-                      onSelect={() => handleSelect(ref.id)}
-                      showLabel={true}
-                    />
-                    {onDelete && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(ref.id);
-                        }}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-destructive/80 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
+
+              <div className="space-y-5">
+                {groupByType(scrapedRefs).map(([typeKey, refs]) => (
+                  <div key={typeKey} className="space-y-2">
+                    <p className="text-xs text-muted-foreground">{labelType(typeKey)}</p>
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                      {refs.map((ref) => (
+                        <div key={ref.id} className="relative group">
+                          <ReferenceThumbnail
+                            reference={ref}
+                            isSelected={isSelected(ref.id)}
+                            onSelect={() => handleSelect(ref.id)}
+                            showLabel={true}
+                          />
+                          {onDelete && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(ref.id);
+                              }}
+                              className="absolute top-1 right-1 p-1 rounded-full bg-destructive/80 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -111,15 +137,23 @@ export const ReferenceGalleryModal = ({
               {scrapedRefs.length > 0 && (
                 <p className="text-sm font-medium text-foreground mb-3">Sample References</p>
               )}
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                {sampleRefs.map((ref) => (
-                  <ReferenceThumbnail
-                    key={ref.id}
-                    reference={ref}
-                    isSelected={isSelected(ref.id)}
-                    onSelect={() => handleSelect(ref.id)}
-                    showLabel={true}
-                  />
+
+              <div className="space-y-5">
+                {groupByType(sampleRefs).map(([typeKey, refs]) => (
+                  <div key={typeKey} className="space-y-2">
+                    <p className="text-xs text-muted-foreground">{labelType(typeKey)}</p>
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                      {refs.map((ref) => (
+                        <ReferenceThumbnail
+                          key={ref.id}
+                          reference={ref}
+                          isSelected={isSelected(ref.id)}
+                          onSelect={() => handleSelect(ref.id)}
+                          showLabel={true}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
