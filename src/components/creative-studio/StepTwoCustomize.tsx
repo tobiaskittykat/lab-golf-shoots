@@ -109,14 +109,9 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       if (presets.useCase) updates.useCase = presets.useCase as CreativeStudioState['useCase'];
     }
     
-    // Apply output format from concept if set
-    if (concept.outputFormat) {
-      updates.outputFormat = concept.outputFormat;
-      // Also set aspect ratio from output format
-      const formatConfig = outputFormats.find(f => f.value === concept.outputFormat);
-      if (formatConfig?.aspectRatio) {
-        updates.aspectRatio = formatConfig.aspectRatio;
-      }
+    // Apply aspect ratio from presets if available
+    if (concept.presets?.aspectRatio) {
+      updates.aspectRatio = concept.presets.aspectRatio;
     }
 
     onUpdate(updates);
@@ -143,26 +138,31 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         aspectRatio: state.aspectRatio,
       };
 
-      const { error } = await supabase.from('saved_concepts').insert({
+      const insertData = {
         user_id: user.id,
         brand_id: state.selectedBrand,
         title: concept.title,
         description: concept.description,
         tags: concept.tags,
-        artistic_style: presets.artisticStyle,
-        lighting_style: presets.lightingStyle,
-        camera_angle: presets.cameraAngle,
-        moodboard_id: presets.moodboardId,
+        artistic_style: presets.artisticStyle || null,
+        lighting_style: presets.lightingStyle || null,
+        camera_angle: presets.cameraAngle || null,
+        moodboard_id: presets.moodboardId || null,
         extra_keywords: presets.extraKeywords || [],
-        use_case: presets.useCase,
-        // NEW fields
-        objective: concept.objective,
-        target_persona: concept.targetPersona,
-        key_message: concept.keyMessage,
-        output_format: concept.outputFormat,
-        call_to_action: concept.callToAction,
-        aspect_ratio: presets.aspectRatio,
-      });
+        use_case: presets.useCase || null,
+        aspect_ratio: presets.aspectRatio || null,
+        // 9-point concept fields
+        core_idea: concept.coreIdea || null,
+        consumer_insight: concept.consumerInsight || null,
+        product_focus: concept.productFocus as unknown as null,
+        visual_world: concept.visualWorld as unknown as null,
+        taglines: concept.taglines || null,
+        content_pillars: concept.contentPillars as unknown as null,
+        target_audience: concept.targetAudience as unknown as null,
+        tonality: concept.tonality as unknown as null,
+      };
+      
+      const { error } = await supabase.from('saved_concepts').insert(insertData);
 
       if (error) throw error;
 
@@ -198,20 +198,23 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         title: row.title,
         description: row.description,
         tags: row.tags || [],
-        // NEW fields
-        objective: row.objective || undefined,
-        targetPersona: row.target_persona || undefined,
-        keyMessage: row.key_message || undefined,
-        outputFormat: row.output_format || undefined,
-        callToAction: row.call_to_action || undefined,
+        // 9-point concept fields
+        coreIdea: row.core_idea || undefined,
+        consumerInsight: row.consumer_insight || undefined,
+        productFocus: row.product_focus as any || undefined,
+        visualWorld: row.visual_world as any || undefined,
+        taglines: row.taglines || undefined,
+        contentPillars: row.content_pillars as any || undefined,
+        targetAudience: row.target_audience as any || undefined,
+        tonality: row.tonality as any || undefined,
         presets: {
-          artisticStyle: row.artistic_style,
-          lightingStyle: row.lighting_style,
-          cameraAngle: row.camera_angle,
-          moodboardId: row.moodboard_id,
-          extraKeywords: row.extra_keywords,
-          useCase: row.use_case,
-          aspectRatio: row.aspect_ratio,
+          artisticStyle: row.artistic_style || undefined,
+          lightingStyle: row.lighting_style || undefined,
+          cameraAngle: row.camera_angle || undefined,
+          moodboardId: row.moodboard_id || undefined,
+          extraKeywords: row.extra_keywords || undefined,
+          useCase: row.use_case || undefined,
+          aspectRatio: row.aspect_ratio || undefined,
         },
         createdAt: row.created_at,
         updatedAt: row.updated_at,
