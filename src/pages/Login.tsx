@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import kittykatLogo from "@/assets/kittykat-logo-transparent.png";
@@ -22,21 +22,25 @@ const Login = () => {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const redirectedRef = useRef(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in - only run once per mount
   useEffect(() => {
-    if (user && !authLoading && !brandsLoading) {
-      const from = (location.state as any)?.from?.pathname;
+    // Guard: only run on /login and only once
+    if (location.pathname !== "/login" || redirectedRef.current) return;
+    if (!user || authLoading || brandsLoading) return;
 
-      // If we were sent here from brand setup, but the user already has brands,
-      // go to the main landing page instead.
-      if (from && from !== "/brand-setup") {
-        navigate(from, { replace: true });
-      } else if (brands && brands.length > 0) {
-        navigate("/", { replace: true });
-      } else {
-        navigate("/brand-setup", { replace: true });
-      }
+    redirectedRef.current = true;
+    
+    const from = (location.state as any)?.from?.pathname;
+
+    // If we were sent here from a specific page, go back there
+    if (from && from !== "/login" && from !== "/brand-setup") {
+      navigate(from, { replace: true });
+    } else if (brands && brands.length > 0) {
+      navigate("/", { replace: true });
+    } else {
+      navigate("/brand-setup", { replace: true });
     }
   }, [user, authLoading, brandsLoading, brands, navigate, location]);
 

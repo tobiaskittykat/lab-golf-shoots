@@ -39,10 +39,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!mounted) return;
-        // Only update if there's an actual change
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
+        
+        // Only clear user/session on explicit SIGNED_OUT
+        // For other events, only update if we have a valid session
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Only update if we actually have a session (don't null out on transient issues)
+          if (newSession) {
+            setSession(newSession);
+            setUser(newSession.user);
+          }
           setIsLoading(false);
         }
       }

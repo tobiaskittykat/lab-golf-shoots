@@ -9,11 +9,16 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, requireBrand = true }: ProtectedRouteProps) => {
   const { user, isLoading: authLoading } = useAuth();
-  const { brands, isLoading: brandsLoading } = useBrands();
+  const { brands, currentBrand, isLoading: brandsLoading } = useBrands();
   const location = useLocation();
 
-  // Show loading state
-  if (authLoading || brandsLoading) {
+  // Only show loading on TRUE initial load
+  // If we have a user and brands/currentBrand already, render children even during background refreshes
+  const hasExistingBrandData = brands.length > 0 || currentBrand !== null;
+  const isInitialAuthLoad = authLoading;
+  const isInitialBrandLoad = brandsLoading && !hasExistingBrandData;
+
+  if (isInitialAuthLoad || (user && isInitialBrandLoad)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

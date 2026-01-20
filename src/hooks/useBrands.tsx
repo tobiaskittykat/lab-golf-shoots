@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -35,30 +35,39 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
   const [currentBrand, setCurrentBrand] = useState<Brand | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
+
+  // Use stable userId string instead of user object to prevent unnecessary refetches
+  const userId = user?.id ?? null;
 
   const fetchBrands = useCallback(async () => {
-    // IMPORTANT: Avoid a redirect race condition.
-    // When a user logs in, routes may render before this effect runs.
-    // We mark "loading" synchronously via derived loading in the provider value.
-
-    if (!user) {
+    if (!userId) {
       setBrands([]);
       setCurrentBrand(null);
       setLoadedUserId(null);
+      hasLoadedOnceRef.current = false;
       setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    // Only show global loading on initial load or user change
+    // Don't show loading on background refreshes
+    const isInitialLoad = !hasLoadedOnceRef.current || loadedUserId !== userId;
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
+
     const { data, error } = await supabase
       .from("brands")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching brands:", error);
-      setLoadedUserId(user.id);
+      // On error, keep existing brands and mark as loaded to prevent redirect loops
+      hasLoadedOnceRef.current = true;
+      setLoadedUserId(userId);
       setIsLoading(false);
       return;
     }
@@ -80,13 +89,14 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
       return prev;
     });
 
-    setLoadedUserId(user.id);
+    hasLoadedOnceRef.current = true;
+    setLoadedUserId(userId);
     setIsLoading(false);
-  }, [user]);
+  }, [userId, loadedUserId]);
 
   useEffect(() => {
     fetchBrands();
-  }, [fetchBrands]);
+  }, [userId]); // Only refetch when userId changes, not on every fetchBrands recreation
 
   const createBrand = async (data: Partial<Brand>) => {
     if (!user) return { data: null, error: new Error("Not authenticated") };
@@ -158,7 +168,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
     <BrandsContext.Provider value={{
       brands,
       currentBrand,
-      isLoading: isLoading || (!!user && loadedUserId !== user.id),
+      isLoading: isLoading || (!!userId && loadedUserId !== userId),
       setCurrentBrand,
       createBrand,
       updateBrand,
