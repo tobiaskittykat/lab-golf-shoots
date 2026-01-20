@@ -338,146 +338,146 @@ export const targetPersonas = [
   { value: 'fitness', label: 'Fitness Enthusiasts' },
 ];
 
-// Sample moodboards with Unsplash images
+// Bandolier-focused moodboards - luxury phone accessories aesthetic
 export const sampleMoodboards: Moodboard[] = [
   { 
-    id: 'minimal-clean', 
-    name: 'Minimal & Clean', 
+    id: 'urban-luxe', 
+    name: 'Urban Luxe', 
+    thumbnail: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=300&fit=crop',
+    description: 'Night city glow, polished urban settings, sophisticated street style'
+  },
+  { 
+    id: 'winter-commute', 
+    name: 'Winter Commute', 
+    thumbnail: 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=400&h=300&fit=crop',
+    description: 'Steam breath, wool coats, coffee runs, cold weather elegance'
+  },
+  { 
+    id: 'leather-textures', 
+    name: 'Leather & Gold', 
+    thumbnail: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=300&fit=crop',
+    description: 'Pebbled leather, gold hardware, tactile luxury details'
+  },
+  { 
+    id: 'neutral-minimal', 
+    name: 'Neutral Minimal', 
     thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
-    description: 'Clean whites, soft grays, simple compositions'
+    description: 'Black, greige, ivory, cream - sophisticated neutrals'
   },
   { 
-    id: 'warm-earthy', 
-    name: 'Warm & Earthy', 
-    thumbnail: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&h=300&fit=crop',
-    description: 'Terracotta, sand, warm browns'
+    id: 'travel-ready', 
+    name: 'Travel Ready', 
+    thumbnail: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop',
+    description: 'Airport lounges, hotel lobbies, jet-set lifestyle'
   },
   { 
-    id: 'bold-vibrant', 
-    name: 'Bold & Vibrant', 
-    thumbnail: 'https://images.unsplash.com/photo-1525909002-1b05e0c869d8?w=400&h=300&fit=crop',
-    description: 'High contrast, saturated colors'
+    id: 'cafe-culture', 
+    name: 'Café Culture', 
+    thumbnail: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop',
+    description: 'Coffee shops, marble tables, casual sophistication'
   },
   { 
-    id: 'moody-dark', 
-    name: 'Moody & Dark', 
-    thumbnail: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=300&fit=crop',
-    description: 'Deep shadows, dramatic contrast'
+    id: 'evening-out', 
+    name: 'Evening Out', 
+    thumbnail: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop',
+    description: 'Dinner dates, events, low lighting, dressed up'
   },
   { 
-    id: 'pastel-soft', 
-    name: 'Pastel & Soft', 
-    thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
-    description: 'Gentle pastels, dreamy atmosphere'
-  },
-  { 
-    id: 'nature-organic', 
-    name: 'Nature & Organic', 
-    thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
-    description: 'Lush greens, natural textures'
-  },
-  { 
-    id: 'luxury-gold', 
-    name: 'Luxury & Gold', 
-    thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop',
-    description: 'Rich golds, sophisticated elegance'
-  },
-  { 
-    id: 'ocean-breeze', 
-    name: 'Ocean Breeze', 
-    thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
-    description: 'Cool blues, coastal vibes'
+    id: 'hands-free-life', 
+    name: 'Hands-Free Life', 
+    thumbnail: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?w=400&h=300&fit=crop',
+    description: 'Active lifestyle, multitasking, on-the-go convenience'
   },
 ];
 
-// Sample product references with real shoe images
+// Bandolier product references - phone cases and accessories
 export const sampleProductReferences: ReferenceImage[] = [
   { 
     id: 'product-1', 
-    name: 'White Sneakers', 
-    thumbnail: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
+    name: 'Crossbody Phone Case', 
+    thumbnail: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=800',
     category: 'product' 
   },
   { 
     id: 'product-2', 
-    name: 'Running Shoes', 
-    thumbnail: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
+    name: 'Leather Phone Wallet', 
+    thumbnail: 'https://images.unsplash.com/photo-1606229365485-93a3b8ee0385?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1606229365485-93a3b8ee0385?w=800',
     category: 'product' 
   },
   { 
     id: 'product-3', 
-    name: 'Classic Leather', 
-    thumbnail: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800',
+    name: 'Gold Hardware Detail', 
+    thumbnail: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=800',
     category: 'product' 
   },
   { 
     id: 'product-4', 
-    name: 'High Top Sneakers', 
-    thumbnail: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
+    name: 'Pebbled Leather', 
+    thumbnail: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800',
     category: 'product' 
   },
   { 
     id: 'product-5', 
-    name: 'Sports Sneakers', 
-    thumbnail: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=800',
+    name: 'Crossbody Strap', 
+    thumbnail: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800',
     category: 'product' 
   },
   { 
     id: 'product-6', 
-    name: 'Minimal White', 
-    thumbnail: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=800',
+    name: 'Card Slot Detail', 
+    thumbnail: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=800',
     category: 'product' 
   },
 ];
 
-// Sample context references with real lifestyle images
+// Bandolier context references - urban lifestyle settings
 export const sampleContextReferences: ReferenceImage[] = [
   { 
     id: 'context-1', 
-    name: 'Urban Street', 
-    thumbnail: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800',
+    name: 'City Street', 
+    thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800',
     category: 'context' 
   },
   { 
     id: 'context-2', 
-    name: 'Beach Scene', 
-    thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+    name: 'Coffee Shop', 
+    thumbnail: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800',
     category: 'context' 
   },
   { 
     id: 'context-3', 
-    name: 'City Skyline', 
-    thumbnail: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=800',
+    name: 'Airport Terminal', 
+    thumbnail: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800',
     category: 'context' 
   },
   { 
     id: 'context-4', 
-    name: 'Modern Studio', 
-    thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
+    name: 'Evening Event', 
+    thumbnail: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800',
     category: 'context' 
   },
   { 
     id: 'context-5', 
-    name: 'Nature Trail', 
-    thumbnail: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
+    name: 'Winter Street', 
+    thumbnail: 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1483664852095-d6cc6870702d?w=800',
     category: 'context' 
   },
   { 
     id: 'context-6', 
-    name: 'Gym Interior', 
-    thumbnail: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
-    url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
+    name: 'Boutique Interior', 
+    thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
+    url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
     category: 'context' 
   },
 ];

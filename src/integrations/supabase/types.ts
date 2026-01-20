@@ -56,6 +56,50 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_moodboards: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          description: string | null
+          file_path: string
+          id: string
+          name: string
+          thumbnail_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_path: string
+          id?: string
+          name: string
+          thumbnail_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          id?: string
+          name?: string
+          thumbnail_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_moodboards_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_images: {
         Row: {
           brand_id: string | null
