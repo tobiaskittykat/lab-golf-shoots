@@ -1,4 +1,4 @@
-import { RefreshCw, Package, Users, Globe, Camera, Palette, Layout, Image, Video, UserCircle } from "lucide-react";
+import { RefreshCw, Package, Users, Globe, Camera, Image, Video } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -6,9 +6,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { useBrands } from "@/hooks/useBrands";
-import { CreativeStudioState, targetPersonas, outputFormats } from "./types";
+import { CreativeStudioState } from "./types";
 import { Badge } from "@/components/ui/badge";
+import BrandSelector from "@/components/BrandSelector";
 
 const typeChips = [
   { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500' },
@@ -30,22 +30,12 @@ export const CreativeStudioHeader = ({
   onRegenerate,
   showRegenerate = false 
 }: CreativeStudioHeaderProps) => {
-  const { brands, currentBrand } = useBrands();
 
   const handleTypeChipClick = (chipId: string) => {
     onUpdate({ 
       selectedTypeCard: chipId,
       useCase: chipId as CreativeStudioState['useCase'],
     });
-  };
-
-  const handleOutputFormatChange = (format: string) => {
-    const formatConfig = outputFormats.find(f => f.value === format);
-    const updates: Partial<CreativeStudioState> = { outputFormat: format };
-    if (formatConfig?.aspectRatio) {
-      updates.aspectRatio = formatConfig.aspectRatio;
-    }
-    onUpdate(updates);
   };
 
   return (
@@ -78,10 +68,10 @@ export const CreativeStudioHeader = ({
         </Select>
       </div>
 
-      {/* Visual-focused Header */}
+      {/* Visual-focused Header with inline brand selector */}
       <div className="text-center space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-          Create <span className="text-gradient">stunning visuals</span>
+          Create <span className="text-gradient">stunning visuals</span> for <BrandSelector variant="inline" />
         </h1>
         <p className="text-muted-foreground text-lg">
           Share your brief and let's bring it to life together
@@ -106,69 +96,6 @@ export const CreativeStudioHeader = ({
             </button>
           );
         })}
-      </div>
-
-      {/* Settings Pills Row with colored icons */}
-      <div className="flex items-center justify-center gap-3 flex-wrap">
-        {/* Brand Selector */}
-        <Select 
-          value={state.selectedBrand || currentBrand?.id || ''} 
-          onValueChange={(value) => onUpdate({ selectedBrand: value })}
-        >
-          <SelectTrigger className="action-chip w-auto gap-2 border-border">
-            <span className="w-5 h-5 rounded-full bg-pink-100 flex items-center justify-center">
-              <Palette className="w-3 h-3 text-pink-500" />
-            </span>
-            <SelectValue placeholder="Brand" />
-          </SelectTrigger>
-          <SelectContent>
-            {brands.map((brand) => (
-              <SelectItem key={brand.id} value={brand.id}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Output Format Selector */}
-        <Select 
-          value={state.outputFormat || 'social-post'} 
-          onValueChange={handleOutputFormatChange}
-        >
-          <SelectTrigger className="action-chip w-auto gap-2 border-border">
-            <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
-              <Layout className="w-3 h-3 text-purple-500" />
-            </span>
-            <SelectValue placeholder="Output Format" />
-          </SelectTrigger>
-          <SelectContent>
-            {outputFormats.map((format) => (
-              <SelectItem key={format.value} value={format.value}>
-                {format.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* Target Persona Dropdown */}
-        <Select 
-          value={state.targetPersona || ''} 
-          onValueChange={(value) => onUpdate({ targetPersona: value })}
-        >
-          <SelectTrigger className="action-chip w-auto gap-2 border-border">
-            <span className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center">
-              <UserCircle className="w-3 h-3 text-accent" />
-            </span>
-            <SelectValue placeholder="Target Persona" />
-          </SelectTrigger>
-          <SelectContent>
-            {targetPersonas.map((persona) => (
-              <SelectItem key={persona.value} value={persona.value}>
-                {persona.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Brief Input */}
