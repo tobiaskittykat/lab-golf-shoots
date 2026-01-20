@@ -15,10 +15,8 @@ interface ConceptRequest {
 }
 
 interface ProductFocus {
-  heroProduct: string;
-  keyDetails: string[];
-  accessories: string[];
-  contextCues: string[];
+  productCategory: string;
+  visualGuidance?: string;
 }
 
 interface VisualWorld {
@@ -95,11 +93,9 @@ ${targetPersona ? `Target Audience Hint: ${targetPersona}` : ""}
 Each concept must include ALL 9 elements:
 
 1. **Name** (title): Catchy campaign title (3-5 words)
-2. **Product Focus** (productFocus): What's "in frame"
-   - heroProduct: The main product being showcased
-   - keyDetails: Specific details to highlight (textures, features)
-   - accessories: Supporting items
-   - contextCues: Environmental hints (season, setting)
+2. **Product Focus** (productFocus): High-level product category (exact product chosen later via reference image)
+   - productCategory: Product group (e.g., "Nike running shoes", "premium leather handbag", "wireless earbuds")
+   - visualGuidance: Optional shot direction (e.g., "hero shot centered", "macro on texture")
 3. **Single-minded Idea** (coreIdea): One sentence that captures the core concept
 4. **Visual World** (visualWorld): Art direction rules
    - atmosphere: Mood, lighting, environment description
@@ -133,10 +129,8 @@ Return EXACTLY 3 concepts in this JSON format:
       "coreIdea": "Single sentence core concept",
       "consumerInsight": "The tension or truth driving this concept",
       "productFocus": {
-        "heroProduct": "Main product description",
-        "keyDetails": ["detail1", "detail2"],
-        "accessories": ["accessory1"],
-        "contextCues": ["cue1", "cue2"]
+        "productCategory": "High-level product group",
+        "visualGuidance": "Shot direction hint"
       },
       "visualWorld": {
         "atmosphere": "Mood and environment description",
@@ -223,10 +217,8 @@ Make each concept unique and commercially viable. Think like a high-end creative
           coreIdea: "Elevate the everyday with refined simplicity.",
           consumerInsight: "People want luxury that doesn't feel try-hard.",
           productFocus: {
-            heroProduct: "The featured product in premium context",
-            keyDetails: ["texture", "finish", "hardware"],
-            accessories: ["complementary items"],
-            contextCues: ["modern interior", "natural light"]
+            productCategory: "Premium fashion accessories",
+            visualGuidance: "Centered hero shot with texture close-ups"
           },
           visualWorld: {
             atmosphere: "Bright, airy spaces with clean architectural lines",
@@ -258,10 +250,8 @@ Make each concept unique and commercially viable. Think like a high-end creative
           coreIdea: "Real moments, real connection, real value.",
           consumerInsight: "Consumers are tired of perfection—they crave authenticity.",
           productFocus: {
-            heroProduct: "Product in genuine use",
-            keyDetails: ["wear marks", "natural patina", "lived-in look"],
-            accessories: ["everyday items"],
-            contextCues: ["home setting", "outdoor moments"]
+            productCategory: "Lifestyle everyday goods",
+            visualGuidance: "Candid in-use moments, documentary style"
           },
           visualWorld: {
             atmosphere: "Golden hour, candid captures, imperfect beauty",
@@ -293,10 +283,8 @@ Make each concept unique and commercially viable. Think like a high-end creative
           coreIdea: "Stand out or sit down.",
           consumerInsight: "In a scroll-past world, subtlety is invisible.",
           productFocus: {
-            heroProduct: "Product as hero object",
-            keyDetails: ["color pop", "graphic angles", "scale contrast"],
-            accessories: ["statement pieces"],
-            contextCues: ["urban", "architectural", "graphic backgrounds"]
+            productCategory: "Bold statement products",
+            visualGuidance: "Dynamic angles, strong graphic framing"
           },
           visualWorld: {
             atmosphere: "High contrast, dramatic shadows, bold geometry",

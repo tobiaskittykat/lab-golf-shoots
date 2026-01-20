@@ -72,27 +72,28 @@ export const ConceptCard = ({
                 {concept.description || concept.visualWorld?.atmosphere}
               </p>
               
-              {/* Quick summary line - simplified */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-xs text-muted-foreground">
-                {/* Audience preview */}
-                {concept.targetAudience?.persona && (
-                  <span className="truncate max-w-[200px]">
-                    👤 {concept.targetAudience.persona}
-                  </span>
+              {/* Summary info - no truncation, no emoji prefixes */}
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                {/* Product Category */}
+                {concept.productFocus?.productCategory && (
+                  <p>{concept.productFocus.productCategory}</p>
                 )}
                 
-                {/* Palette preview */}
+                {/* Palette - inline with dots */}
                 {concept.visualWorld?.palette && concept.visualWorld.palette.length > 0 && (
-                  <span className="truncate max-w-[150px]">
-                    🎨 {concept.visualWorld.palette.slice(0, 2).join(', ')}
-                  </span>
+                  <p>{concept.visualWorld.palette.join(' · ')}</p>
                 )}
                 
-                {/* Tagline count */}
-                {concept.taglines && concept.taglines.length > 0 && (
-                  <span>
-                    💬 {concept.taglines.length} tagline{concept.taglines.length > 1 ? 's' : ''}
-                  </span>
+                {/* Full Target Audience - persona + situation */}
+                {concept.targetAudience && (
+                  <div className="mt-2">
+                    {concept.targetAudience.persona && (
+                      <p>{concept.targetAudience.persona}</p>
+                    )}
+                    {concept.targetAudience.situation && (
+                      <p className="text-muted-foreground/70">{concept.targetAudience.situation}</p>
+                    )}
+                  </div>
                 )}
               </div>
             </button>
@@ -157,12 +158,10 @@ export const ConceptCard = ({
               {/* Product Focus */}
               {concept.productFocus && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Product Focus</p>
-                  <p className="text-foreground">{concept.productFocus.heroProduct}</p>
-                  {concept.productFocus.keyDetails.length > 0 && (
-                    <p className="text-muted-foreground mt-1">
-                      Details: {concept.productFocus.keyDetails.join(', ')}
-                    </p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Product Category</p>
+                  <p className="text-foreground">{concept.productFocus.productCategory}</p>
+                  {concept.productFocus.visualGuidance && (
+                    <p className="text-muted-foreground mt-1">{concept.productFocus.visualGuidance}</p>
                   )}
                 </div>
               )}
@@ -332,16 +331,14 @@ export const SavedConceptCard = ({
                 {concept.description || concept.visualWorld?.atmosphere}
               </p>
               
-              {/* Quick summary - simplified */}
-              {(concept.targetAudience?.persona || concept.taglines?.length) && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[10px] text-muted-foreground">
-                  {concept.targetAudience?.persona && (
-                    <span className="truncate max-w-[120px]">
-                      👤 {concept.targetAudience.persona}
-                    </span>
+              {/* Full Target Audience */}
+              {concept.targetAudience && (
+                <div className="mt-2 text-[10px] text-muted-foreground space-y-0.5">
+                  {concept.targetAudience.persona && (
+                    <p>{concept.targetAudience.persona}</p>
                   )}
-                  {concept.taglines && concept.taglines.length > 0 && (
-                    <span>💬 {concept.taglines.length}</span>
+                  {concept.targetAudience.situation && (
+                    <p className="text-muted-foreground/70">{concept.targetAudience.situation}</p>
                   )}
                 </div>
               )}

@@ -113,10 +113,8 @@ export const ConceptEditModal = ({
   
   // Product Focus
   const [productFocus, setProductFocus] = useState<ProductFocus>({
-    heroProduct: '',
-    keyDetails: [],
-    accessories: [],
-    contextCues: [],
+    productCategory: '',
+    visualGuidance: '',
   });
   
   // Visual World
@@ -154,7 +152,7 @@ export const ConceptEditModal = ({
       setConsumerInsight(concept.consumerInsight || '');
       setDescription(concept.description || '');
       setTags(concept.tags || []);
-      setProductFocus(concept.productFocus || { heroProduct: '', keyDetails: [], accessories: [], contextCues: [] });
+      setProductFocus(concept.productFocus || { productCategory: '', visualGuidance: '' });
       setVisualWorld(concept.visualWorld || { atmosphere: '', materials: [], palette: [], composition: '', mustHave: [] });
       setTaglines(concept.taglines || []);
       setContentPillars(concept.contentPillars || []);
@@ -167,7 +165,7 @@ export const ConceptEditModal = ({
       setConsumerInsight('');
       setDescription('');
       setTags([]);
-      setProductFocus({ heroProduct: '', keyDetails: [], accessories: [], contextCues: [] });
+      setProductFocus({ productCategory: '', visualGuidance: '' });
       setVisualWorld({ atmosphere: '', materials: [], palette: [], composition: '', mustHave: [] });
       setTaglines([]);
       setContentPillars([]);
@@ -195,10 +193,10 @@ export const ConceptEditModal = ({
   };
 
   const handlePolishWithAI = async () => {
-    if (!title && !productFocus.heroProduct) {
+    if (!title && !productFocus.productCategory) {
       toast({ 
         title: 'Add some content first', 
-        description: 'Enter a title or hero product to generate a full concept',
+        description: 'Enter a title or product category to generate a full concept',
         variant: 'destructive' 
       });
       return;
@@ -208,7 +206,7 @@ export const ConceptEditModal = ({
     try {
       const { data, error } = await supabase.functions.invoke('generate-concepts', {
         body: {
-          prompt: `Create a complete campaign concept for: "${title || 'Campaign'}" featuring "${productFocus.heroProduct || 'product'}". 
+          prompt: `Create a complete campaign concept for: "${title || 'Campaign'}" featuring "${productFocus.productCategory || 'product'}". 
           Target: ${targetAudience.persona || 'general audience'}. 
           Generate all 9 elements of a professional creative brief.`,
           useCase: defaultUseCase,
@@ -267,7 +265,7 @@ export const ConceptEditModal = ({
       tags,
       coreIdea: coreIdea || undefined,
       consumerInsight: consumerInsight || undefined,
-      productFocus: productFocus.heroProduct ? productFocus : undefined,
+      productFocus: productFocus.productCategory ? productFocus : undefined,
       visualWorld: visualWorld.atmosphere ? visualWorld : undefined,
       taglines: taglines.length > 0 ? taglines : undefined,
       contentPillars: contentPillars.length > 0 ? contentPillars.filter(p => p.name) : undefined,
@@ -385,43 +383,23 @@ export const ConceptEditModal = ({
           <Collapsible open={openSections.product}>
             <SectionHeader title="Product Focus" section="product" icon="📦" />
             <CollapsibleContent className="pt-3 space-y-4">
-              {/* Hero Product */}
+              {/* Product Category */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">2. Hero Product (what's "in frame")</Label>
+                <Label className="text-xs text-muted-foreground">2. Product Category (high-level)</Label>
                 <Input
-                  value={productFocus.heroProduct}
-                  onChange={(e) => setProductFocus({ ...productFocus, heroProduct: e.target.value })}
-                  placeholder="e.g., crossbody phone case with card pocket"
+                  value={productFocus.productCategory}
+                  onChange={(e) => setProductFocus({ ...productFocus, productCategory: e.target.value })}
+                  placeholder="e.g., Nike basketball sneaker, luxury crossbody bag"
                 />
               </div>
               
-              {/* Key Details */}
+              {/* Visual Guidance */}
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Key Details to Show</Label>
-                <ChipInput 
-                  values={productFocus.keyDetails} 
-                  onChange={(vals) => setProductFocus({ ...productFocus, keyDetails: vals })} 
-                  placeholder="e.g., leather grain, clasp, pocket open" 
-                />
-              </div>
-              
-              {/* Accessories */}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Accessories</Label>
-                <ChipInput 
-                  values={productFocus.accessories} 
-                  onChange={(vals) => setProductFocus({ ...productFocus, accessories: vals })} 
-                  placeholder="e.g., strap, pouch" 
-                />
-              </div>
-              
-              {/* Context Cues */}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Context Cues</Label>
-                <ChipInput 
-                  values={productFocus.contextCues} 
-                  onChange={(vals) => setProductFocus({ ...productFocus, contextCues: vals })} 
-                  placeholder="e.g., coats, coffee, commute" 
+                <Label className="text-xs text-muted-foreground">Visual Guidance (optional)</Label>
+                <Input
+                  value={productFocus.visualGuidance || ''}
+                  onChange={(e) => setProductFocus({ ...productFocus, visualGuidance: e.target.value })}
+                  placeholder="e.g., hero shot with texture details, macro on stitching"
                 />
               </div>
             </CollapsibleContent>

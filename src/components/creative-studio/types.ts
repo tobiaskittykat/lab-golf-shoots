@@ -1,11 +1,9 @@
 // ============= 9-POINT CAMPAIGN CONCEPT FRAMEWORK =============
 
-// Product Focus - what's in frame
+// Product Focus - high-level product category (exact product chosen via reference image)
 export interface ProductFocus {
-  heroProduct: string;        // "crossbody phone case with card pocket"
-  keyDetails: string[];       // ["leather grain", "clasp", "pocket open"]
-  accessories: string[];      // ["strap", "pouch"]
-  contextCues: string[];      // ["coats", "coffee", "commute"]
+  productCategory: string;    // "Nike basketball sneaker" or "luxury crossbody bag"
+  visualGuidance?: string;    // "hero shot with texture details" (optional shot direction)
 }
 
 // Visual World - art direction rules
