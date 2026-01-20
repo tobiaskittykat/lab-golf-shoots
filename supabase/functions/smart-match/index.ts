@@ -123,7 +123,7 @@ Return ONLY valid JSON (no markdown):
         'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           { 
             role: 'system', 
@@ -132,7 +132,6 @@ Return ONLY valid JSON (no markdown):
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 500,
       }),
     });
 
