@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   X, 
   Download, 
@@ -8,15 +8,14 @@ import {
   Copy, 
   Check,
   Image as ImageIcon,
-  MapPin,
   Palette,
-  Lightbulb,
-  Camera,
-  Sparkles
+  Sparkles,
+  AlertCircle
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { GeneratedImage, sampleProductReferences, sampleContextReferences, sampleMoodboards, artisticStyles, lightingStyles, cameraAngles } from './types';
+import { GeneratedImage } from './types';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageDetailModalProps {
   image: GeneratedImage | null;
@@ -36,6 +35,44 @@ export const ImageDetailModal = ({
   onDelete,
 }: ImageDetailModalProps) => {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [resolvedMoodboardUrl, setResolvedMoodboardUrl] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  // Resolve moodboard URL if we have ID but no URL
+  useEffect(() => {
+    if (!image) {
+      setResolvedMoodboardUrl(null);
+      return;
+    }
+
+    // If we already have the URL, use it
+    if (image.moodboardUrl) {
+      setResolvedMoodboardUrl(image.moodboardUrl);
+      return;
+    }
+
+    // If we have moodboard ID, fetch the URL
+    if (image.moodboardId) {
+      const fetchMoodboard = async () => {
+        // Strip 'custom-' prefix if present
+        const dbId = image.moodboardId!.startsWith('custom-')
+          ? image.moodboardId!.replace('custom-', '')
+          : image.moodboardId;
+
+        const { data } = await supabase
+          .from('custom_moodboards')
+          .select('thumbnail_url')
+          .eq('id', dbId)
+          .maybeSingle();
+
+        if (data?.thumbnail_url) {
+          setResolvedMoodboardUrl(data.thumbnail_url);
+        }
+      };
+
+      fetchMoodboard();
+    }
+  }, [image?.moodboardId, image?.moodboardUrl]);
 
   if (!image) return null;
 
@@ -74,13 +111,20 @@ export const ImageDetailModal = ({
     }, 150);
   };
 
-  // Find reference images by URL
-  const productRef = image.productReferenceUrl 
-    ? sampleProductReferences.find(r => r.url === image.productReferenceUrl)
-    : null;
-  const contextRef = image.contextReferenceUrl 
-    ? sampleContextReferences.find(r => r.url === image.contextReferenceUrl)
-    : null;
+  const handleImageError = (url: string) => {
+    setFailedImages(prev => new Set(prev).add(url));
+  };
+
+  // Get product URLs - prefer array, fallback to single
+  const productUrls = image.productReferenceUrls || 
+    (image.productReferenceUrl ? [image.productReferenceUrl] : []);
+
+  // Get context URLs - prefer array, fallback to single
+  const contextUrls = image.contextReferenceUrls || 
+    (image.contextReferenceUrl ? [image.contextReferenceUrl] : []);
+
+  // Check if we have any references to show
+  const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -187,45 +231,87 @@ export const ImageDetailModal = ({
               </div>
 
               {/* Reference Images */}
-              {(productRef || contextRef || image.productReferenceUrl || image.contextReferenceUrl) && (
+              {hasReferences && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <ImageIcon className="w-4 h-4" />
                     Reference Images
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Product Reference */}
-                    {(productRef || image.productReferenceUrl) && (
+                  <div className="space-y-3">
+                    {/* Moodboard Reference */}
+                    {resolvedMoodboardUrl && (
                       <div className="space-y-1.5">
-                        <p className="text-xs text-muted-foreground">Product</p>
-                        <div className="aspect-square rounded-lg overflow-hidden border border-border">
-                          <img
-                            src={productRef?.thumbnail || image.productReferenceUrl}
-                            alt={productRef?.name || 'Product reference'}
-                            className="w-full h-full object-cover"
-                          />
+                        <p className="text-xs text-muted-foreground">Moodboard (Style)</p>
+                        <div className="aspect-video rounded-lg overflow-hidden border border-border bg-secondary/30">
+                          {failedImages.has(resolvedMoodboardUrl) ? (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <AlertCircle className="w-5 h-5 mr-2" />
+                              <span className="text-xs">Couldn't load</span>
+                            </div>
+                          ) : (
+                            <img
+                              src={resolvedMoodboardUrl}
+                              alt="Moodboard reference"
+                              className="w-full h-full object-cover"
+                              onError={() => handleImageError(resolvedMoodboardUrl)}
+                            />
+                          )}
                         </div>
-                        {productRef && (
-                          <p className="text-xs text-muted-foreground truncate">{productRef.name}</p>
-                        )}
                       </div>
                     )}
                     
-                    {/* Context Reference */}
-                    {(contextRef || image.contextReferenceUrl) && (
+                    {/* Product References (up to 3) */}
+                    {productUrls.length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-xs text-muted-foreground">Context</p>
-                        <div className="aspect-square rounded-lg overflow-hidden border border-border">
-                          <img
-                            src={contextRef?.thumbnail || image.contextReferenceUrl}
-                            alt={contextRef?.name || 'Context reference'}
-                            className="w-full h-full object-cover"
-                          />
+                        <p className="text-xs text-muted-foreground">
+                          Product{productUrls.length > 1 ? 's' : ''} ({productUrls.length})
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {productUrls.slice(0, 3).map((url, idx) => (
+                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30">
+                              {failedImages.has(url) ? (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <AlertCircle className="w-4 h-4" />
+                                </div>
+                              ) : (
+                                <img
+                                  src={url}
+                                  alt={`Product reference ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={() => handleImageError(url)}
+                                />
+                              )}
+                            </div>
+                          ))}
                         </div>
-                        {contextRef && (
-                          <p className="text-xs text-muted-foreground truncate">{contextRef.name}</p>
-                        )}
+                      </div>
+                    )}
+                    
+                    {/* Context References */}
+                    {contextUrls.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">
+                          Scene{contextUrls.length > 1 ? 's' : ''} ({contextUrls.length})
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {contextUrls.slice(0, 3).map((url, idx) => (
+                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30">
+                              {failedImages.has(url) ? (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                  <AlertCircle className="w-4 h-4" />
+                                </div>
+                              ) : (
+                                <img
+                                  src={url}
+                                  alt={`Context reference ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={() => handleImageError(url)}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

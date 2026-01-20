@@ -53,16 +53,33 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       .limit(50);
 
     if (data && !error) {
-      const images: GeneratedImage[] = data.map((img, index) => ({
-        id: img.id,
-        imageUrl: img.image_url,
-        status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
-        prompt: img.prompt,
-        refinedPrompt: img.refined_prompt || undefined,
-        index,
-        productReferenceUrl: img.product_reference_url || undefined,
-        contextReferenceUrl: img.context_reference_url || undefined,
-      }));
+      const images: GeneratedImage[] = data.map((img, index) => {
+        // Extract references from settings.references if present (new format)
+        const settings = img.settings as Record<string, any> | null;
+        const refs = settings?.references || {};
+        
+        return {
+          id: img.id,
+          imageUrl: img.image_url,
+          status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
+          prompt: img.prompt,
+          refinedPrompt: img.refined_prompt || undefined,
+          index,
+          // Moodboard references
+          moodboardId: refs.moodboardId || img.moodboard_id || undefined,
+          moodboardUrl: refs.moodboardUrl || undefined,
+          // Product references - prefer array from settings, fallback to single
+          productReferenceUrls: refs.productReferenceUrls?.length > 0 
+            ? refs.productReferenceUrls 
+            : (img.product_reference_url ? [img.product_reference_url] : undefined),
+          productReferenceUrl: img.product_reference_url || undefined,
+          // Context references - prefer array from settings, fallback to single
+          contextReferenceUrls: refs.contextReferenceUrls?.length > 0 
+            ? refs.contextReferenceUrls 
+            : (img.context_reference_url ? [img.context_reference_url] : undefined),
+          contextReferenceUrl: img.context_reference_url || undefined,
+        };
+      });
       setPreviousImages(images);
     } else if (error) {
       console.error('Error fetching images:', error);

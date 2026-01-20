@@ -122,7 +122,11 @@ export interface GeneratedImage {
   refinedPrompt?: string;
   error?: string;
   index: number;
+  // Reference images used for generation
+  moodboardId?: string;
+  moodboardUrl?: string;
   productReferenceUrl?: string;
+  productReferenceUrls?: string[]; // Support multiple product references
   contextReferenceUrl?: string;
   contextReferenceUrls?: string[]; // Support multiple context references
 }

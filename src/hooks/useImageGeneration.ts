@@ -210,8 +210,12 @@ export function useImageGeneration() {
         refinedPrompt: img.refinedPrompt,
         error: img.error,
         index: img.index,
+        // Attach resolved references so the modal shows them immediately
+        moodboardId: state.moodboard || undefined,
+        moodboardUrl: moodboardUrl || undefined,
+        productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
         productReferenceUrl: productReferenceUrls[0], // Keep first for backwards compat
-        contextReferenceUrls: contextRefUrls,
+        contextReferenceUrls: contextRefUrls.length > 0 ? contextRefUrls : undefined,
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;
