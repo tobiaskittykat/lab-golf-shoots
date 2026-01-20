@@ -90,8 +90,31 @@ export function useImageGeneration() {
       // Get the selected concept
       const selectedConcept = state.concepts.find(c => c.id === state.selectedConcept);
       
-      // Get moodboard description
-      const moodboard = sampleMoodboards.find(m => m.id === state.moodboard);
+      // Get moodboard info (description + URL for multimodal)
+      let moodboardDescription: string | undefined;
+      let moodboardUrl: string | undefined;
+      
+      // Check custom moodboards first
+      if (state.moodboard) {
+        // Fetch the moodboard URL from database
+        const { data: customMoodboard } = await supabase
+          .from('custom_moodboards')
+          .select('thumbnail_url, description')
+          .eq('id', state.moodboard)
+          .maybeSingle();
+        
+        if (customMoodboard) {
+          moodboardUrl = customMoodboard.thumbnail_url;
+          moodboardDescription = customMoodboard.description || undefined;
+        } else {
+          // Fallback to sample moodboards (uses 'thumbnail' field)
+          const sampleMoodboard = sampleMoodboards.find(m => m.id === state.moodboard);
+          if (sampleMoodboard) {
+            moodboardUrl = sampleMoodboard.thumbnail;
+            moodboardDescription = sampleMoodboard.description;
+          }
+        }
+      }
 
       // Resolve product reference URLs (supports both sample + scraped products, now array)
       const productReferenceUrls: string[] = [];
@@ -119,6 +142,12 @@ export function useImageGeneration() {
         .map(id => sampleContextReferences.find(r => r.id === id))
         .filter(Boolean);
       const contextRefUrls = contextRefs.map(ref => ref?.url).filter(Boolean) as string[];
+      
+      console.log('Generating with references:', {
+        moodboardUrl,
+        productReferenceUrls,
+        contextRefUrls
+      });
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
@@ -127,7 +156,8 @@ export function useImageGeneration() {
           conceptDescription: selectedConcept?.description,
           
           moodboardId: state.moodboard,
-          moodboardDescription: moodboard?.description,
+          moodboardDescription,
+          moodboardUrl, // NEW: Pass moodboard image URL for multimodal
           artisticStyle: state.artisticStyle,
           lightingStyle: state.lightingStyle,
           cameraAngle: state.cameraAngle,

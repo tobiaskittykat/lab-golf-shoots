@@ -15,13 +15,14 @@ interface GenerateImageRequest {
   // Style settings
   moodboardId?: string;
   moodboardDescription?: string;
+  moodboardUrl?: string; // NEW: Actual moodboard image URL
   artisticStyle?: string;
   lightingStyle?: string;
   cameraAngle?: string;
   
-  // References (URLs)
-  productReferenceUrl?: string;
-  contextReferenceUrl?: string;
+  // References (URLs) - now arrays for multiple references
+  productReferenceUrls?: string[];
+  contextReferenceUrls?: string[];
   
   // Edit mode
   sourceImageUrl?: string;
@@ -222,27 +223,50 @@ Deno.serve(async (req) => {
           });
         }
         
-        // Add product reference as visual input
-        if (body.productReferenceUrl && body.productReferenceUrl.startsWith('http')) {
+        // Add moodboard reference as style guide (IMPORTANT: must attach as image)
+        if (body.moodboardUrl && body.moodboardUrl.startsWith('http')) {
           messageContent.push({
             type: "image_url",
-            image_url: { url: body.productReferenceUrl }
+            image_url: { url: body.moodboardUrl }
           });
           messageContent.push({
             type: "text",
-            text: "Use the above image as the product reference for this generation."
+            text: "Use the above image as the STYLE and AESTHETIC reference. Match its color palette, mood, lighting, and visual atmosphere."
           });
         }
         
-        // Add context reference as visual input
-        if (body.contextReferenceUrl && body.contextReferenceUrl.startsWith('http')) {
-          messageContent.push({
-            type: "image_url",
-            image_url: { url: body.contextReferenceUrl }
-          });
+        // Add product references as visual inputs (up to 3)
+        const productUrls = body.productReferenceUrls || [];
+        if (productUrls.length > 0) {
+          for (let i = 0; i < Math.min(productUrls.length, 3); i++) {
+            const url = productUrls[i];
+            if (url && url.startsWith('http')) {
+              messageContent.push({
+                type: "image_url",
+                image_url: { url }
+              });
+            }
+          }
           messageContent.push({
             type: "text",
-            text: "Use the above image as the scene/environment context reference."
+            text: `Use the above ${productUrls.length} image(s) as the PRODUCT REFERENCE(s). Feature these products prominently in the generated image.`
+          });
+        }
+        
+        // Add context references as visual inputs (multiple environments/scenes)
+        const contextUrls = body.contextReferenceUrls || [];
+        if (contextUrls.length > 0) {
+          for (const url of contextUrls) {
+            if (url && url.startsWith('http')) {
+              messageContent.push({
+                type: "image_url",
+                image_url: { url }
+              });
+            }
+          }
+          messageContent.push({
+            type: "text",
+            text: `Use the above image(s) as the SCENE/ENVIRONMENT context reference(s). Place the product in a similar setting.`
           });
         }
 
@@ -356,8 +380,8 @@ Deno.serve(async (req) => {
             refined_prompt: refinedPrompt,
             negative_prompt: body.negativePrompt || null,
             image_url: publicUrl,
-            product_reference_url: body.productReferenceUrl || null,
-            context_reference_url: body.contextReferenceUrl || null,
+            product_reference_url: (body.productReferenceUrls && body.productReferenceUrls[0]) || null,
+            context_reference_url: (body.contextReferenceUrls && body.contextReferenceUrls[0]) || null,
             moodboard_id: body.moodboardId || null,
             settings: {
               aiModel: body.aiModel,
