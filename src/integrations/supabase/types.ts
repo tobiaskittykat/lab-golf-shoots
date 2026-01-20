@@ -130,15 +130,21 @@ export type Database = {
       saved_concepts: {
         Row: {
           artistic_style: string | null
+          aspect_ratio: string | null
           brand_id: string | null
+          call_to_action: string | null
           camera_angle: string | null
           created_at: string
           description: string
           extra_keywords: string[] | null
           id: string
+          key_message: string | null
           lighting_style: string | null
           moodboard_id: string | null
+          objective: string | null
+          output_format: string | null
           tags: string[] | null
+          target_persona: string | null
           title: string
           updated_at: string
           use_case: string | null
@@ -146,15 +152,21 @@ export type Database = {
         }
         Insert: {
           artistic_style?: string | null
+          aspect_ratio?: string | null
           brand_id?: string | null
+          call_to_action?: string | null
           camera_angle?: string | null
           created_at?: string
           description: string
           extra_keywords?: string[] | null
           id?: string
+          key_message?: string | null
           lighting_style?: string | null
           moodboard_id?: string | null
+          objective?: string | null
+          output_format?: string | null
           tags?: string[] | null
+          target_persona?: string | null
           title: string
           updated_at?: string
           use_case?: string | null
@@ -162,15 +174,21 @@ export type Database = {
         }
         Update: {
           artistic_style?: string | null
+          aspect_ratio?: string | null
           brand_id?: string | null
+          call_to_action?: string | null
           camera_angle?: string | null
           created_at?: string
           description?: string
           extra_keywords?: string[] | null
           id?: string
+          key_message?: string | null
           lighting_style?: string | null
           moodboard_id?: string | null
+          objective?: string | null
+          output_format?: string | null
           tags?: string[] | null
+          target_persona?: string | null
           title?: string
           updated_at?: string
           use_case?: string | null

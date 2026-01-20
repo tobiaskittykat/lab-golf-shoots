@@ -19,6 +19,10 @@ interface Concept {
   title: string;
   description: string;
   tags: string[];
+  objective?: string;
+  targetPersona?: string;
+  keyMessage?: string;
+  outputFormat?: string;
 }
 
 Deno.serve(async (req) => {
@@ -45,7 +49,7 @@ Deno.serve(async (req) => {
 
     console.log("Generating concepts for prompt:", prompt);
 
-    // Build the system prompt for concept generation
+    // Build the system prompt for concept generation with enhanced structure
     const systemPrompt = `You are a world-class creative director specializing in visual marketing and product photography.
 Your task is to generate 3 distinct, creative visual concepts based on the brief provided.
 
@@ -55,20 +59,30 @@ ${brandIndustry ? `Industry: ${brandIndustry}` : ""}
 ${useCase ? `Use Case: ${useCase}` : ""}
 ${targetPersona ? `Target Audience: ${targetPersona}` : ""}
 
-Each concept should be unique and commercially viable for the specified use case.
+Each concept should be unique, commercially viable, and include campaign context.
+
 Return EXACTLY 3 concepts in the following JSON format:
 {
   "concepts": [
     {
       "id": "concept-1",
       "title": "Short compelling title (3-5 words)",
-      "description": "Vivid visual description of the concept (2-3 sentences describing the scene, mood, and key elements)",
-      "tags": ["Tag1", "Tag2", "Tag3"]
+      "description": "Vivid visual description of the concept (2-3 sentences describing the scene, mood, lighting, and key visual elements)",
+      "tags": ["Tag1", "Tag2", "Tag3"],
+      "objective": "awareness" | "engagement" | "conversion" | "launch" | "seasonal" | "ugc",
+      "targetPersona": "gen-z" | "millennials" | "gen-x" | "professionals" | "parents" | "luxury" | "eco-conscious" | "fitness",
+      "keyMessage": "Core campaign message or tagline (short phrase)",
+      "outputFormat": "social-post" | "stories-reels" | "email-banner" | "website-hero" | "ecommerce"
     }
   ]
 }
 
-Be creative, varied, and think like a high-end advertising agency. Each concept should evoke a different mood and visual approach.`;
+IMPORTANT:
+- Each concept should target a different objective or approach
+- The description should be highly visual and specific - describe colors, lighting, composition, mood
+- Tags should be relevant for visual search and categorization
+- Key message should be memorable and brand-aligned
+- Be creative and think like a high-end advertising agency`;
 
     const userPrompt = `Generate 3 creative visual concepts for: ${prompt}`;
 
@@ -86,7 +100,7 @@ Be creative, varied, and think like a high-end advertising agency. Each concept 
           { role: "user", content: userPrompt }
         ],
         temperature: 0.9,
-        max_tokens: 1500,
+        max_tokens: 2000,
       }),
     });
 
@@ -124,19 +138,31 @@ Be creative, varied, and think like a high-end advertising agency. Each concept 
           id: "concept-1",
           title: "Modern Elegance",
           description: `A sophisticated take on ${prompt}. Clean lines, premium materials, and subtle lighting create an aspirational mood that speaks to discerning customers.`,
-          tags: ["Premium", "Clean", "Sophisticated"]
+          tags: ["Premium", "Clean", "Sophisticated"],
+          objective: "awareness",
+          targetPersona: targetPersona || "millennials",
+          keyMessage: "Elevate your everyday",
+          outputFormat: "social-post"
         },
         {
           id: "concept-2",
           title: "Natural Authenticity",
           description: `An organic approach to ${prompt}. Warm natural light, authentic textures, and candid moments that build trust and connection with the audience.`,
-          tags: ["Authentic", "Natural", "Warm"]
+          tags: ["Authentic", "Natural", "Warm"],
+          objective: "engagement",
+          targetPersona: targetPersona || "gen-z",
+          keyMessage: "Real moments, real connection",
+          outputFormat: "stories-reels"
         },
         {
           id: "concept-3",
           title: "Bold Impact",
           description: `A striking visual for ${prompt}. High contrast, dynamic composition, and confident colors that demand attention in crowded feeds.`,
-          tags: ["Bold", "Dynamic", "Eye-catching"]
+          tags: ["Bold", "Dynamic", "Eye-catching"],
+          objective: "conversion",
+          targetPersona: targetPersona || "professionals",
+          keyMessage: "Make your move",
+          outputFormat: "website-hero"
         }
       ];
     }

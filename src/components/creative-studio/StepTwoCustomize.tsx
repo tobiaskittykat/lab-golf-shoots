@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { 
   Sparkles, 
   ImageIcon, 
@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Package,
   Layers,
-  BookmarkCheck
+  BookmarkCheck,
+  ChevronDown
 } from "lucide-react";
 import { 
   Select, 
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ConceptCard, AddConceptCard, SavedConceptCard } from "./ConceptCard";
+import { ConceptEditModal } from "./ConceptEditModal";
 import { CustomizationSection } from "./CustomizationSection";
 import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { ReferenceThumbnail } from "./ReferenceThumbnail";
@@ -40,6 +42,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { 
   CreativeStudioState, 
   Concept,
+  SavedConcept,
   ConceptPresets,
   aspectRatios, 
   resolutions, 
@@ -49,8 +52,10 @@ import {
   aiModels,
   sampleMoodboards,
   sampleProductReferences,
-  sampleContextReferences
+  sampleContextReferences,
+  outputFormats
 } from "./types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface StepTwoCustomizeProps {
   state: CreativeStudioState;
@@ -63,6 +68,13 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   const [showProductRefModal, setShowProductRefModal] = useState(false);
   const [showContextRefModal, setShowContextRefModal] = useState(false);
   const [savingConceptId, setSavingConceptId] = useState<string | null>(null);
+  const [savedConceptsOpen, setSavedConceptsOpen] = useState(true);
+  
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingConcept, setEditingConcept] = useState<Concept | null>(null);
+  const [isNewConcept, setIsNewConcept] = useState(false);
+  
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -90,10 +102,21 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       if (presets.lightingStyle) updates.lightingStyle = presets.lightingStyle;
       if (presets.cameraAngle) updates.cameraAngle = presets.cameraAngle;
       if (presets.moodboardId) updates.moodboard = presets.moodboardId;
+      if (presets.aspectRatio) updates.aspectRatio = presets.aspectRatio;
       if (presets.extraKeywords?.length) {
         updates.extraKeywords = [...state.extraKeywords, ...presets.extraKeywords.filter(k => !state.extraKeywords.includes(k))];
       }
       if (presets.useCase) updates.useCase = presets.useCase as CreativeStudioState['useCase'];
+    }
+    
+    // Apply output format from concept if set
+    if (concept.outputFormat) {
+      updates.outputFormat = concept.outputFormat;
+      // Also set aspect ratio from output format
+      const formatConfig = outputFormats.find(f => f.value === concept.outputFormat);
+      if (formatConfig?.aspectRatio) {
+        updates.aspectRatio = formatConfig.aspectRatio;
+      }
     }
 
     onUpdate(updates);
@@ -117,6 +140,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         moodboardId: state.moodboard || undefined,
         extraKeywords: state.extraKeywords.length > 0 ? state.extraKeywords : undefined,
         useCase: state.useCase,
+        aspectRatio: state.aspectRatio,
       };
 
       const { error } = await supabase.from('saved_concepts').insert({
@@ -131,6 +155,13 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         moodboard_id: presets.moodboardId,
         extra_keywords: presets.extraKeywords || [],
         use_case: presets.useCase,
+        // NEW fields
+        objective: concept.objective,
+        target_persona: concept.targetPersona,
+        key_message: concept.keyMessage,
+        output_format: concept.outputFormat,
+        call_to_action: concept.callToAction,
+        aspect_ratio: presets.aspectRatio,
       });
 
       if (error) throw error;
@@ -160,13 +191,19 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
 
       if (error) throw error;
 
-      const savedConcepts = (data || []).map(row => ({
+      const savedConcepts: SavedConcept[] = (data || []).map(row => ({
         id: row.id,
         userId: row.user_id,
         brandId: row.brand_id,
         title: row.title,
         description: row.description,
         tags: row.tags || [],
+        // NEW fields
+        objective: row.objective || undefined,
+        targetPersona: row.target_persona || undefined,
+        keyMessage: row.key_message || undefined,
+        outputFormat: row.output_format || undefined,
+        callToAction: row.call_to_action || undefined,
         presets: {
           artisticStyle: row.artistic_style,
           lightingStyle: row.lighting_style,
@@ -174,6 +211,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           moodboardId: row.moodboard_id,
           extraKeywords: row.extra_keywords,
           useCase: row.use_case,
+          aspectRatio: row.aspect_ratio,
         },
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -184,6 +222,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       console.error('Failed to fetch saved concepts:', err);
     }
   }, [user, onUpdate]);
+
+  // Fetch saved concepts on mount
+  useEffect(() => {
+    fetchSavedConcepts();
+  }, [fetchSavedConcepts]);
 
   // Delete saved concept
   const handleDeleteSavedConcept = useCallback(async (conceptId: string) => {
@@ -209,6 +252,34 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       sc.title === state.concepts.find(c => c.id === conceptId)?.title
     );
   }, [state.savedConcepts, state.concepts]);
+
+  // Open edit modal for a concept
+  const handleEditConcept = useCallback((concept: Concept, isNew: boolean = false) => {
+    setEditingConcept(concept);
+    setIsNewConcept(isNew);
+    setEditModalOpen(true);
+  }, []);
+
+  // Handle saving edited concept
+  const handleSaveEditedConcept = useCallback((updatedConcept: Concept) => {
+    if (isNewConcept) {
+      // Add new concept to the list
+      onUpdate({ concepts: [...state.concepts, updatedConcept] });
+    } else {
+      // Update existing concept in the list
+      const updatedConcepts = state.concepts.map(c => 
+        c.id === updatedConcept.id ? updatedConcept : c
+      );
+      onUpdate({ concepts: updatedConcepts });
+    }
+  }, [state.concepts, isNewConcept, onUpdate]);
+
+  // Open modal for adding new concept
+  const handleAddConcept = useCallback(() => {
+    setEditingConcept(null);
+    setIsNewConcept(true);
+    setEditModalOpen(true);
+  }, []);
 
   // Handle moodboard toggle (deselect if already selected)
   const handleMoodboardSelect = (moodboardId: string) => {
@@ -256,25 +327,42 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Saved Concepts */}
+            {/* Saved Concepts - Collapsible */}
             {state.savedConcepts.length > 0 && (
-              <div className="space-y-2 mb-4">
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <BookmarkCheck className="w-3 h-3" /> Your saved concepts
-                </p>
-                {state.savedConcepts.slice(0, 3).map((concept) => (
-                  <SavedConceptCard
-                    key={concept.id}
-                    concept={concept}
-                    isSelected={state.selectedConcept === concept.id}
-                    onSelect={() => handleConceptSelect(concept)}
-                    onDelete={() => handleDeleteSavedConcept(concept.id)}
-                  />
-                ))}
-              </div>
+              <Collapsible open={savedConceptsOpen} onOpenChange={setSavedConceptsOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-left hover:bg-secondary/30 rounded-lg px-2 -mx-2 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <BookmarkCheck className="w-4 h-4 text-purple-500" />
+                    <span className="text-sm font-medium text-foreground">Your Saved Concepts</span>
+                    <span className="text-xs bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded-full">
+                      {state.savedConcepts.length}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${savedConceptsOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2 space-y-2">
+                  {state.savedConcepts.map((concept) => (
+                    <SavedConceptCard
+                      key={concept.id}
+                      concept={concept}
+                      isSelected={state.selectedConcept === concept.id}
+                      onSelect={() => handleConceptSelect(concept)}
+                      onEdit={() => handleEditConcept(concept)}
+                      onDelete={() => handleDeleteSavedConcept(concept.id)}
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
             )}
             
             {/* Generated Concepts */}
+            {state.concepts.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> AI-generated concepts
+                </p>
+              </div>
+            )}
             {state.concepts.map((concept, index) => (
               <ConceptCard
                 key={concept.id}
@@ -283,11 +371,12 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 isSelected={state.selectedConcept === concept.id}
                 onSelect={() => handleConceptSelect(concept)}
                 onSave={() => handleSaveConcept(concept)}
+                onEdit={() => handleEditConcept(concept)}
                 isSaved={isConceptSaved(concept.id)}
                 showSaveButton={!!user}
               />
             ))}
-            <AddConceptCard onClick={() => {/* TODO: Add custom concept modal */}} />
+            <AddConceptCard onClick={handleAddConcept} />
           </div>
         )}
       </div>
@@ -744,6 +833,16 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           }
         }}
         multiSelect={true}
+      />
+
+      {/* Concept Edit Modal */}
+      <ConceptEditModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        concept={editingConcept}
+        onSave={handleSaveEditedConcept}
+        isNew={isNewConcept}
+        defaultUseCase={state.useCase}
       />
     </div>
   );

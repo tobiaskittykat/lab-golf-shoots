@@ -3,6 +3,14 @@ export interface Concept {
   title: string;
   description: string;
   tags: string[];
+  
+  // Campaign Context (NEW)
+  objective?: string;           // "awareness", "engagement", "conversion", etc.
+  targetPersona?: string;       // "gen-z", "millennials", etc.
+  keyMessage?: string;          // Core message or tagline
+  outputFormat?: string;        // "social-post", "stories", etc.
+  callToAction?: string;        // "Shop Now", "Learn More"
+  
   // Preset settings that define the concept
   presets?: ConceptPresets;
 }
@@ -14,6 +22,7 @@ export interface ConceptPresets {
   moodboardId?: string;
   extraKeywords?: string[];
   useCase?: string;
+  aspectRatio?: string;         // NEW: Pre-selected aspect ratio
 }
 
 export interface SavedConcept extends Concept {
@@ -22,6 +31,16 @@ export interface SavedConcept extends Concept {
   createdAt: string;
   updatedAt: string;
 }
+
+// Campaign objectives for concept creation
+export const campaignObjectives = [
+  { value: 'awareness', label: 'Brand Awareness' },
+  { value: 'engagement', label: 'Engagement' },
+  { value: 'conversion', label: 'Conversion / Sales' },
+  { value: 'launch', label: 'Product Launch' },
+  { value: 'seasonal', label: 'Seasonal Campaign' },
+  { value: 'ugc', label: 'UGC Style Content' },
+];
 
 export interface Moodboard {
   id: string;
