@@ -457,16 +457,18 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
 
   // Get curated moodboards (filter from custom moodboards based on curated IDs)
   const curatedMoodboardItems = useMemo(() => {
-    if (state.curatedMoodboards.length === 0) return [];
-    return state.curatedMoodboards
+    const curatedIds = state.curatedMoodboards || [];
+    if (curatedIds.length === 0) return [];
+    return curatedIds
       .map(id => customMoodboards.find(m => m.id === id))
       .filter(Boolean) as Moodboard[];
   }, [state.curatedMoodboards, customMoodboards]);
 
   // Get curated products (filter from all products based on curated IDs)
   const curatedProductItems = useMemo(() => {
-    if (state.curatedProducts.length === 0) return [];
-    return state.curatedProducts
+    const curatedIds = state.curatedProducts || [];
+    if (curatedIds.length === 0) return [];
+    return curatedIds
       .map(id => allProductReferences.find(p => p.id === id))
       .filter(Boolean) as ReferenceImage[];
   }, [state.curatedProducts, allProductReferences]);
