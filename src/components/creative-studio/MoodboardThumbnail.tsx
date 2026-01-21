@@ -75,12 +75,15 @@ export const MoodboardThumbnail = ({
     setImageError(false);
     setIsLoading(true);
     setRetryCount(0);
-    setIsVisible(false);
   }, [moodboard.id, moodboard.thumbnail, clearLoadTimeout]);
+
+  // In large gallery grids, avoid kicking off dozens of image requests at once.
+  // Only start loading when the thumbnail is near/inside the viewport (or selected).
+  const shouldLoadImage = isVisible || isSelected;
 
   // Check if image is already cached/complete, and start timeout when visible
   useEffect(() => {
-    if (!isVisible) return; // Don't start timeout until visible
+    if (!shouldLoadImage) return; // Don't start timeout until we actually start loading
     
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
@@ -101,7 +104,7 @@ export const MoodboardThumbnail = ({
     }, LOAD_TIMEOUT_MS);
     
     return () => clearLoadTimeout();
-  }, [resolvedSrc, retryCount, isVisible, isLoading, imageError, moodboard.name, clearLoadTimeout]);
+  }, [resolvedSrc, retryCount, shouldLoadImage, isLoading, imageError, moodboard.name, clearLoadTimeout]);
 
   // Handle image load error - try signed URL fallback
   const handleImageError = useCallback(async () => {
@@ -177,7 +180,7 @@ export const MoodboardThumbnail = ({
         }`}
       >
         {/* Loading state */}
-        {isLoading && !imageError && (
+        {shouldLoadImage && isLoading && !imageError && (
           <div className="absolute inset-0 w-full h-full bg-secondary flex items-center justify-center z-10">
             <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
@@ -199,7 +202,7 @@ export const MoodboardThumbnail = ({
               Retry
             </button>
           </div>
-        ) : (
+        ) : shouldLoadImage ? (
           <img 
             ref={imgRef}
             src={resolvedSrc}
@@ -207,9 +210,12 @@ export const MoodboardThumbnail = ({
             className="absolute inset-0 w-full h-full object-cover"
             onError={handleImageError}
             onLoad={handleImageLoad}
-            loading="eager"
+            loading={size === 'large' ? 'lazy' : 'eager'}
             decoding="async"
+            referrerPolicy="no-referrer"
           />
+        ) : (
+          <div className="absolute inset-0 w-full h-full bg-secondary" />
         )}
         
         {/* Gradient overlay for text */}
