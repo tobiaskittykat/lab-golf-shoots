@@ -177,17 +177,15 @@ export function useImageGeneration() {
         }
       }
 
-      // Extract shot type prompts from selected shot references (text guidance, not image URLs)
-      const shotTypePrompts = state.contextReferences
-        .map(id => sampleContextReferences.find(r => r.id === id))
-        .filter(Boolean)
-        .map(ref => ref?.shotPrompt)
-        .filter(Boolean) as string[];
+      // Extract single shot type prompt (text guidance, not image URL)
+      const shotTypePrompt = state.contextReference
+        ? sampleContextReferences.find(r => r.id === state.contextReference)?.shotPrompt || null
+        : null;
       
       console.log('Generating with references:', {
         moodboardUrl,
         productReferenceUrls,
-        shotTypePrompts
+        shotTypePrompt
       });
 
       // Track when we started to find newly generated images if timeout occurs
@@ -201,7 +199,7 @@ export function useImageGeneration() {
       console.log('Full concept:', JSON.stringify(selectedConcept, null, 2));
       console.log('Moodboard URL:', moodboardUrl);
       console.log('Product URLs:', productReferenceUrls);
-      console.log('Shot prompts:', shotTypePrompts);
+      console.log('Shot prompt:', shotTypePrompt);
       console.log('==============================');
       
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -234,8 +232,8 @@ export function useImageGeneration() {
           // Reference URLs and names
           productReferenceUrls,
           productNames,
-          // Shot type as text prompt guidance
-          shotTypePrompts,
+          // Shot type as single text prompt guidance (null = AI decides)
+          shotTypePrompt,
           
           // Brand context for prompt agent
           brandName,

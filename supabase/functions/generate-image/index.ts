@@ -57,7 +57,7 @@ interface GenerateImageRequest {
   // References
   productReferenceUrls?: string[];
   productNames?: string[];
-  shotTypePrompts?: string[];
+  shotTypePrompt?: string | null; // Single shot type (mutually exclusive), null = AI decides
   
   // Edit mode
   sourceImageUrl?: string;
@@ -116,14 +116,15 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
     // Build the creative brief inline with ALL 9-point concept data
     const sections: string[] = [];
     
-    // ===== SHOT DIRECTION FIRST (MANDATORY) =====
+    // ===== SHOT DIRECTION (MANDATORY when specified) =====
     // Put shot type at the very top so it's emphasized as non-negotiable
-    if (request.shotTypePrompts && request.shotTypePrompts.length > 0) {
+    if (request.shotTypePrompt) {
       sections.push("=== MANDATORY SHOT DIRECTION ===");
       sections.push("⚠️ CRITICAL: The following shot type MUST be followed exactly:");
-      sections.push(request.shotTypePrompts.join(". "));
+      sections.push(request.shotTypePrompt);
       sections.push("");
     }
+    // If shotTypePrompt is null, this section is omitted and AI has creative freedom over composition
     
     // Brand Context Section
     if (request.brandContext || request.brandName || request.brandPersonality) {
@@ -363,7 +364,7 @@ function buildFallbackPrompt(request: GenerateImageRequest): string {
   else if (request.prompt) parts.push(request.prompt);
   
   if (request.moodboardDescription) parts.push(request.moodboardDescription);
-  if (request.shotTypePrompts?.length) parts.push(request.shotTypePrompts.join(", "));
+  if (request.shotTypePrompt) parts.push(request.shotTypePrompt);
   if (request.extraKeywords?.length) parts.push(request.extraKeywords.join(", "));
   
   parts.push("high quality, professional, sharp focus");
@@ -635,7 +636,7 @@ MANDATORY REQUIREMENTS:
                 moodboardUrl: body.moodboardUrl || null,
                 moodboardDescription: body.moodboardDescription || null,
                 productReferenceUrls: body.productReferenceUrls || [],
-                shotTypePrompts: body.shotTypePrompts || [],
+                shotTypePrompt: body.shotTypePrompt || null,
                 sourceImageUrl: body.sourceImageUrl || null,
               },
             },
