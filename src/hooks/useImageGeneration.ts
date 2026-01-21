@@ -304,7 +304,6 @@ export function useImageGeneration() {
         return [];
       }
 
-      const selectedConcept = state.concepts.find(c => c.id === state.selectedConcept);
       const images: GeneratedImage[] = (data.images || []).map((img: any) => ({
         id: img.id || `temp-${img.index}`,
         imageUrl: img.imageUrl || '',

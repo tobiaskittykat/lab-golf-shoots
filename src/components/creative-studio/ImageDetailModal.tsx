@@ -130,8 +130,8 @@ export const ImageDetailModal = ({
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background">
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background">
         <div className="flex h-full">
           {/* Left Side - Image */}
           <div className="flex-1 bg-secondary/30 flex items-center justify-center p-6 relative">
@@ -206,7 +206,6 @@ export const ImageDetailModal = ({
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Sparkles className="w-4 h-4" />
                     Creative Brief
-                  </div>
                   </div>
                   <button
                     onClick={handleCopyPrompt}
@@ -364,28 +363,28 @@ export const ImageDetailModal = ({
               </div>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-    {/* Expanded Image Dialog - must be outside the main Dialog */}
-    <Dialog open={!!expandedImageUrl} onOpenChange={(open) => !open && setExpandedImageUrl(null)}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black/95">
-        <button
-          onClick={() => setExpandedImageUrl(null)}
-          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button>
-        {expandedImageUrl && (
-          <img
-            src={expandedImageUrl}
-            alt="Expanded reference"
-            className="w-full h-full object-contain max-h-[85vh]"
-          />
-        )}
-      </DialogContent>
-    </Dialog>
-  </>
+      {/* Expanded Image Dialog - must be outside the main Dialog */}
+      <Dialog open={!!expandedImageUrl} onOpenChange={(open) => !open && setExpandedImageUrl(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black/95">
+          <button
+            onClick={() => setExpandedImageUrl(null)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          {expandedImageUrl && (
+            <img
+              src={expandedImageUrl}
+              alt="Expanded reference"
+              className="w-full h-full object-contain max-h-[85vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
