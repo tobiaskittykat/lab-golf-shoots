@@ -23,7 +23,7 @@ export const MoodboardThumbnail = ({
   size = 'default'
 }: MoodboardThumbnailProps) => {
   const [isFullView, setIsFullView] = useState(false);
-  const [resolvedSrc, setResolvedSrc] = useState(moodboard.thumbnail);
+  const [resolvedSrc, setResolvedSrc] = useState(moodboard.thumbnail || '');
   const [triedSigned, setTriedSigned] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +70,7 @@ export const MoodboardThumbnail = ({
   // Reset state when moodboard changes
   useEffect(() => {
     clearLoadTimeout();
-    setResolvedSrc(moodboard.thumbnail);
+    setResolvedSrc(moodboard.thumbnail || '');
     setTriedSigned(false);
     setImageError(false);
     setIsLoading(true);
@@ -138,17 +138,41 @@ export const MoodboardThumbnail = ({
   }, [clearLoadTimeout]);
 
   // Retry loading (cache-bust)
-  const handleRetry = useCallback((e: React.MouseEvent) => {
+  const handleRetry = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     clearLoadTimeout();
     setImageError(false);
     setIsLoading(true);
     setTriedSigned(false);
     setRetryCount(prev => prev + 1);
-    // Add cache-bust param
-    const baseUrl = moodboard.thumbnail.split('?')[0];
-    setResolvedSrc(`${baseUrl}?t=${Date.now()}`);
-  }, [moodboard.thumbnail, clearLoadTimeout]);
+
+    // Add cache-bust param (prefer current resolvedSrc, fallback to moodboard.thumbnail)
+    const base = (resolvedSrc || moodboard.thumbnail || '').split('?')[0];
+    if (base) {
+      setResolvedSrc(`${base}?t=${Date.now()}`);
+      return;
+    }
+
+    // If we somehow have no public URL, try a signed URL from storage.
+    if (moodboard.filePath) {
+      setTriedSigned(true);
+      try {
+        const { data, error } = await supabase.storage
+          .from('moodboards')
+          .createSignedUrl(moodboard.filePath, 60 * 60 * 24 * 7);
+        if (data?.signedUrl && !error) {
+          setResolvedSrc(data.signedUrl);
+          return;
+        }
+      } catch (err) {
+        console.error('[MoodboardThumbnail] Retry signed URL failed:', err);
+      }
+    }
+
+    // Nothing we can do (should be very rare) — show error state.
+    setImageError(true);
+    setIsLoading(false);
+  }, [moodboard.filePath, moodboard.thumbnail, resolvedSrc, clearLoadTimeout]);
 
   // Toggle selection - clicking selected moodboard deselects it
   const handleClick = () => {
