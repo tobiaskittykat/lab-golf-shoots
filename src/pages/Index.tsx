@@ -64,7 +64,7 @@ const navItems = [
   { id: "gallery", label: "Gallery", icon: GalleryHorizontal },
   { id: "task-lists", label: "Task Lists", icon: ListTodo },
   { id: "users", label: "Users", icon: Users },
-  { id: "presets", label: "Presets", icon: Settings2 },
+  { id: "settings", label: "AI Settings", icon: Settings2, href: "/settings" },
 ];
 
 const quickActions = [
@@ -314,7 +314,13 @@ const Index = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveNav(item.id)}
+                  onClick={() => {
+                    if ((item as any).href) {
+                      navigate((item as any).href);
+                    } else {
+                      setActiveNav(item.id);
+                    }
+                  }}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors relative ${
                     activeNav === item.id 
                       ? "text-accent" 
