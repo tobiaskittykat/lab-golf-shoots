@@ -48,6 +48,7 @@ export function useBrandImages() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
 
   const fetchImages = useCallback(async () => {
     if (!user || !currentBrand) return;
@@ -273,16 +274,75 @@ export function useBrandImages() {
     }
   }, [currentBrand, updateBrand, toast]);
 
+  const scrapeFromWebsite = useCallback(async (url?: string) => {
+    if (!user || !currentBrand) {
+      toast({
+        title: "No brand selected",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    const targetUrl = url || currentBrand.website;
+    if (!targetUrl) {
+      toast({
+        title: "No website configured",
+        description: "Please add a website URL to your brand settings first",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    setIsScraping(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.functions.invoke("scrape-brand-images", {
+        body: { brandId: currentBrand.id, url: targetUrl },
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: `Scraped ${data.imagesAdded} images`,
+        description: "Images are being analyzed in the background",
+      });
+
+      // Refresh images list
+      await fetchImages();
+
+      return data;
+    } catch (err) {
+      console.error("Error scraping brand images:", err);
+      toast({
+        title: "Failed to scrape images",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsScraping(false);
+    }
+  }, [user, currentBrand, fetchImages, toast]);
+
   return {
     images,
     isLoading,
     isUploading,
     isRegenerating,
+    isScraping,
     fetchImages,
     uploadImage,
     deleteImage,
     regenerateBrandBrain,
     getBrandBrain,
     updateBrandBrain,
+    scrapeFromWebsite,
   };
 }

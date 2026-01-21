@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Brain, Upload, Trash2, RefreshCw, Palette, Camera, Type, Sparkles, X, Edit2, Check } from "lucide-react";
+import { Brain, Upload, Trash2, RefreshCw, Palette, Camera, Type, Sparkles, X, Edit2, Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,12 +30,14 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
     isLoading,
     isUploading,
     isRegenerating,
+    isScraping,
     fetchImages,
     uploadImage,
     deleteImage,
     regenerateBrandBrain,
     getBrandBrain,
     updateBrandBrain,
+    scrapeFromWebsite,
   } = useBrandImages();
 
   const [isOpen, setIsOpen] = useState(true);
@@ -181,6 +183,16 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
               ))}
             </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scrapeFromWebsite()}
+              disabled={isScraping || !currentBrand?.website}
+              title={!currentBrand?.website ? "Add a website URL to your brand first" : "Scrape lifestyle images from website"}
+            >
+              <Globe className="h-4 w-4 mr-2" />
+              {isScraping ? "Scraping..." : "Scrape Website"}
+            </Button>
             <Button
               variant="outline"
               size="sm"

@@ -27,6 +27,9 @@ verify_jwt = false
 [functions.repair-moodboard-metadata]
 verify_jwt = false
 
+[functions.scrape-brand-images]
+verify_jwt = false
+
 [functions.scrape-products]
 verify_jwt = false
 
