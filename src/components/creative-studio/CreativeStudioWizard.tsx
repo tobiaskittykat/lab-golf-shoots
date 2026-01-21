@@ -261,9 +261,12 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   }, [state.step, isOpen]);
 
   // Combine recent generated + previous images for gallery
-  const allImages = state.generatedImages.length > 0 
-    ? state.generatedImages 
-    : previousImages;
+  // Latest generation first, then historical images (excluding duplicates)
+  const currentImageIds = new Set(state.generatedImages.map(img => img.id));
+  const allImages = [
+    ...state.generatedImages,
+    ...previousImages.filter(img => !currentImageIds.has(img.id))
+  ];
 
   return (
     <section className="px-8 py-16 border-t border-border bg-secondary/20">
