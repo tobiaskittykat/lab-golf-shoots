@@ -275,8 +275,8 @@ CRITICAL RULES:
 1. **SHOT DIRECTION IS MANDATORY** - If a shot type is specified (e.g., "Product in Hand", "On Model", "Product Focus"), the generated image MUST follow it exactly. This is non-negotiable.
    - "Product in Hand" = hands holding the product, close-up
    - "On Model" = product being worn/carried by a person
-   - "Product Focus" = isolated product shot, no hands or models
-   - "Composition" = styled flat lay or arrangement with props
+   - "Product Focus" = product-only shot in its natural environment, no hands or models
+   - "Composition" = natural scene with contextual props, environmental composition
 2. Lead with the shot type and product, then build the scene around it
 3. **USE EXACT NAMES** - When product names are provided (e.g., "Lily Duet - Black/Gold"), use them EXACTLY as written. NEVER use placeholder syntax like "[Product Name]", "(e.g., ...)", or any bracketed templates. Write the actual name directly.
 4. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.

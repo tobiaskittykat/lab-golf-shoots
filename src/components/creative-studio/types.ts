@@ -428,7 +428,7 @@ export const sampleContextReferences: ReferenceImage[] = [
     thumbnail: shotProductFocus,
     url: shotProductFocus,
     category: 'context',
-    shotPrompt: 'Product-only shot, isolated on surface, no hands or models'
+    shotPrompt: 'Product-only shot showcasing the item in its natural environment, no hands or models'
   },
   { 
     id: 'shot-in-hand', 
@@ -444,7 +444,7 @@ export const sampleContextReferences: ReferenceImage[] = [
     thumbnail: shotProductComposition,
     url: shotProductComposition,
     category: 'context',
-    shotPrompt: 'Styled arrangement with lifestyle props'
+    shotPrompt: 'Natural scene with contextual props, environmental composition'
   },
   { 
     id: 'shot-on-model', 
