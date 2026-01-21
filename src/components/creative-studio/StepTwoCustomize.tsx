@@ -51,7 +51,6 @@ import {
   lightingStyles,
   cameraAngles,
   aiModels,
-  sampleProductReferences,
   sampleContextReferences,
   outputFormats
 } from "./types";
@@ -111,24 +110,37 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   // Infer product type for grouping when category is missing or too generic
   const inferProductType = useCallback((name: string) => {
     const n = name.toLowerCase();
-    if (n.includes('case') || n.includes('magsafe') || n.includes('duet')) return 'phone-case';
-    if (n.includes('strap')) return 'strap';
-    if (n.includes('wallet') || n.includes('card')) return 'wallet';
-    if (n.includes('bag') || n.includes('crossbody') || n.includes('pouch')) return 'bag';
-    return 'accessory';
+    
+    // Phone cases and crossbody cases (Bandolier-specific product names)
+    if (n.includes('duet') || n.includes('magsafe') || n.includes('magnet')) return 'phone-case';
+    if (n.includes('donna') || n.includes('emma') || n.includes('rayna') || n.includes('remi')) return 'phone-case';
+    if (n.includes('lily') || n.includes('mila') || n.includes('hailey') || n.includes('casey')) return 'phone-case';
+    if (n.includes('sarah') || n.includes('nicole') || n.includes('pebble')) return 'phone-case';
+    
+    // Straps
+    if (n.includes('strap') || n.includes('belinda') || n.includes('gia')) return 'strap';
+    
+    // Bags
+    if (n.includes('bag') || n.includes('dillon') || n.includes('drew') || n.includes('maeve')) return 'bag';
+    
+    // Pouches and wallets
+    if (n.includes('pouch') || n.includes('wallet') || n.includes('card')) return 'pouch';
+    
+    // Charms and accessories
+    if (n.includes('charm') || n.includes('airpod') || n.includes('wristlet')) return 'accessory';
+    
+    // Default: check for "crossbody" which is a phone case style
+    if (n.includes('crossbody')) return 'phone-case';
+    
+    return 'other';
   }, []);
 
-  // Combine scraped products with sample products (scraped first)
+  // Only show scraped Bandolier products (no sample placeholders)
   const allProductReferences = useMemo(() => {
-    const normalizedSamples = sampleProductReferences.map(r => ({
+    return scrapedProducts.map(r => ({
       ...r,
-      productType: inferProductType(r.name),
+      productType: r.productType && r.productType !== 'product' ? r.productType : inferProductType(r.name),
     }));
-    const normalizedScraped = scrapedProducts.map(r => ({
-      ...r,
-      productType: (r as any).productType || inferProductType(r.name),
-    }));
-    return [...normalizedScraped, ...normalizedSamples];
   }, [scrapedProducts, inferProductType]);
 
   // Handle scraping products from Bandolier
