@@ -313,7 +313,41 @@ export const ImageDetailModal = ({
                           ))}
                         </div>
                       </div>
-                    )}
+              )}
+                  </div>
+                </div>
+              )}
+
+              {/* Image Prompt */}
+              {image.refinedPrompt && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Sparkles className="w-4 h-4" />
+                      Image Prompt
+                    </div>
+                    <button
+                      onClick={handleCopyPrompt}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {copiedPrompt ? (
+                        <>
+                          <Check className="w-3 h-3" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                    <p className="text-sm text-foreground/90 leading-relaxed">
+                      {image.refinedPrompt}
+                    </p>
                   </div>
                 </div>
               )}
