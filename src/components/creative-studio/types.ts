@@ -164,7 +164,7 @@ export interface CreativeStudioState {
   selectedConcept: string | null;
   moodboard: string | null;
   productReferences: string[]; // Changed to array, max 3
-  contextReferences: string[]; // Changed from single to array
+  contextReference: string | null; // Single shot type (mutually exclusive), null = AI decides
   styleReference: string | null;
   textOnImage: string;
   extraKeywords: string[];
@@ -213,7 +213,7 @@ export const initialCreativeStudioState: CreativeStudioState = {
   selectedConcept: null,
   moodboard: null,
   productReferences: [], // Changed to array, max 3
-  contextReferences: [], // Changed to array
+  contextReference: null, // Single shot type, null = AI chooses
   styleReference: null,
   textOnImage: '',
   extraKeywords: [],

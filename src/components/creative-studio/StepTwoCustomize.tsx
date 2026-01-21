@@ -872,14 +872,14 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             </div>
           </CustomizationSection>
 
-          {/* ===== 4. SHOT TYPE SECTION (Content guidance, multi-select) ===== */}
+          {/* ===== 4. SHOT TYPE SECTION (Single-select, optional) ===== */}
           <CustomizationSection 
             title={
               <span className="flex items-center gap-2">
                 Shot Type
-                {state.contextReferences.length > 0 && (
+                {state.contextReference && (
                   <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
-                    {state.contextReferences.length} selected
+                    1 selected
                   </span>
                 )}
               </span>
@@ -889,11 +889,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Select shot composition to guide the AI
+                  Select shot composition (optional)
                 </p>
-                {state.contextReferences.length > 0 && (
+                {state.contextReference && (
                   <button 
-                    onClick={() => onUpdate({ contextReferences: [] })}
+                    onClick={() => onUpdate({ contextReference: null })}
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
                     Clear
@@ -901,20 +901,18 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 )}
               </div>
               
-              {/* Shot Type Grid - All 4 Bandolier types in a row */}
+              {/* Shot Type Grid - Single-select, click again to deselect */}
               <div className="grid grid-cols-4 gap-3">
                 {sampleContextReferences.map((ref) => (
                   <ReferenceThumbnail
                     key={ref.id}
                     reference={ref}
-                    isSelected={state.contextReferences.includes(ref.id)}
+                    isSelected={state.contextReference === ref.id}
                     onSelect={() => {
-                      const isSelected = state.contextReferences.includes(ref.id);
-                      if (isSelected) {
-                        onUpdate({ contextReferences: state.contextReferences.filter(id => id !== ref.id) });
-                      } else {
-                        onUpdate({ contextReferences: [...state.contextReferences, ref.id] });
-                      }
+                      // Toggle: clicking selected item deselects it
+                      onUpdate({ 
+                        contextReference: state.contextReference === ref.id ? null : ref.id 
+                      });
                     }}
                     showLabel={true}
                   />
@@ -1219,16 +1217,12 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         onClose={() => setShowContextRefModal(false)}
         title="Shot References"
         references={sampleContextReferences}
-        selectedReferences={state.contextReferences}
+        selectedReference={state.contextReference}
         onSelect={(id) => {
-          const isSelected = state.contextReferences.includes(id);
-          if (isSelected) {
-            onUpdate({ contextReferences: state.contextReferences.filter(refId => refId !== id) });
-          } else {
-            onUpdate({ contextReferences: [...state.contextReferences, id] });
-          }
+          // Single-select: toggle selection
+          onUpdate({ contextReference: state.contextReference === id ? null : id });
         }}
-        multiSelect={true}
+        multiSelect={false}
       />
 
       {/* Concept Edit Modal */}
