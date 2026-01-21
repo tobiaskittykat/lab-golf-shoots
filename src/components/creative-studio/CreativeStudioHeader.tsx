@@ -9,12 +9,13 @@ import {
 import { CreativeStudioState } from "./types";
 import { Badge } from "@/components/ui/badge";
 import BrandSelector from "@/components/BrandSelector";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const typeChips = [
-  { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500' },
-  { id: 'lifestyle', label: 'Lifestyle', icon: Users, colorClass: 'bg-purple-100 text-purple-500' },
-  { id: 'localization', label: 'Media Localization', icon: Globe, colorClass: 'bg-blue-100 text-blue-500' },
-  { id: 'ugc', label: 'UGC Content', icon: Camera, colorClass: 'bg-orange-100 text-orange-500' },
+  { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500', comingSoon: true },
+  { id: 'lifestyle', label: 'Lifestyle', icon: Users, colorClass: 'bg-purple-100 text-purple-500', comingSoon: false },
+  { id: 'localization', label: 'Media Localization', icon: Globe, colorClass: 'bg-blue-100 text-blue-500', comingSoon: true },
+  { id: 'ugc', label: 'UGC Content', icon: Camera, colorClass: 'bg-orange-100 text-orange-500', comingSoon: true },
 ];
 
 interface CreativeStudioHeaderProps {
@@ -83,6 +84,23 @@ export const CreativeStudioHeader = ({
         {typeChips.map((chip) => {
           const Icon = chip.icon;
           const isSelected = state.selectedTypeCard === chip.id;
+          
+          if (chip.comingSoon) {
+            return (
+              <Tooltip key={chip.id}>
+                <TooltipTrigger asChild>
+                  <span className="action-chip opacity-50 cursor-not-allowed">
+                    <span className="w-6 h-6 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    {chip.label}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Coming Soon</TooltipContent>
+              </Tooltip>
+            );
+          }
+          
           return (
             <button
               key={chip.id}

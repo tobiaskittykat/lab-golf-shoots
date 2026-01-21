@@ -7,40 +7,42 @@ interface StepOnePromptProps {
   onUpdate: (updates: Partial<CreativeStudioState>) => void;
 }
 
-// Example briefs organized by type
+// Marketing-style briefs for Bandolier - organized by type
 const exampleBriefsByType: Record<string, string[]> = {
-  product: [
-    "Hero shot of our luxury watch on marble surface with soft shadows",
-    "Clean product photography of skincare bottle with water droplets",
-    "Premium flatlay of jewelry collection on velvet backdrop",
-    "Minimalist product shot of sneakers with dramatic lighting",
-    "Elegant perfume bottle with golden hour light reflections",
-    "Tech gadget floating with subtle shadow and gradient background",
-  ],
   lifestyle: [
-    "Model wearing summer collection walking through city streets",
-    "Couple enjoying coffee at outdoor cafe with our products",
-    "Athlete training in gym wearing our activewear line",
-    "Friends at beach picnic featuring our lifestyle accessories",
-    "Morning routine scene with skincare products in bathroom",
-    "Weekend brunch setting with our tableware collection",
+    // Summer/Travel campaigns
+    "Summer crossbody launch campaign - effortless European getaway vibes, golden hour luxury",
+    "Vacation essentials shoot - yacht deck to seaside dinner, one bag does it all",
+    "Coastal collection campaign - sun-drenched elegance, linen and ocean blues",
+    
+    // Festival/Desert campaigns
+    "Festival season drop - desert sunset energy, bold and expressive",
+    "Road trip content series - open highways, adventure-ready accessories",
+    "Southwest-inspired editorial - earthy tones, effortless boho-luxe",
+    
+    // Urban/Street Style campaigns
+    "City essentials campaign - coffee run to cocktail hour, hands-free living",
+    "Street style editorial - fashion week energy, urban sophistication",
+    "Morning routine content - getting ready moments, everyday luxury",
+    
+    // Party/Evening campaigns
+    "Holiday party campaign - champagne moments, after-dark glamour",
+    "NYE collection shoot - celebration vibes, sparkle and spontaneity",
+    "Girls night content - getting ready together, going out in style",
+    
+    // Floral/Spring campaigns
+    "Spring refresh campaign - garden party meets street style",
+    "Mother's Day gifting shoot - brunch settings, fresh florals, thoughtful luxury",
+    "New arrivals launch - spring color story, bright and optimistic",
+    
+    // Bold/Statement campaigns
+    "Statement print drop - leopard season, unapologetically bold",
+    "Power accessories editorial - strong silhouettes, confident energy",
+    "Fall fashion campaign - rich tones, texture-forward styling",
   ],
-  ad: [
-    "Bold promotional banner for Black Friday sale event",
-    "Eye-catching social ad for new product launch",
-    "Seasonal campaign creative for holiday collection",
-    "Flash sale announcement with urgency messaging",
-    "Brand awareness ad featuring hero product",
-    "Retargeting creative with special offer highlight",
-  ],
-  social: [
-    "Instagram carousel first slide for product showcase",
-    "TikTok-ready vertical content with trending aesthetic",
-    "Story-format teaser for upcoming collection drop",
-    "User-generated style inspiration post",
-    "Behind-the-scenes content for brand authenticity",
-    "Influencer collaboration style product feature",
-  ],
+  product: [],
+  localization: [],
+  ugc: [],
 };
 
 const getRandomBriefs = (typeId: string, count: number = 6): string[] => {
