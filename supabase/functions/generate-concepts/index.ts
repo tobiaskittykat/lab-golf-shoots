@@ -165,6 +165,18 @@ ${useCase ? `Use Case: ${useCase}` : ""}
 ${targetPersona ? `Target Audience Hint: ${targetPersona}` : ""}
 ${brandBrainContext}
 
+BRAND GUIDELINES (WHEN PROVIDED):
+- Review the brand's mission, values, and tone of voice carefully
+- Ensure all concepts align with the brand's personality and positioning
+- Respect the brand's visual style guidelines (photography style, color palette)
+- NEVER include elements from the brand's "avoid" list
+- Target audience insights should complement the brand's stated target audience
+
+When Brand Brain visual identity data is provided, use it to inform:
+- Visual World color palettes (align with brand colors)
+- Atmosphere and lighting (match brand photography style)
+- Tonality and voice (reflect brand personality)
+
 Each concept must include ALL 9 elements:
 
 1. **Name** (title): Catchy campaign title (3-5 words)
@@ -175,7 +187,7 @@ Each concept must include ALL 9 elements:
 4. **Visual World** (visualWorld): Art direction rules
    - atmosphere: Mood, lighting, environment description
    - materials: Key textures and materials
-   - palette: Color scheme (3-5 colors)
+   - palette: Color scheme (3-5 colors) - ALIGN with brand colors when provided
    - composition: Framing rules
    - mustHave: Non-negotiable visual elements
 5. **Taglines** (taglines): 3 tagline options
@@ -186,8 +198,8 @@ Each concept must include ALL 9 elements:
    - situation: When/where they engage
 8. **Consumer Insight** (consumerInsight): One sentence tension or truth
 9. **Tonality** (tonality):
-   - adjectives: 3 words that define the tone
-   - neverRules: 2 things to never do/say
+   - adjectives: 3 words that define the tone - should reflect brand personality
+   - neverRules: 2 things to never do/say - incorporate brand's "avoid" list
 
 Also include:
 - description: A 2-3 sentence visual description (can be derived from visual world)
