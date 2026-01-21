@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Expand
 } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogContentClean } from '@/components/ui/dialog';
 import { GeneratedImage } from './types';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,10 +131,9 @@ export const ImageDetailModal = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background">
-        <div className="flex h-full">
+        <DialogContentClean className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background flex">
           {/* Left Side - Image */}
-          <div className="flex-1 bg-secondary/30 flex items-center justify-center p-6 relative">
+          <div className="flex-1 bg-secondary/30 flex items-center justify-center p-6 relative min-w-0">
             <img
               src={image.imageUrl}
               alt={image.prompt}
@@ -151,9 +150,9 @@ export const ImageDetailModal = ({
           </div>
 
           {/* Right Side - Details */}
-          <div className="w-[380px] border-l border-border flex flex-col">
-            {/* Header with actions */}
-            <div className="p-4 border-b border-border">
+          <div className="w-[380px] border-l border-border flex flex-col h-full overflow-hidden">
+            {/* Header with actions - fixed height */}
+            <div className="p-4 border-b border-border shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-lg line-clamp-1">
@@ -198,8 +197,8 @@ export const ImageDetailModal = ({
               </div>
             </div>
 
-            {/* Scrollable content */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6 space-y-5">
+            {/* Scrollable content - shrink-0 header above, this fills remaining space */}
+            <div className="flex-1 overflow-y-auto p-4 pb-6 space-y-5">
 
               {/* Reference Images */}
               {hasReferences && (
@@ -380,8 +379,7 @@ export const ImageDetailModal = ({
               </div>
             </div>
           </div>
-          </div>
-        </DialogContent>
+        </DialogContentClean>
       </Dialog>
 
       {/* Expanded Image Dialog - must be outside the main Dialog */}
