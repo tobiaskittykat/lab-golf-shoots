@@ -129,6 +129,7 @@ export const ImageDetailModal = ({
   const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0;
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background">
         <div className="flex h-full">
@@ -365,25 +366,26 @@ export const ImageDetailModal = ({
           </div>
         </div>
       </DialogContent>
-
-      {/* Expanded Image Dialog */}
-      <Dialog open={!!expandedImageUrl} onOpenChange={(open) => !open && setExpandedImageUrl(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black/95">
-          <button
-            onClick={() => setExpandedImageUrl(null)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
-          {expandedImageUrl && (
-            <img
-              src={expandedImageUrl}
-              alt="Expanded reference"
-              className="w-full h-full object-contain max-h-[85vh]"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </Dialog>
+
+    {/* Expanded Image Dialog - must be outside the main Dialog */}
+    <Dialog open={!!expandedImageUrl} onOpenChange={(open) => !open && setExpandedImageUrl(null)}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-2 bg-black/95">
+        <button
+          onClick={() => setExpandedImageUrl(null)}
+          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center hover:bg-white/20 transition-colors"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+        {expandedImageUrl && (
+          <img
+            src={expandedImageUrl}
+            alt="Expanded reference"
+            className="w-full h-full object-contain max-h-[85vh]"
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  </>
   );
 };
