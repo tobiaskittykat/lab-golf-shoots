@@ -115,6 +115,7 @@ export interface Moodboard {
   id: string;
   name: string;
   thumbnail: string; // Gradient CSS or image URL
+  filePath?: string; // Storage path for signed URL fallback
   description?: string;
   visualAnalysis?: VisualAnalysis;
 }

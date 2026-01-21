@@ -8,6 +8,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Grid3X3, Wand2, Check, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { Moodboard } from "./types";
+import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -250,6 +251,7 @@ export const MoodboardModal = ({
     id: `custom-${m.id}`,
     name: m.name,
     thumbnail: m.thumbnail_url,
+    filePath: m.file_path,
     description: m.description || 'Custom moodboard',
   }));
 
@@ -279,33 +281,13 @@ export const MoodboardModal = ({
           <TabsContent value="browse" className="flex-1 overflow-y-auto mt-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {allMoodboards.map((moodboard) => (
-                <button
+                <MoodboardThumbnail
                   key={moodboard.id}
-                  onClick={() => handleSelect(moodboard.id)}
-                  className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all hover:scale-[1.02] hover:shadow-lg ${
-                    selectedMoodboard === moodboard.id
-                      ? 'border-accent ring-2 ring-accent/30'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <img 
-                    src={moodboard.thumbnail} 
-                    alt={moodboard.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <h4 className="font-medium text-white text-sm">{moodboard.name}</h4>
-                    {moodboard.description && (
-                      <p className="text-xs text-white/70 mt-0.5">{moodboard.description}</p>
-                    )}
-                  </div>
-                  {selectedMoodboard === moodboard.id && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-accent flex items-center justify-center">
-                      <Check className="w-4 h-4 text-accent-foreground" />
-                    </div>
-                  )}
-                </button>
+                  moodboard={moodboard}
+                  isSelected={selectedMoodboard === moodboard.id}
+                  onSelect={() => handleSelect(moodboard.id)}
+                  size="large"
+                />
               ))}
             </div>
           </TabsContent>

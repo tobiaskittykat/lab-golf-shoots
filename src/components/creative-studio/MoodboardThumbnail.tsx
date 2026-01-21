@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent 
 } from "@/components/ui/dialog";
-import { Check, Expand, ImageOff } from "lucide-react";
+import { Check, Expand, ImageOff, Loader2 } from "lucide-react";
 import { Moodboard } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MoodboardThumbnailProps {
   moodboard: Moodboard;
@@ -20,7 +21,43 @@ export const MoodboardThumbnail = ({
   size = 'default'
 }: MoodboardThumbnailProps) => {
   const [isFullView, setIsFullView] = useState(false);
+  const [resolvedSrc, setResolvedSrc] = useState(moodboard.thumbnail);
+  const [triedSigned, setTriedSigned] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Reset state when moodboard changes
+  useEffect(() => {
+    setResolvedSrc(moodboard.thumbnail);
+    setTriedSigned(false);
+    setImageError(false);
+    setIsLoading(true);
+  }, [moodboard.id, moodboard.thumbnail]);
+
+  // Handle image load error - try signed URL fallback
+  const handleImageError = async () => {
+    if (!triedSigned && moodboard.filePath) {
+      setTriedSigned(true);
+      try {
+        const { data, error } = await supabase.storage
+          .from('moodboards')
+          .createSignedUrl(moodboard.filePath, 60 * 60 * 24 * 7); // 7 days
+        
+        if (data?.signedUrl && !error) {
+          setResolvedSrc(data.signedUrl);
+          return; // Don't set error, let the new URL try to load
+        }
+      } catch (err) {
+        console.error('Failed to create signed URL:', err);
+      }
+    }
+    setImageError(true);
+    setIsLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setIsLoading(false);
+  };
 
   // Toggle selection - clicking selected moodboard deselects it
   const handleClick = () => {
@@ -41,6 +78,13 @@ export const MoodboardThumbnail = ({
             : 'border-border hover:border-accent/50'
         }`}
       >
+        {/* Loading state */}
+        {isLoading && !imageError && (
+          <div className="absolute inset-0 w-full h-full bg-secondary flex items-center justify-center z-10">
+            <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+          </div>
+        )}
+
         {/* Background Image or Error State */}
         {imageError ? (
           <div className="absolute inset-0 w-full h-full bg-secondary flex flex-col items-center justify-center gap-2">
@@ -49,10 +93,13 @@ export const MoodboardThumbnail = ({
           </div>
         ) : (
           <img 
-            src={moodboard.thumbnail} 
+            src={resolvedSrc} 
             alt={moodboard.name}
             className="absolute inset-0 w-full h-full object-cover"
-            onError={() => setImageError(true)}
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+            loading="lazy"
+            decoding="async"
           />
         )}
         
@@ -77,7 +124,7 @@ export const MoodboardThumbnail = ({
         )}
 
         {/* Expand button - only show if image loaded */}
-        {!imageError && (
+        {!imageError && !isLoading && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -96,7 +143,7 @@ export const MoodboardThumbnail = ({
           {/* Image section - uncropped */}
           <div className="bg-secondary flex-shrink-0 flex items-center justify-center">
             <img 
-              src={moodboard.thumbnail} 
+              src={resolvedSrc} 
               alt={moodboard.name}
               className="max-h-[45vh] w-full object-contain"
             />

@@ -454,6 +454,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         id: `custom-${m.id}`,
         name: m.name,
         thumbnail: m.thumbnail_url,
+        filePath: m.file_path,
         description: m.description || 'Custom moodboard',
         visualAnalysis: m.visual_analysis as Moodboard['visualAnalysis'],
       })) as Moodboard[];
