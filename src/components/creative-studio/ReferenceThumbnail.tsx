@@ -43,6 +43,8 @@ export const ReferenceThumbnail = ({
         <img
           src={reference.thumbnail}
           alt={reference.name}
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-opacity",
             isLoaded && !hasError ? "opacity-100" : "opacity-0"
@@ -98,6 +100,8 @@ export const ReferenceThumbnail = ({
           <img 
             src={reference.url || reference.thumbnail} 
             alt={reference.name}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             className="w-full max-h-[70vh] object-contain bg-secondary"
           />
           <div className="p-4">
