@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Loader2,
   RefreshCw,
-  Trash2
+  Trash2,
+  Check
 } from "lucide-react";
 import { 
   Select, 
@@ -36,6 +37,7 @@ import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { ReferenceThumbnail } from "./ReferenceThumbnail";
 import { MoodboardModal } from "./MoodboardModal";
 import { ReferenceGalleryModal } from "./ReferenceGalleryModal";
+import { ProductReferencePicker } from "./ProductReferencePicker";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -849,15 +851,51 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                     ))}
                   </>
                 ) : displayedProducts.length > 0 ? (
-                  displayedProducts.map((ref) => (
-                    <ReferenceThumbnail
-                      key={ref.id}
-                      reference={ref}
-                      isSelected={state.productReferences.includes(ref.id)}
-                      onSelect={() => handleProductSelect(ref.id)}
-                      showLabel={true}
-                    />
-                  ))
+                  displayedProducts.map((ref) => {
+                    const isSelected = state.productReferences.includes(ref.id);
+                    return (
+                      <button
+                        key={ref.id}
+                        type="button"
+                        onClick={() => handleProductSelect(ref.id)}
+                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-md ${
+                          isSelected
+                            ? 'border-accent ring-1 ring-accent/30 shadow-md'
+                            : 'border-border hover:border-accent/50'
+                        }`}
+                      >
+                        <img
+                          src={ref.thumbnail}
+                          alt={ref.name}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-secondary items-center justify-center p-2 hidden">
+                          <span className="text-xs text-muted-foreground text-center line-clamp-3">
+                            {ref.name}
+                          </span>
+                        </div>
+                        {/* Gradient overlay for label */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white truncate">
+                          {ref.name}
+                        </span>
+                        {/* Selected check */}
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+                            <Check className="w-3 h-3 text-accent-foreground" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="col-span-5 text-center py-6 text-muted-foreground text-sm">
                     No products available. Sync from Bandolier below.
@@ -1220,15 +1258,22 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         onSelect={(id) => onUpdate({ moodboard: id })}
       />
 
-      <ReferenceGalleryModal
+      <ProductReferencePicker
         isOpen={showProductRefModal}
         onClose={() => setShowProductRefModal(false)}
-        title="Product Reference"
-        references={allProductReferences}
-        selectedReferences={state.productReferences}
-        onSelect={(id) => handleProductSelect(id)}
-        onDelete={handleDeleteScrapedProduct}
-        multiSelect={true}
+        products={allProductReferences.map(p => ({
+          id: p.id,
+          name: p.name,
+          thumbnailUrl: p.thumbnail,
+          fullUrl: p.url || p.thumbnail,
+          category: (p as any).productType || 'other',
+        }))}
+        selectedIds={state.productReferences}
+        onSelectionChange={(ids) => onUpdate({ productReferences: ids })}
+        maxSelection={3}
+        isLoading={loadingScrapedProducts}
+        onSync={handleScrapeProducts}
+        isSyncing={isScrapingProducts}
       />
 
       <ReferenceGalleryModal
