@@ -270,6 +270,14 @@ GUIDELINES:
 7. If brand guidelines say to avoid something, make sure to NOT include those elements
 8. The prompt should feel like a creative direction, not a list of keywords
 
+COLOR HARMONIZATION:
+When both brand colors and moodboard colors are provided:
+- Use brand colors for the PRODUCT itself (packaging, materials, finishes)
+- Use moodboard colors for the ENVIRONMENT and ATMOSPHERE (background, props, lighting tones)
+- Find complementary intersections - if both share similar tones, emphasize those
+- When in conflict, brand identity takes priority for product elements
+- Create cohesion by describing how brand colors interact with environmental tones
+
 QUALITY STANDARDS:
 - High-quality, professional imagery
 - Sharp focus on key elements

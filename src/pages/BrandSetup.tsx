@@ -37,7 +37,24 @@ const BrandSetup = () => {
   const isCancelledRef = useRef(false);
   
   const [brandData, setBrandData] = useState({
-    basics: { name: "", website: "", industry: "", markets: [] as string[], personality: "" },
+    basics: { 
+      name: "", 
+      website: "", 
+      industry: "", 
+      markets: [] as string[], 
+      personality: "",
+      brandContext: {} as {
+        mission?: string;
+        values?: string[];
+        tone_of_voice?: string;
+        visual_style?: {
+          photography_style?: string;
+          color_palette?: string[];
+          avoid?: string[];
+        };
+        target_audience?: string;
+      },
+    },
     files: [] as File[],
     connections: getDefaultConnections(),
   });
@@ -60,7 +77,7 @@ const BrandSetup = () => {
           setCurrentStep(existingDraft.currentStep);
           setMode("manual");
           setBrandData({
-            basics: existingDraft.basics,
+            basics: { ...existingDraft.basics, brandContext: (existingDraft.basics as any).brandContext || {} },
             files: [],
             connections: existingDraft.connections,
           });
@@ -186,6 +203,7 @@ const BrandSetup = () => {
       personality: brandData.basics.personality || null,
       social_connections: brandData.connections,
       assets: {},
+      brand_context: brandData.basics.brandContext || {},
     });
 
     setIsSaving(false);

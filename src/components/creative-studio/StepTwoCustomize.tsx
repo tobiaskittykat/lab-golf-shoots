@@ -433,14 +433,14 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     }
   };
 
-  // Fetch moodboards from database
+  // Fetch moodboards from database (including visual_analysis)
   const { data: customMoodboards = [], isLoading: loadingMoodboards } = useQuery({
     queryKey: ['custom-moodboards-preview', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from('custom_moodboards')
-        .select('*')
+        .select('*, visual_analysis')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
@@ -450,6 +450,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         name: m.name,
         thumbnail: m.thumbnail_url,
         description: m.description || 'Custom moodboard',
+        visualAnalysis: m.visual_analysis as Moodboard['visualAnalysis'],
       })) as Moodboard[];
     },
     enabled: !!user?.id,
@@ -472,6 +473,44 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       .map(id => allProductReferences.find(p => p.id === id))
       .filter(Boolean) as ReferenceImage[];
   }, [state.curatedProducts, allProductReferences]);
+
+  // Displayed moodboards: selected first, then curated, then fill to 3
+  const displayedMoodboards = useMemo(() => {
+    const selectedMoodboard = state.moodboard 
+      ? customMoodboards.find(m => m.id === state.moodboard) 
+      : null;
+    
+    const curated = curatedMoodboardItems.filter(m => m.id !== state.moodboard);
+    const remaining = customMoodboards.filter(m => 
+      m.id !== state.moodboard && !curatedMoodboardItems.some(c => c.id === m.id)
+    );
+    
+    const result: Moodboard[] = [];
+    if (selectedMoodboard) result.push(selectedMoodboard);
+    result.push(...curated.slice(0, 3 - result.length));
+    if (result.length < 3) result.push(...remaining.slice(0, 3 - result.length));
+    
+    return result;
+  }, [state.moodboard, customMoodboards, curatedMoodboardItems]);
+
+  // Displayed products: selected first, then curated, then fill to 5
+  const displayedProducts = useMemo(() => {
+    const selectedIds = state.productReferences;
+    const selectedItems = selectedIds
+      .map(id => allProductReferences.find(p => p.id === id))
+      .filter(Boolean) as ReferenceImage[];
+    
+    const curated = curatedProductItems.filter(p => !selectedIds.includes(p.id));
+    const remaining = allProductReferences.filter(p => 
+      !selectedIds.includes(p.id) && !curatedProductItems.some(c => c.id === p.id)
+    );
+    
+    const result: ReferenceImage[] = [...selectedItems];
+    result.push(...curated.slice(0, 5 - result.length));
+    if (result.length < 5) result.push(...remaining.slice(0, 5 - result.length));
+    
+    return result;
+  }, [state.productReferences, allProductReferences, curatedProductItems]);
 
   // Smart AI-powered auto-selection of moodboard and product based on selected concept
   useEffect(() => {
@@ -666,7 +705,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 AI-curated visual moods for your campaign (select one)
               </p>
               
-              {/* Curated Moodboard Grid - 3 large items */}
+              {/* Moodboard Grid - 3 large items (selected first, then curated, then fallback) */}
               <div className="grid grid-cols-3 gap-4">
                 {isSmartMatching || loadingMoodboards ? (
                   <>
@@ -674,19 +713,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                       <div key={i} className="aspect-[4/3] rounded-xl bg-secondary/50 animate-pulse" />
                     ))}
                   </>
-                ) : curatedMoodboardItems.length > 0 ? (
-                  curatedMoodboardItems.map((moodboard) => (
-                    <MoodboardThumbnail
-                      key={moodboard.id}
-                      moodboard={moodboard}
-                      isSelected={state.moodboard === moodboard.id}
-                      onSelect={() => handleMoodboardSelect(moodboard.id)}
-                      size="large"
-                    />
-                  ))
-                ) : customMoodboards.length > 0 ? (
-                  // Fallback: show first 3 moodboards if no curated ones
-                  customMoodboards.slice(0, 3).map((moodboard) => (
+                ) : displayedMoodboards.length > 0 ? (
+                  displayedMoodboards.map((moodboard) => (
                     <MoodboardThumbnail
                       key={moodboard.id}
                       moodboard={moodboard}
@@ -748,7 +776,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                 )}
               </div>
               
-              {/* Curated Product Grid - 5 items */}
+              {/* Product Grid - 5 items (selected first, then curated, then fallback) */}
               <div className="grid grid-cols-5 gap-3">
                 {isSmartMatching || loadingScrapedProducts ? (
                   <>
@@ -756,19 +784,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
                       <div key={i} className="aspect-square rounded-lg bg-secondary/50 animate-pulse" />
                     ))}
                   </>
-                ) : curatedProductItems.length > 0 ? (
-                  curatedProductItems.map((ref) => (
-                    <ReferenceThumbnail
-                      key={ref.id}
-                      reference={ref}
-                      isSelected={state.productReferences.includes(ref.id)}
-                      onSelect={() => handleProductSelect(ref.id)}
-                      showLabel={true}
-                    />
-                  ))
-                ) : allProductReferences.length > 0 ? (
-                  // Fallback: show first 5 products if no curated ones
-                  allProductReferences.slice(0, 5).map((ref) => (
+                ) : displayedProducts.length > 0 ? (
+                  displayedProducts.map((ref) => (
                     <ReferenceThumbnail
                       key={ref.id}
                       reference={ref}

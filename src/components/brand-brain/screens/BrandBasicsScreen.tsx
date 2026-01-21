@@ -3,6 +3,18 @@ import { Globe, ExternalLink, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+interface BrandContext {
+  mission?: string;
+  values?: string[];
+  tone_of_voice?: string;
+  visual_style?: {
+    photography_style?: string;
+    color_palette?: string[];
+    avoid?: string[];
+  };
+  target_audience?: string;
+}
+
 interface BrandBasicsScreenProps {
   data: {
     name: string;
@@ -10,6 +22,7 @@ interface BrandBasicsScreenProps {
     industry: string;
     markets: string[];
     personality: string;
+    brandContext?: BrandContext;
   };
   onChange: (data: BrandBasicsScreenProps["data"]) => void;
   onSocialLinksFound?: (links: Record<string, string>) => void;
@@ -46,14 +59,75 @@ const markets = [
   "Global",
 ];
 
+const brandValues = [
+  "Quality", "Innovation", "Authenticity", "Sustainability", "Elegance",
+  "Reliability", "Creativity", "Trust", "Excellence", "Community"
+];
+
 const BrandBasicsScreen = ({ data, onChange, onSocialLinksFound }: BrandBasicsScreenProps) => {
   const { toast } = useToast();
   const [isCrawling, setIsCrawling] = useState(false);
   const [crawlStatus, setCrawlStatus] = useState<string>("");
   const [lastCrawledUrl, setLastCrawledUrl] = useState<string>("");
+  const [newAvoid, setNewAvoid] = useState("");
+  const [newColor, setNewColor] = useState("");
 
   const updateField = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
+  };
+
+  const updateBrandContext = (updates: Partial<BrandContext>) => {
+    const currentContext = data.brandContext || {};
+    onChange({ ...data, brandContext: { ...currentContext, ...updates } });
+  };
+
+  const updateVisualStyle = (updates: Partial<NonNullable<BrandContext['visual_style']>>) => {
+    const currentContext = data.brandContext || {};
+    const currentVisualStyle = currentContext.visual_style || {};
+    onChange({ 
+      ...data, 
+      brandContext: { 
+        ...currentContext, 
+        visual_style: { ...currentVisualStyle, ...updates } 
+      } 
+    });
+  };
+
+  const toggleValue = (value: string) => {
+    const current = data.brandContext?.values || [];
+    if (current.includes(value)) {
+      updateBrandContext({ values: current.filter((v) => v !== value) });
+    } else {
+      updateBrandContext({ values: [...current, value] });
+    }
+  };
+
+  const addAvoidItem = () => {
+    if (!newAvoid.trim()) return;
+    const current = data.brandContext?.visual_style?.avoid || [];
+    if (!current.includes(newAvoid.trim())) {
+      updateVisualStyle({ avoid: [...current, newAvoid.trim()] });
+    }
+    setNewAvoid("");
+  };
+
+  const removeAvoidItem = (item: string) => {
+    const current = data.brandContext?.visual_style?.avoid || [];
+    updateVisualStyle({ avoid: current.filter((a) => a !== item) });
+  };
+
+  const addColor = () => {
+    if (!newColor.trim()) return;
+    const current = data.brandContext?.visual_style?.color_palette || [];
+    if (!current.includes(newColor.trim()) && current.length < 5) {
+      updateVisualStyle({ color_palette: [...current, newColor.trim()] });
+    }
+    setNewColor("");
+  };
+
+  const removeColor = (color: string) => {
+    const current = data.brandContext?.visual_style?.color_palette || [];
+    updateVisualStyle({ color_palette: current.filter((c) => c !== color) });
   };
 
   const toggleMarket = (market: string) => {
@@ -237,6 +311,159 @@ const BrandBasicsScreen = ({ data, onChange, onSocialLinksFound }: BrandBasicsSc
                 <p className="text-xs text-muted-foreground">{p.description}</p>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* ===== BRAND CONTEXT SECTION ===== */}
+        <div className="pt-6 border-t border-border">
+          <h2 className="text-lg font-semibold mb-2">Brand Guidelines</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Optional: These help AI create on-brand visuals
+          </p>
+
+          {/* Mission Statement */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Mission Statement</label>
+            <textarea
+              value={data.brandContext?.mission || ''}
+              onChange={(e) => updateBrandContext({ mission: e.target.value })}
+              placeholder="What's your brand's purpose? e.g., 'We empower modern women with luxury tech accessories...'"
+              className="input-field min-h-[80px] resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Brand Values */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-3">Brand Values</label>
+            <div className="flex flex-wrap gap-2">
+              {brandValues.map((value) => (
+                <button
+                  key={value}
+                  onClick={() => toggleValue(value)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    data.brandContext?.values?.includes(value)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-foreground/70 hover:bg-secondary/80"
+                  }`}
+                >
+                  {data.brandContext?.values?.includes(value) && <Check className="w-3 h-3 inline mr-1" />}
+                  {value}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tone of Voice */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Tone of Voice</label>
+            <textarea
+              value={data.brandContext?.tone_of_voice || ''}
+              onChange={(e) => updateBrandContext({ tone_of_voice: e.target.value })}
+              placeholder="How does your brand speak? e.g., 'Sophisticated yet approachable, confident without being pretentious'"
+              className="input-field min-h-[60px] resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Target Audience */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Target Audience</label>
+            <textarea
+              value={data.brandContext?.target_audience || ''}
+              onChange={(e) => updateBrandContext({ target_audience: e.target.value })}
+              placeholder="Who are your ideal customers? e.g., 'Fashion-forward women 25-45 who value style and functionality'"
+              className="input-field min-h-[60px] resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Photography Style */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Photography Style</label>
+            <textarea
+              value={data.brandContext?.visual_style?.photography_style || ''}
+              onChange={(e) => updateVisualStyle({ photography_style: e.target.value })}
+              placeholder="Describe your ideal visuals. e.g., 'Editorial luxury with lifestyle warmth, clean compositions'"
+              className="input-field min-h-[60px] resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Color Palette */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Brand Colors (up to 5)</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(data.brandContext?.visual_style?.color_palette || []).map((color) => (
+                <span
+                  key={color}
+                  className="px-3 py-1.5 bg-secondary rounded-full text-sm flex items-center gap-2"
+                >
+                  {color}
+                  <button
+                    onClick={() => removeColor(color)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            {(data.brandContext?.visual_style?.color_palette?.length || 0) < 5 && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addColor())}
+                  placeholder="e.g., gold, cream, black"
+                  className="input-field flex-1"
+                />
+                <button
+                  onClick={addColor}
+                  className="px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium"
+                >
+                  Add
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* What to Avoid */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">What to Avoid in Visuals</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(data.brandContext?.visual_style?.avoid || []).map((item) => (
+                <span
+                  key={item}
+                  className="px-3 py-1.5 bg-destructive/10 text-destructive rounded-full text-sm flex items-center gap-2"
+                >
+                  {item}
+                  <button
+                    onClick={() => removeAvoidItem(item)}
+                    className="hover:text-destructive/70"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newAvoid}
+                onChange={(e) => setNewAvoid(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAvoidItem())}
+                placeholder="e.g., cluttered backgrounds, harsh lighting"
+                className="input-field flex-1"
+              />
+              <button
+                onClick={addAvoidItem}
+                className="px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium"
+              >
+                Add
+              </button>
+            </div>
           </div>
         </div>
       </div>

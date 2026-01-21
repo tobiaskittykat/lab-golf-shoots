@@ -81,16 +81,94 @@ export const MoodboardThumbnail = ({
 
       {/* Full View Dialog */}
       <Dialog open={isFullView} onOpenChange={setIsFullView}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
-          <img 
-            src={moodboard.thumbnail} 
-            alt={moodboard.name}
-            className="aspect-video w-full object-cover"
-          />
-          <div className="p-4">
-            <h3 className="font-semibold text-lg">{moodboard.name}</h3>
-            {moodboard.description && (
-              <p className="text-sm text-muted-foreground mt-1">{moodboard.description}</p>
+        <DialogContent className="max-w-3xl max-h-[85vh] p-0 overflow-hidden flex flex-col">
+          {/* Image section - uncropped */}
+          <div className="bg-secondary flex-shrink-0 flex items-center justify-center">
+            <img 
+              src={moodboard.thumbnail} 
+              alt={moodboard.name}
+              className="max-h-[45vh] w-full object-contain"
+            />
+          </div>
+          
+          {/* Content section - scrollable */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+              <h3 className="font-semibold text-lg">{moodboard.name}</h3>
+              {moodboard.description && (
+                <p className="text-sm text-muted-foreground mt-1">{moodboard.description}</p>
+              )}
+            </div>
+            
+            {/* Visual Analysis - only if available */}
+            {moodboard.visualAnalysis && (
+              <div className="space-y-4 pt-4 border-t border-border">
+                {/* Emotional Tone */}
+                {moodboard.visualAnalysis.emotional_tone && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Mood</p>
+                    <p className="text-sm">{moodboard.visualAnalysis.emotional_tone}</p>
+                  </div>
+                )}
+                
+                {/* Color Palette */}
+                {moodboard.visualAnalysis.dominant_colors && moodboard.visualAnalysis.dominant_colors.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Colors</p>
+                    <div className="flex flex-wrap gap-2">
+                      {moodboard.visualAnalysis.dominant_colors.map(color => (
+                        <span key={color} className="px-2 py-1 bg-secondary rounded text-sm">
+                          {color}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Key Elements */}
+                {moodboard.visualAnalysis.key_elements && moodboard.visualAnalysis.key_elements.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Key Elements</p>
+                    <div className="flex flex-wrap gap-2">
+                      {moodboard.visualAnalysis.key_elements.slice(0, 6).map(el => (
+                        <span key={el} className="px-2 py-1 bg-accent/10 text-accent rounded text-sm">
+                          {el}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Lighting & Textures */}
+                <div className="grid grid-cols-2 gap-4">
+                  {moodboard.visualAnalysis.lighting_quality && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Lighting</p>
+                      <p className="text-sm">{moodboard.visualAnalysis.lighting_quality}</p>
+                    </div>
+                  )}
+                  {moodboard.visualAnalysis.textures && moodboard.visualAnalysis.textures.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Textures</p>
+                      <p className="text-sm">{moodboard.visualAnalysis.textures.slice(0, 3).join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Best For */}
+                {moodboard.visualAnalysis.best_for && moodboard.visualAnalysis.best_for.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Best For</p>
+                    <div className="flex flex-wrap gap-2">
+                      {moodboard.visualAnalysis.best_for.slice(0, 4).map(use => (
+                        <span key={use} className="px-2 py-1 bg-secondary rounded text-xs">
+                          {use}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </DialogContent>

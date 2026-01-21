@@ -99,11 +99,24 @@ export const campaignObjectives = [
   { value: 'ugc', label: 'UGC Style Content' },
 ];
 
+export interface VisualAnalysis {
+  dominant_colors?: string[];
+  color_mood?: string;
+  key_elements?: string[];
+  composition_style?: string;
+  lighting_quality?: string;
+  textures?: string[];
+  emotional_tone?: string;
+  suggested_props?: string[];
+  best_for?: string[];
+}
+
 export interface Moodboard {
   id: string;
   name: string;
   thumbnail: string; // Gradient CSS or image URL
   description?: string;
+  visualAnalysis?: VisualAnalysis;
 }
 
 export interface ReferenceImage {
