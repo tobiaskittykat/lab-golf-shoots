@@ -6,10 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface VisualAnalysis {
+  dominant_colors?: string[];
+  color_mood?: string;
+  key_elements?: string[];
+  composition_style?: string;
+  lighting_quality?: string;
+  textures?: string[];
+  emotional_tone?: string;
+  suggested_props?: string[];
+  best_for?: string[];
+}
+
 interface MoodboardInput {
   id: string;
   name: string;
   description?: string;
+  visualAnalysis?: VisualAnalysis;
 }
 
 interface ProductInput {
@@ -81,9 +94,22 @@ serve(async (req) => {
       concept.consumerInsight ? `Consumer Insight: ${concept.consumerInsight}` : '',
     ].filter(Boolean).join('\n');
 
-    const moodboardsList = moodboards.map((m, i) => 
-      `${i + 1}. ID: "${m.id}" | Name: "${m.name}"${m.description ? ` | Description: ${m.description}` : ''}`
-    ).join('\n');
+    const moodboardsList = moodboards.map((m, i) => {
+      const parts = [
+        `${i + 1}. ID: "${m.id}" | Name: "${m.name}"`,
+      ];
+      if (m.description) parts.push(`Description: ${m.description}`);
+      
+      // Include rich visual analysis for better matching
+      if (m.visualAnalysis) {
+        const va = m.visualAnalysis;
+        if (va.emotional_tone) parts.push(`Mood: ${va.emotional_tone}`);
+        if (va.dominant_colors?.length) parts.push(`Colors: ${va.dominant_colors.slice(0, 5).join(', ')}`);
+        if (va.key_elements?.length) parts.push(`Elements: ${va.key_elements.slice(0, 5).join(', ')}`);
+        if (va.best_for?.length) parts.push(`Best for: ${va.best_for.slice(0, 3).join(', ')}`);
+      }
+      return parts.join(' | ');
+    }).join('\n');
 
     const productsList = products.map((p, i) => 
       `${i + 1}. ID: "${p.id}" | Name: "${p.name}"${p.category ? ` | Category: ${p.category}` : ''}`
@@ -96,16 +122,16 @@ ${conceptDescription}
 
 Rank the BEST options from these libraries:
 
-MOODBOARDS (select top 3 most relevant):
+MOODBOARDS (select top 3 most relevant - pay close attention to the mood, colors, and key elements):
 ${moodboardsList || '(none available)'}
 
 PRODUCTS (select top 5 most relevant):
 ${productsList || '(none available)'}
 
 Instructions:
-1. For moodboards: Rank the top 3 whose name/description best matches the visual world, atmosphere, and tonality of the concept. The #1 should be the absolute best match.
+1. For moodboards: Rank the top 3 whose visual analysis (mood, colors, key elements, best_for) best matches the visual world, atmosphere, and tonality of the concept. The #1 should be the absolute best match.
 2. For products: Rank the top 5 whose name/category best matches the product focus category. The #1 should be the absolute best match.
-3. Be intelligent about semantic matching - "urban night" matches "Tokyo Nights", "luxury bag" matches "crossbody", etc.
+3. Be intelligent about semantic matching - match colors, moods, and visual elements not just names.
 4. Return empty arrays if no good matches exist.
 
 Return ONLY valid JSON (no markdown):

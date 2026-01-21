@@ -540,7 +540,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             moodboards: customMoodboards.map(m => ({ 
               id: m.id, 
               name: m.name, 
-              description: m.description 
+              description: m.description,
+              visualAnalysis: m.visualAnalysis, // Pass rich analysis for better matching
             })),
             products: allProductReferences.map(p => ({ 
               id: p.id, 
