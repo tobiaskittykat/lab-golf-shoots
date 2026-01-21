@@ -140,6 +140,11 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       sections.push("⚠️ CRITICAL: The following shot type MUST be followed exactly:");
       sections.push(request.shotTypePrompts.join(". "));
       sections.push("");
+    } else {
+      // DEFAULT: When no shot type is explicitly selected, default to Product Focus
+      sections.push("=== SHOT DIRECTION (DEFAULT) ===");
+      sections.push("No specific shot type was selected. Default to a PRODUCT FOCUS shot: an isolated, clean product image with no hands, no models, and no people. Focus purely on the product itself.");
+      sections.push("");
     }
     
     // Brand Context Section
