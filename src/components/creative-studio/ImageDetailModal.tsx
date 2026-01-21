@@ -199,44 +199,7 @@ export const ImageDetailModal = ({
             </div>
 
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-5">
-              {/* Prompt Section */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Sparkles className="w-4 h-4" />
-                    Creative Brief
-                  </div>
-                  <button
-                    onClick={handleCopyPrompt}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {copiedPrompt ? (
-                      <>
-                        <Check className="w-3 h-3" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-sm bg-secondary/50 rounded-lg p-3 border border-border">
-                  {image.prompt}
-                </p>
-                
-                {image.refinedPrompt && image.refinedPrompt !== image.prompt && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">Refined prompt:</p>
-                    <p className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-2 border border-border">
-                      {image.refinedPrompt}
-                    </p>
-                  </div>
-                )}
-              </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-6 space-y-5">
 
               {/* Reference Images */}
               {hasReferences && (
@@ -286,18 +249,28 @@ export const ImageDetailModal = ({
                         </p>
                         <div className="grid grid-cols-3 gap-2">
                           {productUrls.slice(0, 3).map((url, idx) => (
-                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30">
+                            <div 
+                              key={idx} 
+                              className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative group cursor-pointer"
+                              onClick={() => !failedImages.has(url) && setExpandedImageUrl(url)}
+                            >
                               {failedImages.has(url) ? (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <AlertCircle className="w-4 h-4" />
                                 </div>
                               ) : (
-                                <img
-                                  src={url}
-                                  alt={`Product reference ${idx + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={() => handleImageError(url)}
-                                />
+                                <>
+                                  <img
+                                    src={url}
+                                    alt={`Product reference ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                    onError={() => handleImageError(url)}
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Expand className="w-4 h-4 text-white" />
+                                  </div>
+                                </>
                               )}
                             </div>
                           ))}
@@ -313,18 +286,28 @@ export const ImageDetailModal = ({
                         </p>
                         <div className="grid grid-cols-3 gap-2">
                           {contextUrls.slice(0, 3).map((url, idx) => (
-                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30">
+                            <div 
+                              key={idx} 
+                              className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative group cursor-pointer"
+                              onClick={() => !failedImages.has(url) && setExpandedImageUrl(url)}
+                            >
                               {failedImages.has(url) ? (
                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                                   <AlertCircle className="w-4 h-4" />
                                 </div>
                               ) : (
-                                <img
-                                  src={url}
-                                  alt={`Context reference ${idx + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={() => handleImageError(url)}
-                                />
+                                <>
+                                  <img
+                                    src={url}
+                                    alt={`Context reference ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                    onError={() => handleImageError(url)}
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Expand className="w-4 h-4 text-white" />
+                                  </div>
+                                </>
                               )}
                             </div>
                           ))}
