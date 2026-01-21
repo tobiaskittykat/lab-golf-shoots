@@ -66,6 +66,7 @@ export type Database = {
           description: string | null
           file_path: string
           id: string
+          metadata_locked: boolean
           name: string
           thumbnail_url: string
           updated_at: string
@@ -78,6 +79,7 @@ export type Database = {
           description?: string | null
           file_path: string
           id?: string
+          metadata_locked?: boolean
           name: string
           thumbnail_url: string
           updated_at?: string
@@ -90,6 +92,7 @@ export type Database = {
           description?: string | null
           file_path?: string
           id?: string
+          metadata_locked?: boolean
           name?: string
           thumbnail_url?: string
           updated_at?: string

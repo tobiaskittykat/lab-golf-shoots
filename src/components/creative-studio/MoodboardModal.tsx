@@ -6,12 +6,23 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, Grid3X3, Wand2, Check, Loader2, X, Trash2 } from "lucide-react";
+import { Upload, Grid3X3, Wand2, Check, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { Moodboard } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface MoodboardModalProps {
   isOpen: boolean;
@@ -28,6 +39,13 @@ interface CustomMoodboard {
   file_path: string;
 }
 
+interface RepairChange {
+  id: string;
+  oldName: string;
+  newName: string;
+  consistencyNotes: string;
+}
+
 export const MoodboardModal = ({ 
   isOpen, 
   onClose, 
@@ -38,6 +56,10 @@ export const MoodboardModal = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string[]>([]);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairProgress, setRepairProgress] = useState({ processed: 0, total: 0 });
+  const [repairChanges, setRepairChanges] = useState<RepairChange[]>([]);
+  const [showRepairConfirm, setShowRepairConfirm] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -115,16 +137,16 @@ export const MoodboardModal = ({
 
         if (dbError) throw dbError;
 
-        // Trigger AI analysis of the moodboard (fire-and-forget)
+        // Trigger AI repair to get correct name/description from image
         if (insertedMoodboard?.id) {
-          supabase.functions.invoke('analyze-moodboard', {
+          setUploadProgress(prev => [...prev, `Analyzing ${file.name}...`]);
+          supabase.functions.invoke('repair-moodboard-metadata', {
             body: { moodboardId: insertedMoodboard.id }
           }).then(res => {
             if (res.error) {
-              console.error('Moodboard analysis failed:', res.error);
+              console.error('Moodboard metadata repair failed:', res.error);
             } else {
-              console.log('Moodboard analysis complete:', res.data);
-              // Refresh to show updated analysis
+              console.log('Moodboard metadata repaired:', res.data);
               queryClient.invalidateQueries({ queryKey: ['custom-moodboards'] });
             }
           });
@@ -166,6 +188,58 @@ export const MoodboardModal = ({
     } catch (err) {
       console.error('Delete error:', err);
       toast({ title: 'Failed to delete', variant: 'destructive' });
+    }
+  };
+
+  // Repair all moodboards batch function
+  const handleRepairAllMoodboards = async () => {
+    setShowRepairConfirm(false);
+    setIsRepairing(true);
+    setRepairChanges([]);
+    setRepairProgress({ processed: 0, total: customMoodboards.length });
+
+    let cursor: string | null = null;
+    let totalProcessed = 0;
+    const allChanges: RepairChange[] = [];
+
+    try {
+      // Loop until done
+      while (true) {
+        const { data, error } = await supabase.functions.invoke('repair-moodboard-metadata', {
+          body: { batch: true, limit: 4, cursor, force: true }
+        });
+
+        if (error) {
+          console.error('Repair batch error:', error);
+          toast({ title: 'Repair failed', description: error.message, variant: 'destructive' });
+          break;
+        }
+
+        totalProcessed += data.processed || 0;
+        setRepairProgress({ processed: totalProcessed, total: data.totalCount || customMoodboards.length });
+
+        if (data.changes) {
+          allChanges.push(...data.changes);
+          setRepairChanges([...allChanges]);
+        }
+
+        if (data.done || !data.nextCursor) {
+          break;
+        }
+
+        cursor = data.nextCursor;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['custom-moodboards'] });
+      toast({ 
+        title: 'All moodboards repaired!', 
+        description: `Updated ${allChanges.length} moodboard names & descriptions` 
+      });
+    } catch (err) {
+      console.error('Repair error:', err);
+      toast({ title: 'Repair failed', variant: 'destructive' });
+    } finally {
+      setIsRepairing(false);
     }
   };
 
@@ -293,7 +367,43 @@ export const MoodboardModal = ({
               {/* Custom Moodboards List */}
               {customMoodboards.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-foreground">Your Moodboards</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-foreground">Your Moodboards</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowRepairConfirm(true)}
+                      disabled={isRepairing}
+                      className="gap-2"
+                    >
+                      {isRepairing ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Repairing {repairProgress.processed}/{repairProgress.total}
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" />
+                          Repair All Names
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Repair progress / changes */}
+                  {isRepairing && repairChanges.length > 0 && (
+                    <div className="p-3 bg-secondary/50 rounded-lg text-xs space-y-1 max-h-32 overflow-y-auto">
+                      {repairChanges.slice(-5).map((change, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Check className="w-3 h-3 text-accent shrink-0" />
+                          <span className="text-muted-foreground line-through">{change.oldName}</span>
+                          <span>→</span>
+                          <span className="text-foreground font-medium">{change.newName}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-3 gap-3">
                     {customMoodboards.map((moodboard) => (
                       <div key={moodboard.id} className="group relative aspect-[4/3] rounded-lg overflow-hidden border border-border">
@@ -321,6 +431,24 @@ export const MoodboardModal = ({
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Repair Confirmation Dialog */}
+      <AlertDialog open={showRepairConfirm} onOpenChange={setShowRepairConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Repair All Moodboard Names?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will re-analyze all {customMoodboards.length} moodboard images using AI and update their names and descriptions to match what's actually visible in each image. This may take a minute or two.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRepairAllMoodboards}>
+              Repair All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };
