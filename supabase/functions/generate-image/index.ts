@@ -104,31 +104,14 @@ const modelMap: Record<string, string> = {
   'nano-banana': 'google/gemini-2.5-flash-image-preview',
 };
 
-// Call the prompt agent to craft a refined prompt
+// Call the prompt agent to craft a refined prompt (now MULTIMODAL - can see products)
 async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: string): Promise<string> {
   try {
-    console.log("Calling prompt agent to craft refined prompt...");
+    console.log("Calling MULTIMODAL prompt agent to craft refined prompt...");
     
-    const promptAgentPayload = {
-      conceptTitle: request.conceptTitle,
-      conceptDescription: request.conceptDescription,
-      coreIdea: request.coreIdea,
-      tonality: request.tonality,
-      moodboardName: request.moodboardName,
-      moodboardDescription: request.moodboardDescription,
-      moodboardAnalysis: request.moodboardAnalysis,
-      productNames: request.productNames,
-      shotTypePrompts: request.shotTypePrompts,
-      artisticStyle: request.artisticStyle,
-      lightingStyle: request.lightingStyle,
-      cameraAngle: request.cameraAngle,
-      extraKeywords: request.extraKeywords,
-      textOnImage: request.textOnImage,
-      negativePrompt: request.negativePrompt,
-      brandContext: request.brandContext,
-      brandName: request.brandName,
-      brandPersonality: request.brandPersonality,
-    };
+    // Filter product URLs (skip GIFs which aren't supported)
+    const productUrls = (request.productReferenceUrls || [])
+      .filter(url => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
 
     // Build the creative brief inline with ALL 9-point concept data
     const sections: string[] = [];
@@ -269,7 +252,7 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
     // Now call AI to craft the prompt
     const systemPrompt = `You are an expert creative director at a luxury fashion brand, skilled at crafting evocative image generation prompts.
 
-Your job is to take a creative brief and transform it into a single, cohesive image generation prompt that will produce stunning, on-brand visuals.
+Your job is to take a creative brief (and product reference images if provided) and transform them into a single, cohesive image generation prompt that will produce stunning, on-brand visuals.
 
 CRITICAL RULES:
 1. **SHOT DIRECTION IS MANDATORY** - If a shot type is specified (e.g., "Product in Hand", "On Model", "Product Focus"), the generated image MUST follow it exactly. This is non-negotiable.
@@ -277,8 +260,16 @@ CRITICAL RULES:
    - "On Model" = product being worn/carried by a person
    - "Product Focus" = product-only shot in its natural environment, no hands or models
    - "Composition" = natural scene with contextual props, environmental composition
-2. Lead with the shot type and product, then build the scene around it
-3. **USE EXACT NAMES** - When product names are provided (e.g., "Lily Duet - Black/Gold"), use them EXACTLY as written. NEVER use placeholder syntax like "[Product Name]", "(e.g., ...)", or any bracketed templates. Write the actual name directly.
+2. Lead with the shot type and product DESCRIPTION, then build the scene around it
+
+3. **⚠️ PRODUCT INTEGRITY IS CRITICAL** - When product reference images are provided:
+   - DESCRIBE the products visually in your prompt with EXACT detail
+   - Include: material (leather, croc-embossed, smooth, pebbled), color, hardware finish (gold, silver, gunmetal)
+   - Include: silhouette/type (crossbody, clutch, card holder, phone case), and key details (chain strap, magnetic closure, zip)
+   - Example: Instead of "the Remi Magnet crossbody", write "a black croc-embossed leather phone crossbody with a detachable gold chain strap and magnetic gold hardware closure"
+   - This visual description ensures the image generator renders the product EXACTLY as it appears
+   - Do NOT use product names - use VISUAL DESCRIPTIONS only
+
 4. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.
 5. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
 6. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
@@ -294,7 +285,31 @@ QUALITY STANDARDS:
 - Appropriate lighting for the mood
 - Clean, intentional composition
 
-OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, just the final prompt with real names.`;
+OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders. Describe products visually, not by name.`;
+
+    // Build multimodal content for prompt agent
+    const promptAgentContent: any[] = [];
+    
+    // Add product images FIRST so the agent can SEE them and describe them accurately
+    if (productUrls.length > 0) {
+      console.log(`Adding ${productUrls.length} product images to prompt agent for visual analysis`);
+      for (const url of productUrls.slice(0, 3)) {
+        promptAgentContent.push({
+          type: "image_url",
+          image_url: { url }
+        });
+      }
+      promptAgentContent.push({
+        type: "text",
+        text: `⚠️ PRODUCT REFERENCE IMAGES ABOVE: Study these ${productUrls.length} product image(s) carefully. In your prompt, describe these products with EXACT visual accuracy - materials, colors, hardware, silhouette. Do NOT use product names.`
+      });
+    }
+    
+    // Add the creative brief
+    promptAgentContent.push({
+      type: "text",
+      text: `Craft a single, evocative image generation prompt from this creative brief:\n\n${creativeBrief}\n\nRemember: One cohesive prompt. Describe products visually based on the reference images above.`
+    });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -306,7 +321,7 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Craft a single, evocative image generation prompt from this creative brief:\n\n${creativeBrief}\n\nRemember: One cohesive prompt that captures the essence of this creative direction.` }
+          { role: "user", content: promptAgentContent }
         ],
       }),
     });
@@ -468,7 +483,15 @@ Deno.serve(async (req) => {
           }
           messageContent.push({
             type: "text",
-            text: `Use the above ${productUrls.length} image(s) as the PRODUCT REFERENCE(s). Feature these products prominently in the generated image.`
+            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${productUrls.length} image(s) are PRODUCT REFERENCES.
+
+MANDATORY REQUIREMENTS:
+- Preserve EXACT visual details: materials, textures, colors, hardware finishes
+- Match proportions and silhouette precisely  
+- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy
+- Do NOT simplify, reimagine, or take creative liberties with these products
+- The products should look like they were photographed, not illustrated or reinterpreted
+- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
           });
         }
         
