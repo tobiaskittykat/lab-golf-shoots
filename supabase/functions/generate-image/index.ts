@@ -149,9 +149,9 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       sections.push("");
     }
     
-    // ===== PRODUCT FOCUS (from 9-point framework) =====
+    // ===== PRODUCT CATEGORY (from 9-point framework) =====
     if (request.productFocus) {
-      sections.push("=== PRODUCT FOCUS ===");
+      sections.push("=== PRODUCT CATEGORY ===");
       if (request.productFocus.productCategory) sections.push(`Category: ${request.productFocus.productCategory}`);
       if (request.productFocus.visualGuidance) sections.push(`Visual Guidance: ${request.productFocus.visualGuidance}`);
       sections.push("");
@@ -279,6 +279,7 @@ CRITICAL RULES:
 9. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
 10. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
 11. Match the target audience vibe without being heavy-handed
+12. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
 
 QUALITY STANDARDS:
 - High-quality, professional imagery
@@ -286,7 +287,7 @@ QUALITY STANDARDS:
 - Appropriate lighting for the mood
 - Clean, intentional composition
 
-OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders. Describe products visually, not by name.`;
+OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Describe products visually, not by name. Start directly with the scene description.`;
 
     // Build multimodal content for prompt agent
     const promptAgentContent: any[] = [];
@@ -340,11 +341,13 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
       return buildFallbackPrompt(request);
     }
     
-    // Safety net: Clean up any placeholder patterns the AI might have introduced
+    // Safety net: Clean up any placeholder patterns or echoed section headers the AI might have introduced
     craftedPrompt = craftedPrompt
       .replace(/\[(?:Product Name|product)[^\]]*,?\s*(?:e\.g\.,?\s*)?([\w\s\-\/]+)\]/gi, '$1')
       .replace(/\(e\.g\.,?\s*[^)]+\)/gi, '')
       .replace(/\[[^\]]*\]/g, '')
+      // Strip echoed section headers from the start of the prompt
+      .replace(/^(?:Product\s*Focus|Product\s*Category|Visual\s*World|Campaign\s*Concept|Brand\s*Context|Moodboard)\s*:\s*/i, '')
       .trim();
     
     console.log("Prompt agent crafted:", craftedPrompt);
