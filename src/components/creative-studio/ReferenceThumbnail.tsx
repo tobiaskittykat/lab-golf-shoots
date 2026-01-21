@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Check, Expand, Loader2 } from "lucide-react";
 import { ReferenceImage } from "./types";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export const ReferenceThumbnail = ({
   return (
     <>
       <button
+        type="button"
         onClick={onSelect}
         className={cn(
           "group relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:shadow-md",
@@ -43,8 +44,8 @@ export const ReferenceThumbnail = ({
         <img
           src={reference.thumbnail}
           alt={reference.name}
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
+          loading="lazy"
+          decoding="async"
           className={cn(
             "absolute inset-0 w-full h-full object-cover transition-opacity",
             isLoaded && !hasError ? "opacity-100" : "opacity-0"
@@ -83,25 +84,38 @@ export const ReferenceThumbnail = ({
         )}
 
         {/* Expand button */}
-        <button
+        <span
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             setIsFullView(true);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsFullView(true);
+            }
+          }}
           className="absolute top-1.5 left-1.5 w-5 h-5 rounded bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
         >
           <Expand className="w-2.5 h-2.5 text-white" />
-        </button>
+        </span>
       </button>
 
       {/* Full View Dialog */}
       <Dialog open={isFullView} onOpenChange={setIsFullView}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{reference.name}</DialogTitle>
+            <DialogDescription>Full size reference image preview</DialogDescription>
+          </DialogHeader>
           <img 
             src={reference.url || reference.thumbnail} 
             alt={reference.name}
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
+            loading="eager"
+            decoding="async"
             className="w-full max-h-[70vh] object-contain bg-secondary"
           />
           <div className="p-4">

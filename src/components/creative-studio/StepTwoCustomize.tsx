@@ -81,6 +81,13 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const proxyImageUrl = (raw?: string | null) => {
+    if (!raw) return undefined;
+    const base = import.meta.env.VITE_SUPABASE_URL;
+    if (!base) return raw;
+    return `${base}/functions/v1/image-proxy?url=${encodeURIComponent(raw)}`;
+  };
+
   // Fetch scraped products from database
   const { data: scrapedProducts = [], isLoading: loadingScrapedProducts, refetch: refetchScrapedProducts } = useQuery({
     queryKey: ['scraped-products', user?.id],
@@ -97,8 +104,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         id: `scraped-${p.id}`,
         dbId: p.id,
         name: p.name,
-        thumbnail: p.thumbnail_url,
-        url: p.full_url,
+        thumbnail: proxyImageUrl(p.thumbnail_url) || p.thumbnail_url,
+        url: proxyImageUrl(p.full_url) || p.full_url,
         category: 'product' as const,
         isScraped: true,
         productType: p.category || undefined,
