@@ -280,12 +280,14 @@ export function useImageGeneration() {
             description: `Generated ${recentImages.length} image(s) - connection recovered`,
           });
           
+          const recoveredConcept = state.concepts.find(c => c.id === state.selectedConcept);
           return recentImages.map((img: any, idx: number) => ({
             id: img.id,
             imageUrl: img.image_url,
             status: 'completed' as const,
             prompt: img.prompt,
             refinedPrompt: img.refined_prompt,
+            conceptTitle: recoveredConcept?.title || img.concept_title || undefined,
             index: idx,
             moodboardId: state.moodboard || undefined,
             moodboardUrl: moodboardUrl || undefined,
@@ -302,12 +304,14 @@ export function useImageGeneration() {
         return [];
       }
 
+      const selectedConcept = state.concepts.find(c => c.id === state.selectedConcept);
       const images: GeneratedImage[] = (data.images || []).map((img: any) => ({
         id: img.id || `temp-${img.index}`,
         imageUrl: img.imageUrl || '',
         status: img.status || 'failed',
         prompt: state.prompt,
         refinedPrompt: img.refinedPrompt,
+        conceptTitle: selectedConcept?.title || undefined,
         error: img.error,
         index: img.index,
         // Attach resolved references so the modal shows them immediately

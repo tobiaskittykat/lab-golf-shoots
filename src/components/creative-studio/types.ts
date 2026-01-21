@@ -134,6 +134,7 @@ export interface GeneratedImage {
   status: 'pending' | 'completed' | 'failed' | 'nsfw';
   prompt: string;
   refinedPrompt?: string;
+  conceptTitle?: string;
   error?: string;
   index: number;
   // Reference images used for generation

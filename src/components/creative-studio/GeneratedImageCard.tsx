@@ -213,9 +213,13 @@ export const GeneratedImageCard = ({
 
       {/* Card Footer */}
       <div className="p-3 space-y-2">
-        {/* Truncated Prompt */}
-        <p className="text-sm text-foreground line-clamp-2">
-          {image.prompt || 'Generated image'}
+        {/* Image Name - prefer concept title */}
+        <p className="text-sm text-foreground font-medium line-clamp-1">
+          {image.conceptTitle || 'Generated Image'}
+        </p>
+        {/* Brief as secondary info */}
+        <p className="text-xs text-muted-foreground line-clamp-1">
+          {image.prompt}
         </p>
 
         {/* Status & References */}

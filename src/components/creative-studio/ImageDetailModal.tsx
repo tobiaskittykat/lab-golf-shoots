@@ -154,7 +154,12 @@ export const ImageDetailModal = ({
             {/* Header with actions */}
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-lg">Image Details</h3>
+                <div>
+                  <h3 className="font-semibold text-lg line-clamp-1">
+                    {image.conceptTitle || 'Generated Image'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Image Details</p>
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handleDownload}
@@ -199,7 +204,8 @@ export const ImageDetailModal = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Sparkles className="w-4 h-4" />
-                    Prompt
+                    Creative Brief
+                  </div>
                   </div>
                   <button
                     onClick={handleCopyPrompt}

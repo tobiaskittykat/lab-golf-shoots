@@ -64,6 +64,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'completed',
           prompt: img.prompt,
           refinedPrompt: img.refined_prompt || undefined,
+          conceptTitle: img.concept_title || undefined,
           index,
           // Moodboard references
           moodboardId: refs.moodboardId || img.moodboard_id || undefined,
