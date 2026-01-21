@@ -12,6 +12,7 @@ interface ConceptRequest {
   brandIndustry?: string;
   useCase?: string;
   targetPersona?: string;
+  customSystemPrompt?: string; // Optional custom system prompt override
 }
 
 interface ProductFocus {
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
     }
 
     const body: ConceptRequest = await req.json();
-    const { prompt, brandName, brandPersonality, brandIndustry, useCase, targetPersona } = body;
+    const { prompt, brandName, brandPersonality, brandIndustry, useCase, targetPersona, customSystemPrompt } = body;
 
     if (!prompt || !prompt.trim()) {
       return new Response(
@@ -79,9 +80,10 @@ Deno.serve(async (req) => {
     }
 
     console.log("Generating 9-point campaign concepts for prompt:", prompt);
+    console.log("Using custom system prompt:", !!customSystemPrompt);
 
-    // Build the system prompt for comprehensive concept generation
-    const systemPrompt = `You are a world-class creative director at a top advertising agency. Generate 3 distinct campaign concepts using a professional 9-point creative brief structure.
+    // Default system prompt (used when no custom prompt provided)
+    const defaultSystemPrompt = `You are a world-class creative director at a top advertising agency. Generate 3 distinct campaign concepts using a professional 9-point creative brief structure.
 
 ${brandName ? `Brand: ${brandName}` : ""}
 ${brandPersonality ? `Brand Personality: ${brandPersonality}` : ""}
@@ -156,6 +158,24 @@ Return EXACTLY 3 concepts in this JSON format:
 }
 
 Make each concept unique and commercially viable. Think like a high-end creative agency.`;
+
+    // Use custom prompt if provided, otherwise use default
+    // If custom prompt is provided, inject brand context into it
+    let systemPrompt: string;
+    if (customSystemPrompt) {
+      // Prepend brand context to custom prompt
+      const brandContext = [
+        brandName ? `Brand: ${brandName}` : "",
+        brandPersonality ? `Brand Personality: ${brandPersonality}` : "",
+        brandIndustry ? `Industry: ${brandIndustry}` : "",
+        useCase ? `Use Case: ${useCase}` : "",
+        targetPersona ? `Target Audience Hint: ${targetPersona}` : "",
+      ].filter(Boolean).join("\n");
+      
+      systemPrompt = brandContext ? `${brandContext}\n\n${customSystemPrompt}` : customSystemPrompt;
+    } else {
+      systemPrompt = defaultSystemPrompt;
+    }
 
     const userPrompt = `Generate 3 complete campaign concepts for: ${prompt}`;
 

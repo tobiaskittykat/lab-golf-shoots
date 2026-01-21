@@ -96,6 +96,9 @@ interface GenerateImageRequest {
   };
   brandName?: string;
   brandPersonality?: string;
+  
+  // Custom prompt agent system prompt
+  customPromptAgentSystemPrompt?: string;
 }
 
 // AI model mapping
@@ -251,7 +254,8 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
     console.log("============================================");
     
     // Now call AI to craft the prompt
-    const systemPrompt = `You are an expert creative director at a luxury fashion brand, skilled at crafting evocative image generation prompts.
+    // Use custom prompt if provided, otherwise use default
+    const defaultSystemPrompt = `You are an expert creative director at a luxury fashion brand, skilled at crafting evocative image generation prompts.
 
 Your job is to take a creative brief (and product reference images if provided) and transform them into a single, cohesive image generation prompt that will produce stunning, on-brand visuals.
 
@@ -288,6 +292,9 @@ QUALITY STANDARDS:
 - Clean, intentional composition
 
 OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Describe products visually, not by name. Start directly with the scene description.`;
+
+    const systemPrompt = request.customPromptAgentSystemPrompt || defaultSystemPrompt;
+    console.log("Using custom prompt agent system prompt:", !!request.customPromptAgentSystemPrompt);
 
     // Build multimodal content for prompt agent
     const promptAgentContent: any[] = [];

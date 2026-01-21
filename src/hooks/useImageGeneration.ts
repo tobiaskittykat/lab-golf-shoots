@@ -25,7 +25,8 @@ export function useImageGeneration() {
     brandIndustry?: string,
     useCase?: string,
     targetPersona?: string,
-    onConceptReady?: (concept: Concept, index: number) => void
+    onConceptReady?: (concept: Concept, index: number) => void,
+    customSystemPrompt?: string // Custom concept agent prompt from brand settings
   ): Promise<Concept[]> => {
     setIsGeneratingConcepts(true);
     setConceptsProgress(0);
@@ -39,6 +40,7 @@ export function useImageGeneration() {
           brandIndustry,
           useCase,
           targetPersona,
+          customSystemPrompt,
         },
       });
 
@@ -158,10 +160,11 @@ export function useImageGeneration() {
         }
       }
       
-      // Fetch brand context
+      // Fetch brand context and custom AI prompts
       let brandContext: Record<string, unknown> | undefined;
       let brandName: string | undefined;
       let brandPersonality: string | undefined;
+      let customPromptAgentSystemPrompt: string | undefined;
       
       if (user?.id) {
         const { data: brand } = await supabase
@@ -174,6 +177,12 @@ export function useImageGeneration() {
           brandName = brand.name;
           brandPersonality = brand.personality || undefined;
           brandContext = brand.brand_context as Record<string, unknown> | undefined;
+          
+          // Extract custom prompt agent system prompt if set
+          const aiPrompts = (brandContext as any)?.aiPrompts;
+          if (aiPrompts?.promptAgent) {
+            customPromptAgentSystemPrompt = aiPrompts.promptAgent;
+          }
         }
       }
 
@@ -239,6 +248,9 @@ export function useImageGeneration() {
           brandName,
           brandPersonality,
           brandContext,
+          
+          // Custom prompt agent system prompt (from brand settings)
+          customPromptAgentSystemPrompt,
           
           extraKeywords: state.extraKeywords,
           negativePrompt: state.negativePrompt,

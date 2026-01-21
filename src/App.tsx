@@ -13,6 +13,7 @@ import CreateCampaign from "./pages/CreateCampaign";
 import CreateImage from "./pages/CreateImage";
 import EditImage from "./pages/EditImage";
 import BatchGenerate from "./pages/BatchGenerate";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <BatchGenerate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
                   </ProtectedRoute>
                 }
               />
