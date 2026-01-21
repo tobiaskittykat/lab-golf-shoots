@@ -97,6 +97,25 @@ interface GenerateImageRequest {
   brandName?: string;
   brandPersonality?: string;
   
+  // Brand Brain (synthesized visual identity)
+  brandBrain?: {
+    visualDNA?: {
+      primaryColors?: string[];
+      colorMood?: string;
+      photographyStyle?: string;
+      texturePreferences?: string[];
+      lightingStyle?: string;
+      compositionStyle?: string;
+      avoidElements?: string[];
+    };
+    brandVoice?: {
+      personality?: string;
+      toneDescriptors?: string[];
+      messagingStyle?: string;
+    };
+    creativeDirectionSummary?: string;
+  };
+  
   // Custom prompt agent system prompt
   customPromptAgentSystemPrompt?: string;
 }
@@ -149,6 +168,34 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push(`AVOID: ${request.brandContext.visual_style.avoid.join(", ")}`);
       }
       if (request.brandContext?.target_audience) sections.push(`Target Audience: ${request.brandContext.target_audience}`);
+      sections.push("");
+    }
+    
+    // ===== BRAND BRAIN (SYNTHESIZED VISUAL IDENTITY - HIGH PRIORITY) =====
+    if (request.brandBrain) {
+      sections.push("=== BRAND BRAIN (SYNTHESIZED VISUAL IDENTITY) ===");
+      sections.push("⚠️ HIGH PRIORITY: This is the brand's established visual DNA. Use this to ensure all images feel on-brand.");
+      
+      if (request.brandBrain.creativeDirectionSummary) {
+        sections.push(`Creative Direction: ${request.brandBrain.creativeDirectionSummary}`);
+      }
+      
+      if (request.brandBrain.visualDNA) {
+        const vd = request.brandBrain.visualDNA;
+        if (vd.primaryColors?.length) sections.push(`Brand Colors (INCORPORATE): ${vd.primaryColors.join(", ")}`);
+        if (vd.colorMood) sections.push(`Color Mood: ${vd.colorMood}`);
+        if (vd.photographyStyle) sections.push(`Photography Style: ${vd.photographyStyle}`);
+        if (vd.lightingStyle) sections.push(`Lighting: ${vd.lightingStyle}`);
+        if (vd.compositionStyle) sections.push(`Composition: ${vd.compositionStyle}`);
+        if (vd.texturePreferences?.length) sections.push(`Preferred Textures: ${vd.texturePreferences.join(", ")}`);
+        if (vd.avoidElements?.length) sections.push(`⛔ AVOID: ${vd.avoidElements.join(", ")}`);
+      }
+      
+      if (request.brandBrain.brandVoice) {
+        const bv = request.brandBrain.brandVoice;
+        if (bv.personality) sections.push(`Brand Personality: ${bv.personality}`);
+        if (bv.toneDescriptors?.length) sections.push(`Visual Tone: ${bv.toneDescriptors.join(", ")}`);
+      }
       sections.push("");
     }
     

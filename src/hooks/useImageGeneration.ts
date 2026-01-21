@@ -160,11 +160,12 @@ export function useImageGeneration() {
         }
       }
       
-      // Fetch brand context and custom AI prompts
+      // Fetch brand context, custom AI prompts, and Brand Brain
       let brandContext: Record<string, unknown> | undefined;
       let brandName: string | undefined;
       let brandPersonality: string | undefined;
       let customPromptAgentSystemPrompt: string | undefined;
+      let brandBrain: Record<string, unknown> | undefined;
       
       if (user?.id) {
         const { data: brand } = await supabase
@@ -182,6 +183,11 @@ export function useImageGeneration() {
           const aiPrompts = (brandContext as any)?.aiPrompts;
           if (aiPrompts?.promptAgent) {
             customPromptAgentSystemPrompt = aiPrompts.promptAgent;
+          }
+          
+          // Extract Brand Brain if set
+          if ((brandContext as any)?.brandBrain) {
+            brandBrain = (brandContext as any).brandBrain;
           }
         }
       }
@@ -248,6 +254,9 @@ export function useImageGeneration() {
           brandName,
           brandPersonality,
           brandContext,
+          
+          // Brand Brain (synthesized visual identity)
+          brandBrain,
           
           // Custom prompt agent system prompt (from brand settings)
           customPromptAgentSystemPrompt,

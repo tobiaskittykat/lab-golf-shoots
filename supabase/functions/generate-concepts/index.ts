@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface BrandBrain {
+  visualDNA?: {
+    primaryColors?: string[];
+    colorMood?: string;
+    photographyStyle?: string;
+    texturePreferences?: string[];
+    lightingStyle?: string;
+    compositionStyle?: string;
+    avoidElements?: string[];
+  };
+  brandVoice?: {
+    personality?: string;
+    toneDescriptors?: string[];
+    messagingStyle?: string;
+  };
+  creativeDirectionSummary?: string;
+}
+
 interface ConceptRequest {
   prompt: string;
   brandName?: string;
@@ -13,6 +31,7 @@ interface ConceptRequest {
   useCase?: string;
   targetPersona?: string;
   customSystemPrompt?: string; // Optional custom system prompt override
+  brandBrain?: BrandBrain; // Brand Brain visual identity data
 }
 
 interface ProductFocus {
@@ -70,7 +89,7 @@ Deno.serve(async (req) => {
     }
 
     const body: ConceptRequest = await req.json();
-    const { prompt, brandName, brandPersonality, brandIndustry, useCase, targetPersona, customSystemPrompt } = body;
+    const { prompt, brandName, brandPersonality, brandIndustry, useCase, targetPersona, customSystemPrompt, brandBrain } = body;
 
     if (!prompt || !prompt.trim()) {
       return new Response(
@@ -81,6 +100,43 @@ Deno.serve(async (req) => {
 
     console.log("Generating 9-point campaign concepts for prompt:", prompt);
     console.log("Using custom system prompt:", !!customSystemPrompt);
+    console.log("Using Brand Brain:", !!brandBrain);
+
+    // Build Brand Brain context if available
+    let brandBrainContext = "";
+    if (brandBrain) {
+      const parts: string[] = [];
+      
+      if (brandBrain.creativeDirectionSummary) {
+        parts.push(`BRAND CREATIVE DIRECTION:\n${brandBrain.creativeDirectionSummary}`);
+      }
+      
+      if (brandBrain.visualDNA) {
+        const vd = brandBrain.visualDNA;
+        const visualParts: string[] = [];
+        if (vd.primaryColors?.length) visualParts.push(`Colors: ${vd.primaryColors.join(", ")}`);
+        if (vd.colorMood) visualParts.push(`Color Mood: ${vd.colorMood}`);
+        if (vd.photographyStyle) visualParts.push(`Photography: ${vd.photographyStyle}`);
+        if (vd.lightingStyle) visualParts.push(`Lighting: ${vd.lightingStyle}`);
+        if (vd.compositionStyle) visualParts.push(`Composition: ${vd.compositionStyle}`);
+        if (vd.texturePreferences?.length) visualParts.push(`Textures: ${vd.texturePreferences.join(", ")}`);
+        if (vd.avoidElements?.length) visualParts.push(`AVOID: ${vd.avoidElements.join(", ")}`);
+        if (visualParts.length) parts.push(`VISUAL DNA:\n${visualParts.join("\n")}`);
+      }
+      
+      if (brandBrain.brandVoice) {
+        const bv = brandBrain.brandVoice;
+        const voiceParts: string[] = [];
+        if (bv.personality) voiceParts.push(`Personality: ${bv.personality}`);
+        if (bv.toneDescriptors?.length) voiceParts.push(`Tone: ${bv.toneDescriptors.join(", ")}`);
+        if (bv.messagingStyle) voiceParts.push(`Messaging: ${bv.messagingStyle}`);
+        if (voiceParts.length) parts.push(`BRAND VOICE:\n${voiceParts.join("\n")}`);
+      }
+      
+      if (parts.length) {
+        brandBrainContext = `\n\n=== BRAND BRAIN (Use this to inform visual world and tonality) ===\n${parts.join("\n\n")}\n=== END BRAND BRAIN ===\n`;
+      }
+    }
 
     // Default system prompt (used when no custom prompt provided)
     const defaultSystemPrompt = `You are a world-class creative director at a top advertising agency. Generate 3 distinct campaign concepts using a professional 9-point creative brief structure.
@@ -90,6 +146,7 @@ ${brandPersonality ? `Brand Personality: ${brandPersonality}` : ""}
 ${brandIndustry ? `Industry: ${brandIndustry}` : ""}
 ${useCase ? `Use Case: ${useCase}` : ""}
 ${targetPersona ? `Target Audience Hint: ${targetPersona}` : ""}
+${brandBrainContext}
 
 Each concept must include ALL 9 elements:
 

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      brand_images: {
+        Row: {
+          brand_id: string
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          visual_analysis: Json | null
+        }
+        Insert: {
+          brand_id: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          visual_analysis?: Json | null
+        }
+        Update: {
+          brand_id?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          visual_analysis?: Json | null
+        }
+        Relationships: []
+      }
       brands: {
         Row: {
           assets: Json | null

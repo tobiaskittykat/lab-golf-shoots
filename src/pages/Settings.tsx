@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useBrands } from "@/hooks/useBrands";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_CONCEPT_AGENT_PROMPT, DEFAULT_PROMPT_AGENT_PROMPT } from "@/lib/defaultPrompts";
+import { BrandBrainSection } from "@/components/settings/BrandBrainSection";
 
 interface AIPrompts {
   conceptAgent?: string;
@@ -147,6 +148,9 @@ export default function Settings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Brand Brain Section */}
+        <BrandBrainSection />
 
         {/* Concept Agent */}
         <Collapsible open={conceptOpen} onOpenChange={setConceptOpen}>

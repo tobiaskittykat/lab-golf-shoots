@@ -1,5 +1,8 @@
 project_id = "zlvfvjefvyrnevxuaiyd"
 
+[functions.analyze-brand-images]
+verify_jwt = false
+
 [functions.analyze-moodboard]
 verify_jwt = false
 
