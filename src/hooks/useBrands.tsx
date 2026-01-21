@@ -95,10 +95,15 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
 
     setBrands(typedBrands);
 
-    // Set current brand to first one if not set
+    // Set current brand to first one if not set, or update existing with fresh data
     setCurrentBrand(prev => {
       if (!prev && typedBrands.length > 0) {
         return typedBrands[0];
+      }
+      // If currentBrand exists, find its updated version in the fresh data
+      if (prev) {
+        const updated = typedBrands.find(b => b.id === prev.id);
+        return updated || (typedBrands.length > 0 ? typedBrands[0] : null);
       }
       return prev;
     });

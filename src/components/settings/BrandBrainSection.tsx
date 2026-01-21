@@ -164,7 +164,7 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
             disabled={isRegenerating || images.length === 0}
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", isRegenerating && "animate-spin")} />
-            {isRegenerating ? "Generating..." : "Regenerate"}
+            {isRegenerating ? `Analyzing ${images.length} images...` : "Regenerate"}
           </Button>
         </div>
       )}
@@ -479,8 +479,8 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
               You have {images.length} brand images uploaded. Generate your Brand Brain to create a visual identity profile.
             </p>
             <Button onClick={regenerateBrandBrain} disabled={isRegenerating}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generate Brand Brain
+              <Sparkles className={cn("h-4 w-4 mr-2", isRegenerating && "animate-spin")} />
+              {isRegenerating ? `Analyzing ${images.length} images...` : "Generate Brand Brain"}
             </Button>
           </div>
         </div>
@@ -529,7 +529,7 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
                   disabled={isRegenerating || images.length === 0}
                 >
                   <RefreshCw className={cn("h-4 w-4 mr-2", isRegenerating && "animate-spin")} />
-                  {isRegenerating ? "Generating..." : "Regenerate"}
+                  {isRegenerating ? `Analyzing ${images.length} images...` : "Regenerate"}
                 </Button>
               </div>
             </div>
