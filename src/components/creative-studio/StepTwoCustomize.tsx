@@ -677,13 +677,23 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   const displayedMoodboards = useMemo(() => {
     const displayIds = state.displayedMoodboardIds || [];
     
+    // Guard: if we have display IDs but data isn't loaded yet, return empty (shows skeleton)
+    if (displayIds.length > 0 && customMoodboards.length === 0) {
+      return [];
+    }
+    
     // If we have stable display IDs, use them directly (maintains order)
     if (displayIds.length > 0) {
       const resolved = displayIds
         .map(id => {
-          // Handle both "custom-{uuid}" and raw "{uuid}" formats
-          const rawId = id.startsWith('custom-') ? id.replace('custom-', '') : id;
-          return customMoodboards.find(m => m.id === rawId || m.id === id);
+          // Normalize the lookup ID by stripping any prefix
+          const normalizedLookupId = id.replace(/^custom-/, '');
+          
+          // Find moodboard where its normalized ID matches
+          return customMoodboards.find(m => {
+            const normalizedMoodboardId = m.id.replace(/^custom-/, '');
+            return normalizedMoodboardId === normalizedLookupId || m.id === id;
+          });
         })
         .filter(Boolean) as Moodboard[];
       

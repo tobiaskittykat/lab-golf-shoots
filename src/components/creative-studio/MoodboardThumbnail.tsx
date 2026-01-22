@@ -76,17 +76,42 @@ export const MoodboardThumbnail = ({
 
   // Only start loading when visible or selected
   const shouldLoadImage = isVisible || isSelected;
+  
+  // Check if we have a valid URL to load
+  const hasValidUrl = !!moodboard.filePath && !!thumbnailUrl;
 
   // Check if image is already cached
   useEffect(() => {
     if (!shouldLoadImage) return;
+    
+    // If no valid URL, immediately show error state
+    if (!hasValidUrl) {
+      setIsLoading(false);
+      setImageError(true);
+      return;
+    }
     
     const img = imgRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
       setIsLoading(false);
       setImageError(false);
     }
-  }, [shouldLoadImage, thumbnailUrl, retryCount]);
+  }, [shouldLoadImage, thumbnailUrl, retryCount, hasValidUrl]);
+  
+  // Safety timeout: prevent stuck loading state (15 seconds)
+  useEffect(() => {
+    if (!shouldLoadImage || !hasValidUrl || !isLoading) return;
+    
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn(`[MoodboardThumbnail] Load timeout for: ${moodboard.name}`);
+        setImageError(true);
+        setIsLoading(false);
+      }
+    }, 15000);
+    
+    return () => clearTimeout(timeout);
+  }, [shouldLoadImage, hasValidUrl, isLoading, moodboard.name]);
 
   const handleImageError = useCallback(() => {
     console.warn(`[MoodboardThumbnail] Failed to load: ${moodboard.name}`);
@@ -139,8 +164,8 @@ export const MoodboardThumbnail = ({
             : 'border-border hover:border-accent/50'
         }`}
       >
-        {/* Loading state */}
-        {shouldLoadImage && isLoading && !imageError && (
+        {/* Loading state - only show if we have a valid URL to load */}
+        {shouldLoadImage && isLoading && !imageError && hasValidUrl && (
           <div className="absolute inset-0 w-full h-full bg-secondary flex items-center justify-center z-10">
             <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
           </div>
