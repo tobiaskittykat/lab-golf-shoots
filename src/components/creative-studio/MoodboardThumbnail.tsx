@@ -43,9 +43,9 @@ export const MoodboardThumbnail = ({
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Build URLs from file path
-  const thumbnailUrl = buildThumbnailUrl(moodboard.filePath, size === 'large' ? 600 : 400);
-  const fullUrl = buildFullUrl(moodboard.filePath);
+  // Build URLs - prioritize direct thumbnail URL, fall back to filePath-based URLs
+  const thumbnailUrl = moodboard.thumbnail || buildThumbnailUrl(moodboard.filePath, size === 'large' ? 600 : 400);
+  const fullUrl = moodboard.thumbnail || buildFullUrl(moodboard.filePath);
 
   // Intersection Observer to detect visibility
   useEffect(() => {
