@@ -6,6 +6,7 @@ import { CreativeStudioHeader } from "./CreativeStudioHeader";
 import { StepOnePrompt } from "./StepOnePrompt";
 import { StepTwoCustomize } from "./StepTwoCustomize";
 import { UnifiedWorkspace } from "./UnifiedWorkspace";
+import { SelectionIndicators } from "./SelectionIndicators";
 import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
@@ -502,9 +503,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 Back
               </button>
               
-              <span className="text-sm text-muted-foreground">
-                {state.selectedConcept ? '✓ 1 concept selected' : 'No concept selected'}
-              </span>
+              <SelectionIndicators state={state} />
               
               <button
                 onClick={handleGenerate}

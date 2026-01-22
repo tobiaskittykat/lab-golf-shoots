@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface CustomizationSectionProps {
+  id?: string;
   title: ReactNode;
   icon?: ReactNode;
   defaultOpen?: boolean;
@@ -9,6 +10,7 @@ interface CustomizationSectionProps {
 }
 
 export const CustomizationSection = ({ 
+  id,
   title, 
   icon, 
   defaultOpen = true, 
@@ -17,7 +19,7 @@ export const CustomizationSection = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <div id={id} className="border-b border-border last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors"

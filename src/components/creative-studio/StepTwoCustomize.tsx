@@ -944,7 +944,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   return (
     <div className="space-y-8">
       {/* ===== 1. CONCEPTS SECTION ===== */}
-      <div className="space-y-4">
+      <div id="section-concepts" className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-accent" />
@@ -1023,6 +1023,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
 
           {/* ===== 2. MOODBOARD SECTION (Curated 3) ===== */}
           <CustomizationSection 
+            id="section-moodboard"
             title={
               <span className="flex items-center gap-2">
                 Moodboard
@@ -1118,6 +1119,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
 
           {/* ===== 3. PRODUCT REFERENCE SECTION (Curated 5, Multi-select up to 3) ===== */}
           <CustomizationSection 
+            id="section-products"
             title={
               <span className="flex items-center gap-2">
                 Product Reference
@@ -1240,6 +1242,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
 
           {/* ===== 4. SHOT TYPE SECTION (Single-select, optional) ===== */}
           <CustomizationSection 
+            id="section-shot-type"
             title={
               <span className="flex items-center gap-2">
                 Shot Type
