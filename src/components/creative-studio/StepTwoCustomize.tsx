@@ -457,11 +457,13 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
 
     onUpdate(updates);
     
-    // Gentle scroll to customization section after concept selection
+    // Scroll to customization section with offset for sticky header
     setTimeout(() => {
-      const customizeSection = document.getElementById('section-customize');
-      if (customizeSection) {
-        customizeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const element = document.getElementById('section-customize');
+      if (element) {
+        const offset = 80;
+        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
       }
     }, 150);
   }, [state.extraKeywords, onUpdate]);

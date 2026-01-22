@@ -162,8 +162,19 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   }, []);
 
   const handleContinue = useCallback(async () => {
-    // Clear existing concepts and show loading state
-    handleUpdate({ isLoadingConcepts: true, step: 2, concepts: [] });
+    // Reset ALL Step 2 selections when generating new concepts to avoid stale selections
+    handleUpdate({ 
+      isLoadingConcepts: true, 
+      step: 2, 
+      concepts: [],
+      selectedConcept: null,
+      moodboard: null,
+      productReferences: [],
+      curatedMoodboards: [],
+      curatedProducts: [],
+      displayedMoodboardIds: [],
+      displayedProductIds: [],
+    });
     
     // Progressive callback to add concepts one by one (no auto-selection)
     const onConceptReady = (concept: any, index: number) => {
@@ -186,11 +197,13 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     
     handleUpdate({ isLoadingConcepts: false });
     
-    // Gentle scroll to concepts section after generation completes
+    // Scroll to concepts section with offset for sticky header
     setTimeout(() => {
-      const conceptSection = document.getElementById('section-concepts');
-      if (conceptSection) {
-        conceptSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const element = document.getElementById('section-concepts');
+      if (element) {
+        const offset = 80;
+        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
       }
     }, 100);
   }, [state.prompt, state.useCase, state.targetPersona, currentBrand, handleUpdate, generateConcepts]);
