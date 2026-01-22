@@ -1311,6 +1311,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         onSync={handleScrapeProducts}
         isSyncing={isScrapingProducts}
         onClearAll={handleClearAllProducts}
+        onDeleteProduct={handleDeleteScrapedProduct}
       />
 
       <ReferenceGalleryModal
