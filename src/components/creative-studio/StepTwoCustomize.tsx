@@ -678,8 +678,13 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   const displayedMoodboards = useMemo(() => {
     const displayIds = state.displayedMoodboardIds || [];
     
-    // Guard: if we have display IDs but data isn't loaded yet, return empty (shows skeleton)
-    if (displayIds.length > 0 && customMoodboards.length === 0) {
+    // If data is still loading, return empty - the grid shows skeleton via loadingMoodboards check
+    if (loadingMoodboards) {
+      return [];
+    }
+    
+    // If no moodboards exist at all, return empty
+    if (customMoodboards.length === 0) {
       return [];
     }
     
@@ -716,7 +721,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       return curatedMoodboardItems.slice(0, 3);
     }
     return customMoodboards.slice(0, 3);
-  }, [state.displayedMoodboardIds, customMoodboards, curatedMoodboardItems]);
+  }, [state.displayedMoodboardIds, customMoodboards, curatedMoodboardItems, loadingMoodboards]);
 
   // Displayed products: use stable displayedProductIds if set, otherwise derive from curated
   const displayedProducts = useMemo(() => {
@@ -993,7 +998,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
               
               {/* Moodboard Grid - 3 large items (selected first, then curated, then fallback) */}
               <div className="grid grid-cols-3 gap-4">
-                {isSmartMatching || loadingMoodboards ? (
+                {isSmartMatching || loadingMoodboards || (displayedMoodboards.length === 0 && (state.displayedMoodboardIds?.length || 0) > 0) ? (
                   <>
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="aspect-[4/3] rounded-xl bg-secondary/50 animate-pulse" />
