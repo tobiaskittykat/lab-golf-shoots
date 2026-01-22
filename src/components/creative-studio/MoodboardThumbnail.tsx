@@ -77,8 +77,8 @@ export const MoodboardThumbnail = ({
   // Only start loading when visible or selected
   const shouldLoadImage = isVisible || isSelected;
   
-  // Check if we have a valid URL to load
-  const hasValidUrl = !!moodboard.filePath && !!thumbnailUrl;
+  // Check if we have a valid URL to load - only need thumbnailUrl (which may come from thumbnail or filePath)
+  const hasValidUrl = !!thumbnailUrl;
 
   // Check if image is already cached
   useEffect(() => {

@@ -695,7 +695,8 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
             return normalizedMoodboardId === normalizedLookupId || m.id === id;
           });
         })
-        .filter(Boolean) as Moodboard[];
+        .filter(Boolean)
+        .filter(m => m && (m.thumbnail || m.filePath)) as Moodboard[];
       
       // Backfill to 3 if we lost any moodboards (deleted, stale ID, etc.)
       if (resolved.length < 3 && customMoodboards.length > resolved.length) {
