@@ -166,7 +166,7 @@ serve(async (req) => {
       // Fetch products that need analysis
       const { data: products, error } = await supabase
         .from('scraped_products')
-        .select('id, image_url')
+        .select('id, thumbnail_url')
         .in('id', productIds)
         .is('description', null);
 
@@ -179,7 +179,7 @@ serve(async (req) => {
       const results: { id: string; success: boolean }[] = [];
 
       for (const product of products || []) {
-        const description = await analyzeProductImage(product.image_url, apiKey);
+        const description = await analyzeProductImage(product.thumbnail_url, apiKey);
         
         if (description) {
           const { error: updateError } = await supabase
