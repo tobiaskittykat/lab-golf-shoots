@@ -1,5 +1,5 @@
 import { Shuffle, Plus, Bookmark } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CreativeStudioState, SavedConcept } from "./types";
 import { SavedConceptsModal } from "./SavedConceptsModal";
 
@@ -57,12 +57,23 @@ const getRandomBriefs = (typeId: string, count: number = 6): string[] => {
 export const StepOnePrompt = ({ state, onUpdate, onLoadSavedConcept, onDeleteSavedConcept }: StepOnePromptProps) => {
   const [displayedBriefs, setDisplayedBriefs] = useState<string[]>([]);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Initialize and update briefs when type changes
   useEffect(() => {
     const typeId = state.selectedTypeCard || 'product';
     setDisplayedBriefs(getRandomBriefs(typeId));
   }, [state.selectedTypeCard]);
+
+  // Smooth transition when prompt changes
+  useEffect(() => {
+    if (state.prompt.trim()) {
+      setIsVisible(false);
+    } else {
+      setIsVisible(true);
+    }
+  }, [state.prompt]);
 
   const handleShuffle = () => {
     const typeId = state.selectedTypeCard || 'product';
@@ -79,9 +90,14 @@ export const StepOnePrompt = ({ state, onUpdate, onLoadSavedConcept, onDeleteSav
 
   return (
     <div className="flex flex-col items-center max-w-3xl mx-auto space-y-6 pt-8">
-      {/* Example Briefs Section - only show when prompt is empty */}
-      {!state.prompt.trim() && (
-      <div className="w-full space-y-5">
+      {/* Example Briefs Section - smooth fade-out transition */}
+      <div 
+        ref={containerRef}
+        className={`w-full space-y-5 transition-all duration-300 ease-out overflow-hidden ${
+          !isVisible 
+            ? 'opacity-0 max-h-0 pointer-events-none' 
+            : 'opacity-100 max-h-[600px]'
+        }`}>
         {/* Section Header */}
         <div className="flex items-center gap-4">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -129,7 +145,6 @@ export const StepOnePrompt = ({ state, onUpdate, onLoadSavedConcept, onDeleteSav
           )}
         </div>
       </div>
-      )}
 
       {/* Saved Concepts Modal */}
       <SavedConceptsModal

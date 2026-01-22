@@ -159,4 +159,20 @@
   .animate-pulse-slow {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  /* Sparkle animation for CTA buttons */
+  @keyframes sparkle-pulse {
+    0%, 100% { 
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4));
+      transform: scale(1);
+    }
+    50% { 
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+      transform: scale(1.15);
+    }
+  }
+
+  .animate-sparkle {
+    animation: sparkle-pulse 1.5s ease-in-out infinite;
+  }
 }

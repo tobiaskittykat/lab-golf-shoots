@@ -441,12 +441,16 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   <button
                     onClick={handleContinue}
                     disabled={!state.prompt.trim() || isGeneratingConcepts}
-                    className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
+                    className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg group"
                     style={{
                       boxShadow: state.prompt.trim() ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                     }}
                   >
-                    <Sparkles className="w-5 h-5" />
+                    <Sparkles className={`w-5 h-5 transition-all ${
+                      state.prompt.trim() && !isGeneratingConcepts 
+                        ? 'animate-sparkle' 
+                        : ''
+                    }`} />
                     {isGeneratingConcepts ? 'Generating...' : 'Create Concepts'}
                   </button>
                 </div>
