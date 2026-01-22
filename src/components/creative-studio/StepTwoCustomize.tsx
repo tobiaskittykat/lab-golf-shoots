@@ -155,7 +155,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     }));
   }, [scrapedProducts, inferProductType]);
 
-  // Handle scraping products from Bandolier (clean refresh: delete old, insert new)
+  // Handle scraping products from Bandolier (UPSERT: preserves existing products)
   const handleScrapeProducts = async () => {
     if (!user) {
       toast({ title: 'Please sign in to scrape products', variant: 'destructive' });
@@ -172,22 +172,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       if (error) throw error;
 
       if (data.success && data.products?.length > 0) {
-        // CLEAN REFRESH: Delete all existing scraped products for this user first
-        // This ensures broken/stale URLs don't persist across syncs
-        const { error: deleteError } = await supabase
-          .from('scraped_products')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (deleteError) {
-          console.error('Failed to clear old products:', deleteError);
-          // Continue anyway - better to have duplicates than fail entirely
-        }
-
-        // Insert freshly scraped + mirrored products (now served from our storage)
+        // UPSERT: Insert new products, update existing ones (based on external_id)
+        // This preserves products from previous syncs that may not be in current scrape
         const productsToInsert = data.products.map((p: any) => ({
           user_id: user.id,
-          external_id: p.storagePath || p.id,
+          external_id: p.externalId || p.storagePath || p.id,
           name: p.name,
           thumbnail_url: p.thumbnail,
           full_url: p.url || p.thumbnail,
@@ -196,23 +185,24 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           storage_path: p.storagePath || null,
         }));
 
-        const { error: insertError } = await supabase
+        const { error: upsertError } = await supabase
           .from('scraped_products')
-          .insert(productsToInsert);
+          .upsert(productsToInsert, { 
+            onConflict: 'user_id,external_id',
+            ignoreDuplicates: false 
+          });
 
-        if (insertError) throw insertError;
-
-        // Clear any selections that may have been deleted
-        onUpdate({ productReferences: [] });
+        if (upsertError) throw upsertError;
 
         // Build informative toast message
         const droppedCount = data.totalDropped || 0;
+        const newCount = data.products.length;
         const description = droppedCount > 0 
           ? `${droppedCount} images failed to mirror`
-          : 'All product images saved to your library';
+          : 'Products added to your library';
 
         toast({ 
-          title: `Synced ${data.products.length} products!`, 
+          title: `Synced ${newCount} products!`, 
           description 
         });
         
@@ -225,6 +215,27 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
       toast({ title: 'Failed to sync products', variant: 'destructive' });
     } finally {
       setIsScrapingProducts(false);
+    }
+  };
+
+  // Handle clearing all products (explicit user action)
+  const handleClearAllProducts = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('scraped_products')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      onUpdate({ productReferences: [] });
+      refetchScrapedProducts();
+      toast({ title: 'Product library cleared' });
+    } catch (err) {
+      console.error('Failed to clear products:', err);
+      toast({ title: 'Failed to clear products', variant: 'destructive' });
     }
   };
 
@@ -1299,6 +1310,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         isLoading={loadingScrapedProducts}
         onSync={handleScrapeProducts}
         isSyncing={isScrapingProducts}
+        onClearAll={handleClearAllProducts}
       />
 
       <ReferenceGalleryModal

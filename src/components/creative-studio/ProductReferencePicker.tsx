@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription 
 } from "@/components/ui/dialog";
-import { Check, Upload, RefreshCw, Loader2, X, ChevronDown } from "lucide-react";
+import { Check, Upload, RefreshCw, Loader2, X, ChevronDown, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -28,6 +28,7 @@ interface ProductReferencePickerProps {
   isLoading?: boolean;
   onSync?: () => void;
   isSyncing?: boolean;
+  onClearAll?: () => void;
 }
 
 // Proxy external Shopify CDN URLs through our edge function to bypass hotlink protection
@@ -49,7 +50,9 @@ export const ProductReferencePicker = ({
   isLoading = false,
   onSync,
   isSyncing = false,
+  onClearAll,
 }: ProductReferencePickerProps) => {
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['phone-case', 'bag', 'strap', 'pouch', 'accessory', 'other']));
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
@@ -113,21 +116,58 @@ export const ProductReferencePicker = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1">
-          {/* Sync button */}
-          {onSync && (
-            <div className="flex justify-end">
-              <button
-                onClick={onSync}
-                disabled={isSyncing}
-                className="action-chip text-sm"
-              >
-                {isSyncing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
-                {isSyncing ? 'Syncing...' : 'Sync from Bandolier'}
-              </button>
+          {/* Action buttons */}
+          {(onSync || onClearAll) && (
+            <div className="flex justify-between items-center">
+              {/* Clear button */}
+              {onClearAll && products.length > 0 && (
+                <div>
+                  {showClearConfirm ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Clear all {products.length} products?</span>
+                      <button
+                        onClick={() => {
+                          onClearAll();
+                          setShowClearConfirm(false);
+                        }}
+                        className="text-xs px-2 py-1 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, clear
+                      </button>
+                      <button
+                        onClick={() => setShowClearConfirm(false)}
+                        className="text-xs px-2 py-1 rounded bg-secondary hover:bg-secondary/80"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowClearConfirm(true)}
+                      className="action-chip text-sm text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Clear Library
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Sync button */}
+              {onSync && (
+                <button
+                  onClick={onSync}
+                  disabled={isSyncing}
+                  className="action-chip text-sm ml-auto"
+                >
+                  {isSyncing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {isSyncing ? 'Syncing...' : 'Sync from Bandolier'}
+                </button>
+              )}
             </div>
           )}
 

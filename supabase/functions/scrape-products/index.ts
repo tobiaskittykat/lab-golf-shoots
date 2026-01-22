@@ -137,11 +137,11 @@ Deno.serve(async (req) => {
               },
               imageUrl: { 
                 type: "string", 
-                description: "Main product image URL from Shopify CDN (cdn.shopify.com). Must be an actual product photo." 
+                description: "Main product image URL. Can be from any CDN (Shopify, Cloudinary, etc). Must be an actual product photo." 
               },
               category: { 
                 type: "string", 
-                enum: ["phone-case", "crossbody", "strap", "wallet", "bag", "accessory"],
+                enum: ["phone-case", "crossbody", "strap", "wallet", "bag", "accessory", "pouch", "other"],
                 description: "Product category based on the type of item" 
               },
               color: { 
@@ -171,16 +171,16 @@ Deno.serve(async (req) => {
         formats: ['extract'],
         extract: {
           schema: productSchema,
-          prompt: `Extract up to 50 actual product items from this e-commerce page. 
+          prompt: `Extract up to 100 actual product items from this e-commerce page. 
           
 IMPORTANT RULES:
-- Only extract real products for sale (phone cases, crossbody bags, straps, wallets, accessories)
+- Only extract real products for sale (phone cases, crossbody bags, straps, wallets, pouches, accessories)
 - DO NOT include: logos, icons, banners, promotional graphics, Adobe files, or any non-product images
-- Product image URLs must be from cdn.shopify.com and show actual product photos
+- Product image URLs should show actual product photos from any valid image CDN
 - Clean up product names: remove file codes, dimensions, dates (e.g., "Hailey Big D Ring Gold 17 20250811 003" should become "Hailey D-Ring - Gold")
 - Combine product name with color/finish in a clean format like "Product Name - Color"
 - Assign accurate categories based on what the product actually is
-- Skip duplicates - if same product appears in multiple colors, each color is a separate product`
+- Extract as many unique products as possible - each color variant is a separate product`
         },
         waitFor: 5000,
       }),
@@ -199,12 +199,12 @@ IMPORTANT RULES:
     const extractedProducts = data.data?.extract?.products || [];
     console.log(`Firecrawl extracted ${extractedProducts.length} products`);
 
-    // First pass: filter out obvious non-products
+    // First pass: filter out obvious non-products (relaxed URL filter)
     const preFilteredProducts = extractedProducts
       .filter((product: ScrapedProduct) => {
-        // Must have valid Shopify CDN image URL
-        if (!product.imageUrl?.includes('cdn.shopify.com')) {
-          console.log('Skipping non-Shopify image:', product.name);
+        // Must have a valid image URL (any CDN is fine, not just Shopify)
+        if (!product.imageUrl || !product.imageUrl.startsWith('http')) {
+          console.log('Skipping invalid image URL:', product.name);
           return false;
         }
         // Must have a meaningful name
@@ -213,32 +213,40 @@ IMPORTANT RULES:
           return false;
         }
         // Skip obvious non-products
-        const skipPatterns = ['logo', 'icon', 'banner', 'adobe', 'express', 'file'];
-        if (skipPatterns.some(p => product.name.toLowerCase().includes(p))) {
+        const skipPatterns = ['logo', 'icon', 'banner', 'adobe', 'express', 'file', '.svg'];
+        if (skipPatterns.some(p => product.name.toLowerCase().includes(p) || product.imageUrl.toLowerCase().includes(p))) {
           console.log('Skipping non-product:', product.name);
           return false;
         }
         return true;
       })
-      .slice(0, 50); // Limit to 50 products
+      .slice(0, 100); // Increased limit to 100 products
 
     console.log(`Pre-filter passed: ${preFilteredProducts.length} products`);
     console.log('Starting image mirroring to storage...');
 
+    // Generate stable external_id from product name (for upsert deduplication)
+    const generateExternalId = (name: string) => {
+      // Create a stable hash-like ID from the product name
+      const normalized = name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      return `bandolier-${normalized}`;
+    };
+
     // Mirror each image to Supabase storage
     const mirrorResults = await Promise.all(
-      preFilteredProducts.map(async (product: ScrapedProduct, index: number) => {
-        const productId = `bandolier-${Date.now()}-${index}`;
+      preFilteredProducts.map(async (product: ScrapedProduct) => {
+        const externalId = generateExternalId(product.name);
         const mirrorResult = await mirrorImageToStorage(
           supabaseClient,
           product.imageUrl,
           userId,
-          productId
+          externalId
         );
         
         if (mirrorResult) {
           return {
-            id: productId,
+            id: externalId,
+            externalId: externalId, // Stable ID for upsert
             name: product.name,
             thumbnail: mirrorResult.publicUrl,
             url: mirrorResult.publicUrl,
