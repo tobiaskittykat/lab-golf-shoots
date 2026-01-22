@@ -39,6 +39,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   // State for floating footer
   const [floating, setFloating] = useState({ active: false, left: 0, width: 0 });
   const [footerHeight, setFooterHeight] = useState(80);
+  const [isAgentMatching, setIsAgentMatching] = useState(false);
 
   // Fetch previously generated images
   const fetchPreviousImages = useCallback(async () => {
@@ -356,6 +357,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   <StepTwoCustomize
                     state={state}
                     onUpdate={handleUpdate}
+                    onMatchingStateChange={setIsAgentMatching}
                   />
                 </div>
               </div>
@@ -402,14 +404,14 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
               
               <button
                 onClick={handleGenerate}
-                disabled={isGeneratingImages}
+                disabled={isGeneratingImages || isAgentMatching}
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
                 style={{
-                  boxShadow: !isGeneratingImages ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
+                  boxShadow: !isGeneratingImages && !isAgentMatching ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
                 }}
               >
                 <Sparkles className="w-5 h-5" />
-                {isGeneratingImages ? 'Generating...' : `Generate (${state.imageCount} images)`}
+                {isAgentMatching ? 'Matching...' : isGeneratingImages ? 'Generating...' : `Generate (${state.imageCount} images)`}
               </button>
             </div>
           </div>
