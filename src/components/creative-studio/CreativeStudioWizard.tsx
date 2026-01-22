@@ -11,6 +11,7 @@ import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -215,6 +216,29 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     handleUpdate(updates);
   }, [handleUpdate]);
 
+  const { toast } = useToast();
+  
+  // Delete a saved concept
+  const handleDeleteSavedConcept = useCallback(async (conceptId: string) => {
+    try {
+      const { error } = await supabase
+        .from('saved_concepts')
+        .delete()
+        .eq('id', conceptId);
+
+      if (error) throw error;
+
+      toast({ title: 'Concept removed' });
+      // Update state to remove from list
+      handleUpdate({
+        savedConcepts: state.savedConcepts.filter(c => c.id !== conceptId)
+      });
+    } catch (err) {
+      console.error('Failed to delete concept:', err);
+      toast({ title: 'Failed to delete concept', variant: 'destructive' });
+    }
+  }, [handleUpdate, state.savedConcepts, toast]);
+
   const handleGenerate = useCallback(async () => {
     handleUpdate({ isGenerating: true, generatedImages: [] });
     
@@ -403,6 +427,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   state={state} 
                   onUpdate={handleUpdate}
                   onLoadSavedConcept={handleLoadSavedConcept}
+                  onDeleteSavedConcept={handleDeleteSavedConcept}
                 />
                 
                 {/* Step 1 Footer */}

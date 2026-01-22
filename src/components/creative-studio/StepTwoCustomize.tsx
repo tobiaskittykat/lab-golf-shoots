@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { 
+import { SavedConceptsModal } from "./SavedConceptsModal";
+import {
   Sparkles, 
   Type, 
   Settings2, 
@@ -73,6 +74,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   const [showContextRefModal, setShowContextRefModal] = useState(false);
   const [savingConceptId, setSavingConceptId] = useState<string | null>(null);
   const [savedConceptsOpen, setSavedConceptsOpen] = useState(true);
+  const [showSavedConceptsModal, setShowSavedConceptsModal] = useState(false);
   
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -908,36 +910,19 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
             <Sparkles className="w-5 h-5 text-accent" />
             Concepts
           </h3>
-          <span className="text-sm text-muted-foreground">Pick one or add your own</span>
+          <div className="flex items-center gap-3">
+            {state.savedConcepts.length > 0 && (
+              <button
+                onClick={() => setShowSavedConceptsModal(true)}
+                className="text-xs text-muted-foreground hover:text-accent flex items-center gap-1.5 transition-colors"
+              >
+                <BookmarkCheck className="w-3.5 h-3.5" />
+                Load saved ({state.savedConcepts.length})
+              </button>
+            )}
+            <span className="text-sm text-muted-foreground">Pick one or add your own</span>
+          </div>
         </div>
-
-        {/* Saved Concepts - Collapsible */}
-        {state.savedConcepts.length > 0 && (
-          <Collapsible open={savedConceptsOpen} onOpenChange={setSavedConceptsOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full py-2 text-left hover:bg-secondary/30 rounded-lg px-2 -mx-2 transition-colors">
-              <div className="flex items-center gap-2">
-                <BookmarkCheck className="w-4 h-4 text-accent" />
-                <span className="text-sm font-medium text-foreground">Your Saved Concepts</span>
-                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
-                  {state.savedConcepts.length}
-                </span>
-              </div>
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${savedConceptsOpen ? 'rotate-180' : ''}`} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2 space-y-2">
-              {state.savedConcepts.map((concept) => (
-                <SavedConceptCard
-                  key={concept.id}
-                  concept={concept}
-                  isSelected={state.selectedConcept === concept.id}
-                  onSelect={() => handleConceptSelect(concept)}
-                  onEdit={() => handleEditConcept(concept)}
-                  onDelete={() => handleDeleteSavedConcept(concept.id)}
-                />
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
-        )}
         
         {/* Generated Concepts - with progressive loading */}
         <div className="space-y-3">
@@ -1601,6 +1586,15 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         onSave={handleSaveEditedConcept}
         isNew={isNewConcept}
         defaultUseCase={state.useCase}
+      />
+
+      {/* Saved Concepts Modal */}
+      <SavedConceptsModal
+        isOpen={showSavedConceptsModal}
+        onClose={() => setShowSavedConceptsModal(false)}
+        savedConcepts={state.savedConcepts}
+        onLoadConcept={(concept) => handleConceptSelect(concept)}
+        onDeleteConcept={handleDeleteSavedConcept}
       />
     </div>
   );
