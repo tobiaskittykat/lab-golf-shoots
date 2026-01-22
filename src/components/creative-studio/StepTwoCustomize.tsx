@@ -456,6 +456,14 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     }
 
     onUpdate(updates);
+    
+    // Gentle scroll to customization section after concept selection
+    setTimeout(() => {
+      const customizeSection = document.getElementById('section-customize');
+      if (customizeSection) {
+        customizeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
   }, [state.extraKeywords, onUpdate]);
 
   // Save concept to database
@@ -1016,7 +1024,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           </p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div id="section-customize" className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="p-4 border-b border-border bg-secondary/30">
             <h3 className="font-semibold text-foreground">Customize your creative</h3>
           </div>

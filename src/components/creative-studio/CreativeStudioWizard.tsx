@@ -165,12 +165,11 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     // Clear existing concepts and show loading state
     handleUpdate({ isLoadingConcepts: true, step: 2, concepts: [] });
     
-    // Progressive callback to add concepts one by one
+    // Progressive callback to add concepts one by one (no auto-selection)
     const onConceptReady = (concept: any, index: number) => {
       setState(prev => ({
         ...prev,
         concepts: [...prev.concepts, concept],
-        selectedConcept: index === 0 ? concept.id : prev.selectedConcept,
       }));
     };
     
@@ -186,6 +185,14 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     );
     
     handleUpdate({ isLoadingConcepts: false });
+    
+    // Gentle scroll to concepts section after generation completes
+    setTimeout(() => {
+      const conceptSection = document.getElementById('section-concepts');
+      if (conceptSection) {
+        conceptSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }, [state.prompt, state.useCase, state.targetPersona, currentBrand, handleUpdate, generateConcepts]);
 
   const handleBack = useCallback(() => {
