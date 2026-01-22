@@ -148,6 +148,20 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     return 'other';
   }, []);
 
+  // Map AI product_type to category for custom uploads
+  const mapProductTypeToCategory = useCallback((productType?: string): string => {
+    if (!productType) return 'other';
+    const pt = productType.toLowerCase();
+    
+    if (pt.includes('phone') || pt.includes('crossbody case') || pt.includes('case')) return 'phone-case';
+    if (pt.includes('strap') || pt.includes('lanyard') || pt.includes('chain')) return 'strap';
+    if (pt.includes('bag') || pt.includes('tote') || pt.includes('clutch')) return 'bag';
+    if (pt.includes('pouch') || pt.includes('wallet') || pt.includes('card')) return 'pouch';
+    if (pt.includes('charm') || pt.includes('accessory') || pt.includes('keychain')) return 'accessory';
+    
+    return 'other';
+  }, []);
+
   // Only show scraped Bandolier products (no sample placeholders)
   const allProductReferences = useMemo(() => {
     return scrapedProducts.map(r => ({
@@ -304,8 +318,14 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         console.warn('Product analysis failed, continuing without description:', analysisErr);
       }
 
-      // 4. Insert into scraped_products with custom-upload category
+      // 4. Insert into scraped_products with AI-detected category
       const productName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      
+      // Use AI-detected product_type for category, fallback to name-based inference
+      const category = description?.product_type 
+        ? mapProductTypeToCategory(description.product_type)
+        : inferProductType(productName);
+      
       const { error: insertError } = await supabase
         .from('scraped_products')
         .insert({
@@ -315,7 +335,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
           thumbnail_url: publicUrl,
           full_url: publicUrl,
           storage_path: uploadData.path,
-          category: 'custom-upload',
+          category,
           description,
         });
 
