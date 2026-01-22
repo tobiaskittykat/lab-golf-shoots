@@ -62,9 +62,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 interface StepTwoCustomizeProps {
   state: CreativeStudioState;
   onUpdate: (updates: Partial<CreativeStudioState>) => void;
+  onMatchingStateChange?: (isMatching: boolean) => void;
 }
 
-export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => {
+export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: StepTwoCustomizeProps) => {
   const [newKeyword, setNewKeyword] = useState('');
   const [showMoodboardModal, setShowMoodboardModal] = useState(false);
   const [showProductRefModal, setShowProductRefModal] = useState(false);
@@ -510,6 +511,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   useEffect(() => {
     fetchSavedConcepts();
   }, [fetchSavedConcepts]);
+
+  // Notify parent of matching state changes
+  useEffect(() => {
+    onMatchingStateChange?.(isSmartMatching);
+  }, [isSmartMatching, onMatchingStateChange]);
 
   // Delete saved concept
   const handleDeleteSavedConcept = useCallback(async (conceptId: string) => {
@@ -1117,10 +1123,75 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             </div>
           </CustomizationSection>
 
-          {/* ===== 5. PROMPT REFINEMENT SECTION ===== */}
+          {/* ===== 5. OUTPUT SETTINGS SECTION ===== */}
+          <CustomizationSection 
+            title="Output" 
+            icon={<Settings2 className="w-4 h-4" />}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                {/* Number of Images */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Images</label>
+                  <Select 
+                    value={String(state.imageCount)} 
+                    onValueChange={(v) => onUpdate({ imageCount: Number(v) })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 4, 8].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Resolution */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Resolution</label>
+                  <Select 
+                    value={state.resolution} 
+                    onValueChange={(v) => onUpdate({ resolution: v })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resolutions.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Aspect Ratio */}
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">Aspect Ratio</label>
+                  <Select 
+                    value={state.aspectRatio} 
+                    onValueChange={(v) => onUpdate({ aspectRatio: v })}
+                  >
+                    <SelectTrigger className="bg-secondary">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aspectRatios.map((ar) => (
+                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CustomizationSection>
+
+          {/* ===== 6. PROMPT REFINEMENT SECTION ===== */}
           <CustomizationSection 
             title="Prompt Refinement" 
             icon={<Type className="w-4 h-4" />}
+            defaultOpen={false}
           >
             <div className="space-y-5">
               {/* Lighting & Camera Row */}
@@ -1227,74 +1298,11 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             </div>
           </CustomizationSection>
 
-          {/* ===== 6. OUTPUT SETTINGS SECTION ===== */}
-          <CustomizationSection 
-            title="Output" 
-            icon={<Settings2 className="w-4 h-4" />}
-          >
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                {/* Number of Images */}
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Images</label>
-                  <Select 
-                    value={String(state.imageCount)} 
-                    onValueChange={(v) => onUpdate({ imageCount: Number(v) })}
-                  >
-                    <SelectTrigger className="bg-secondary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 4, 8].map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Resolution */}
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Resolution</label>
-                  <Select 
-                    value={state.resolution} 
-                    onValueChange={(v) => onUpdate({ resolution: v })}
-                  >
-                    <SelectTrigger className="bg-secondary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {resolutions.map((r) => (
-                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Aspect Ratio */}
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">Aspect Ratio</label>
-                  <Select 
-                    value={state.aspectRatio} 
-                    onValueChange={(v) => onUpdate({ aspectRatio: v })}
-                  >
-                    <SelectTrigger className="bg-secondary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {aspectRatios.map((ar) => (
-                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </CustomizationSection>
-
-          {/* ===== 8. AI MODEL SECTION ===== */}
+          {/* ===== 7. AI MODEL SECTION ===== */}
           <CustomizationSection 
             title="AI Model" 
             icon={<Cpu className="w-4 h-4" />}
+            defaultOpen={false}
           >
             <div className="grid grid-cols-3 gap-3">
               {aiModels.map((model) => (
