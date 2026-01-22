@@ -741,7 +741,7 @@ MANDATORY REQUIREMENTS:
             context_reference_url: null, // Shot types are now text prompts, not image URLs
             moodboard_id: body.moodboardId || null,
             settings: {
-              aiModel: body.aiModel,
+              aiModel: selectedModel, // Save actual model used, not user selection
               artisticStyle: body.artisticStyle,
               lightingStyle: body.lightingStyle,
               cameraAngle: body.cameraAngle,
