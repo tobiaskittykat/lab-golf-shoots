@@ -10,12 +10,14 @@ import {
 } from '@/components/creative-studio/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuditLog } from '@/hooks/useAuditLog';
 export function useImageGeneration() {
   const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [conceptsProgress, setConceptsProgress] = useState(0); // 0-3 concepts loaded
   const { toast } = useToast();
   const { user } = useAuth();
+  const { log: auditLog } = useAuditLog();
 
   // Generate concepts from prompt with progressive callback
   const generateConcepts = useCallback(async (
@@ -460,6 +462,13 @@ export function useImageGeneration() {
   // Delete a generated image
   const deleteImage = useCallback(async (imageId: string): Promise<boolean> => {
     try {
+      // Get image details before deletion for audit
+      const { data: imageData } = await supabase
+        .from('generated_images')
+        .select('prompt, concept_title')
+        .eq('id', imageId)
+        .maybeSingle();
+      
       const { error } = await supabase
         .from('generated_images')
         .delete()
@@ -479,12 +488,22 @@ export function useImageGeneration() {
         title: 'Image deleted',
         description: 'The image has been removed',
       });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'delete_generated_image',
+        resourceType: 'generated_images',
+        resourceId: imageId,
+        resourceName: imageData?.concept_title || 'Untitled',
+        metadata: { prompt: imageData?.prompt?.substring(0, 100) }
+      });
+      
       return true;
     } catch (err) {
       console.error('Error deleting image:', err);
       return false;
     }
-  }, [toast]);
+  }, [toast, auditLog]);
 
   return {
     isGeneratingConcepts,
