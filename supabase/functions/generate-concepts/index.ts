@@ -84,6 +84,49 @@ interface Concept {
   tonality: Tonality;
 }
 
+const MAX_RETRIES = 2;
+const PRIMARY_MODEL = "google/gemini-3-flash-preview";
+const FALLBACK_MODEL = "google/gemini-2.5-flash";
+
+async function callAI(apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  console.log(`Calling AI with model: ${model}`);
+  
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.9,
+      max_tokens: 4000,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("AI API error:", response.status, errorText);
+    throw new Error(`AI API error: ${response.status}`);
+  }
+
+  const aiResponse = await response.json();
+  console.log("AI response structure:", JSON.stringify(aiResponse).slice(0, 500));
+  
+  const content = aiResponse.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    console.error("Empty content. Full response:", JSON.stringify(aiResponse));
+    throw new Error("No content in AI response");
+  }
+  
+  return content;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -265,38 +308,37 @@ Make each concept unique and commercially viable. Think like a high-end creative
 
     const userPrompt = `Generate 3 complete campaign concepts for: ${prompt}`;
 
-    // Call Lovable AI Gateway with stable model
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.9,
-        max_tokens: 4000,
-      }),
-    });
+    // Call AI with retry logic - primary model with fallback
+    let content: string | null = null;
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
+    // Try primary model (Gemini 3) with retries
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        console.log(`Attempt ${attempt + 1}/${MAX_RETRIES} with ${PRIMARY_MODEL}`);
+        content = await callAI(LOVABLE_API_KEY, PRIMARY_MODEL, systemPrompt, userPrompt);
+        console.log("Successfully got response from primary model");
+        break;
+      } catch (error) {
+        console.warn(`Attempt ${attempt + 1} failed:`, error instanceof Error ? error.message : error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        // Small delay before retry
+        if (attempt < MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
     }
 
-    const aiResponse = await response.json();
-    console.log("AI response structure:", JSON.stringify(aiResponse).slice(0, 500));
-    
-    const content = aiResponse.choices?.[0]?.message?.content;
-
+    // Fallback to stable model if primary fails
     if (!content) {
-      console.error("Empty content. Full response:", JSON.stringify(aiResponse));
-      throw new Error("No content in AI response");
+      console.log(`Primary model failed after ${MAX_RETRIES} attempts, falling back to ${FALLBACK_MODEL}`);
+      try {
+        content = await callAI(LOVABLE_API_KEY, FALLBACK_MODEL, systemPrompt, userPrompt);
+        console.log("Successfully got response from fallback model");
+      } catch (fallbackError) {
+        console.error("Fallback model also failed:", fallbackError);
+        throw lastError || fallbackError;
+      }
     }
 
     console.log("AI response received, parsing...");
