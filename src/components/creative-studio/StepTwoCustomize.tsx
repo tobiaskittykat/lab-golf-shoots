@@ -608,12 +608,20 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       
       // Only update display order if selecting from gallery (item not already visible)
       if (fromGallery && !currentDisplayIds.includes(productId)) {
-        // Keep all currently selected, add new selection, fill rest with non-selected
-        const selectedAfter = [...state.productReferences, productId];
-        const nonSelectedDisplay = currentDisplayIds.filter(id => !selectedAfter.includes(id));
-        // New item goes to front, keep other selected, fill to 5 with non-selected
-        const newDisplayed = [productId, ...currentDisplayIds.filter(id => id !== productId)].slice(0, 5);
-        updates.displayedProductIds = newDisplayed;
+        // New item goes to front, keep others, ensure 5 total
+        let newDisplayed = [productId, ...currentDisplayIds.filter(id => id !== productId)];
+        
+        // If we don't have 5 yet, backfill from allProductReferences
+        if (newDisplayed.length < 5) {
+          const existingIds = new Set(newDisplayed);
+          const backfill = allProductReferences
+            .filter(p => !existingIds.has(p.id))
+            .slice(0, 5 - newDisplayed.length)
+            .map(p => p.id);
+          newDisplayed = [...newDisplayed, ...backfill];
+        }
+        
+        updates.displayedProductIds = newDisplayed.slice(0, 5);
       }
       
       onUpdate(updates);
@@ -689,9 +697,20 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     
     // If we have stable display IDs, use them directly (maintains order)
     if (displayIds.length > 0) {
-      return displayIds
+      const resolved = displayIds
         .map(id => allProductReferences.find(p => p.id === id))
         .filter(Boolean) as ReferenceImage[];
+      
+      // If we lost any products (deleted, stale ID, etc.), backfill to 5 from allProductReferences
+      if (resolved.length < 5 && allProductReferences.length > resolved.length) {
+        const resolvedIds = new Set(resolved.map(p => p.id));
+        const backfill = allProductReferences
+          .filter(p => !resolvedIds.has(p.id))
+          .slice(0, 5 - resolved.length);
+        return [...resolved, ...backfill];
+      }
+      
+      return resolved;
     }
     
     // Fallback: use curated or first 5 (initial state before smart-match runs)
@@ -761,12 +780,19 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         // The AI might return bare UUIDs, but frontend expects "custom-{uuid}" format
         const normalizeId = (id: string, validIds: string[]) => {
           if (validIds.includes(id)) return id;
-          // Try with custom- prefix
-          const prefixed = `custom-${id}`;
-          if (validIds.includes(prefixed)) return prefixed;
+          // Try with custom- prefix (for moodboards)
+          const customPrefixed = `custom-${id}`;
+          if (validIds.includes(customPrefixed)) return customPrefixed;
+          // Try with scraped- prefix (for products)
+          const scrapedPrefixed = `scraped-${id}`;
+          if (validIds.includes(scrapedPrefixed)) return scrapedPrefixed;
           // Try stripping prefix if it has one
           if (id.startsWith('custom-')) {
             const stripped = id.replace('custom-', '');
+            if (validIds.includes(stripped)) return stripped;
+          }
+          if (id.startsWith('scraped-')) {
+            const stripped = id.replace('scraped-', '');
             if (validIds.includes(stripped)) return stripped;
           }
           return null; // Invalid ID
