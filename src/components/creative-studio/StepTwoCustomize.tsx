@@ -61,6 +61,7 @@ import {
 } from "./types";
 import { useQuery } from "@tanstack/react-query";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { smoothScrollTo } from "@/lib/utils";
 
 interface StepTwoCustomizeProps {
   state: CreativeStudioState;
@@ -457,14 +458,9 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
 
     onUpdate(updates);
     
-    // Scroll to customization section with offset for sticky header
+    // Scroll to customization section with smooth eased animation
     setTimeout(() => {
-      const element = document.getElementById('section-customize');
-      if (element) {
-        const offset = 80;
-        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
-      }
+      smoothScrollTo('section-customize', 100, 600);
     }, 150);
   }, [state.extraKeywords, onUpdate]);
 

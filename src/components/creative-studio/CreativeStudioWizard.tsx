@@ -13,6 +13,7 @@ import { useBrands } from "@/hooks/useBrands";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { smoothScrollTo } from "@/lib/utils";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -197,14 +198,9 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     
     handleUpdate({ isLoadingConcepts: false });
     
-    // Scroll to concepts section with offset for sticky header
+    // Scroll to concepts section with smooth eased animation
     setTimeout(() => {
-      const element = document.getElementById('section-concepts');
-      if (element) {
-        const offset = 80;
-        const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
-      }
+      smoothScrollTo('section-concepts', 100, 600);
     }, 100);
   }, [state.prompt, state.useCase, state.targetPersona, currentBrand, handleUpdate, generateConcepts]);
 
