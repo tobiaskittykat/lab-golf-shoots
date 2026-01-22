@@ -41,6 +41,7 @@ import { MoodboardModal } from "./MoodboardModal";
 import { ReferenceGalleryModal } from "./ReferenceGalleryModal";
 import { ProductReferencePicker } from "./ProductReferencePicker";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -87,6 +88,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const { log: auditLog } = useAuditLog();
 
   const proxyImageUrl = (raw?: string | null) => {
     if (!raw) return undefined;
@@ -225,6 +227,13 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           description 
         });
         
+        // Audit log (fire-and-forget)
+        auditLog({
+          action: 'scrape_products',
+          resourceType: 'scraped_products',
+          metadata: { url: 'https://www.bandolierstyle.com/collections/all', count: newCount, droppedCount }
+        });
+        
         refetchScrapedProducts();
       } else {
         toast({ title: 'No products found', variant: 'destructive' });
@@ -241,6 +250,9 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   const handleClearAllProducts = async () => {
     if (!user) return;
     
+    // Get count before deletion for audit
+    const countBeforeDelete = scrapedProducts.length;
+    
     try {
       const { error } = await supabase
         .from('scraped_products')
@@ -252,6 +264,13 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       onUpdate({ productReferences: [] });
       refetchScrapedProducts();
       toast({ title: 'Product library cleared' });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'clear_all_products',
+        resourceType: 'scraped_products',
+        metadata: { count: countBeforeDelete }
+      });
     } catch (err) {
       console.error('Failed to clear products:', err);
       toast({ title: 'Failed to clear products', variant: 'destructive' });
@@ -261,6 +280,11 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   // Handle deleting a scraped product
   const handleDeleteScrapedProduct = async (productId: string) => {
     const dbId = productId.replace('scraped-', '');
+    
+    // Get product name before deletion for audit
+    const product = scrapedProducts.find(p => p.id === productId);
+    const productName = product?.name || 'Unknown';
+    
     try {
       const { error } = await supabase
         .from('scraped_products')
@@ -276,6 +300,14 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       
       refetchScrapedProducts();
       toast({ title: 'Product removed' });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'delete_product',
+        resourceType: 'scraped_products',
+        resourceId: dbId,
+        resourceName: productName
+      });
     } catch (err) {
       console.error('Failed to delete product:', err);
       toast({ title: 'Failed to remove product', variant: 'destructive' });
@@ -351,6 +383,14 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       toast({ 
         title: 'Product uploaded', 
         description: description ? 'AI analysis complete' : 'Added to your library'
+      });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'upload_product',
+        resourceType: 'scraped_products',
+        resourceName: productName,
+        metadata: { category, source: 'manual_upload' }
       });
     } catch (err) {
       console.error('Failed to upload product:', err);

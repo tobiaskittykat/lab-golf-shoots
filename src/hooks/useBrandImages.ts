@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useBrands } from "./useBrands";
 import { useToast } from "./use-toast";
+import { useAuditLog } from "./useAuditLog";
 
 export interface BrandImage {
   id: string;
@@ -62,6 +63,7 @@ export function useBrandImages() {
   const { user } = useAuth();
   const { currentBrand, updateBrand, refetch: refetchBrands } = useBrands();
   const { toast } = useToast();
+  const { log: auditLog } = useAuditLog();
   
   const [images, setImages] = useState<BrandImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -160,6 +162,14 @@ export function useBrandImages() {
         description: "The image is being analyzed in the background",
       });
 
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'upload_brand_image',
+        resourceType: 'brand_images',
+        resourceId: imageRecord.id,
+        metadata: { category }
+      });
+
       return imageRecord as BrandImage;
     } catch (err) {
       console.error("Error uploading image:", err);
@@ -172,7 +182,7 @@ export function useBrandImages() {
     } finally {
       setIsUploading(false);
     }
-  }, [user, currentBrand, toast]);
+  }, [user, currentBrand, toast, auditLog]);
 
   const deleteImage = useCallback(async (imageId: string) => {
     if (!user) return false;
@@ -190,6 +200,14 @@ export function useBrandImages() {
       toast({
         title: "Image deleted",
       });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'delete_brand_image',
+        resourceType: 'brand_images',
+        resourceId: imageId
+      });
+      
       return true;
     } catch (err) {
       console.error("Error deleting image:", err);
@@ -199,7 +217,7 @@ export function useBrandImages() {
       });
       return false;
     }
-  }, [user, toast]);
+  }, [user, toast, auditLog]);
 
   const regenerateBrandBrain = useCallback(async (): Promise<BrandBrain | null> => {
     if (!user || !currentBrand) {

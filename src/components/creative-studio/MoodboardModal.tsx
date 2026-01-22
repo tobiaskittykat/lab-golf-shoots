@@ -12,6 +12,7 @@ import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ export const MoodboardModal = ({
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const { log: auditLog } = useAuditLog();
   const queryClient = useQueryClient();
 
   // Fetch custom moodboards - transform to Moodboard shape for cache consistency with StepTwoCustomize
@@ -161,6 +163,15 @@ export const MoodboardModal = ({
       // Refresh the list
       queryClient.invalidateQueries({ queryKey: ['custom-moodboards'] });
       toast({ title: `${validFiles.length} moodboard(s) uploaded successfully` });
+      
+      // Audit log (fire-and-forget)
+      for (const file of validFiles) {
+        auditLog({
+          action: 'upload_moodboard',
+          resourceType: 'custom_moodboards',
+          resourceName: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+        });
+      }
     } catch (err) {
       console.error('Upload error:', err);
       toast({ title: 'Failed to upload moodboard', variant: 'destructive' });
@@ -168,7 +179,7 @@ export const MoodboardModal = ({
       setIsUploading(false);
       setUploadProgress([]);
     }
-  }, [user?.id, toast, queryClient]);
+  }, [user?.id, toast, queryClient, auditLog]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -183,6 +194,7 @@ export const MoodboardModal = ({
       // Extract raw ID (strip custom- prefix) and file path
       const rawId = moodboard.id.replace(/^custom-/, '');
       const filePath = moodboard.filePath || '';
+      const moodboardName = moodboard.name;
       
       // Delete from storage
       if (filePath) {
@@ -194,6 +206,14 @@ export const MoodboardModal = ({
       
       queryClient.invalidateQueries({ queryKey: ['custom-moodboards'] });
       toast({ title: 'Moodboard deleted' });
+      
+      // Audit log (fire-and-forget)
+      auditLog({
+        action: 'delete_moodboard',
+        resourceType: 'custom_moodboards',
+        resourceId: rawId,
+        resourceName: moodboardName
+      });
     } catch (err) {
       console.error('Delete error:', err);
       toast({ title: 'Failed to delete', variant: 'destructive' });
