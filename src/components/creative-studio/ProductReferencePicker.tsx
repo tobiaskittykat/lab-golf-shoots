@@ -29,6 +29,7 @@ interface ProductReferencePickerProps {
   onSync?: () => void;
   isSyncing?: boolean;
   onClearAll?: () => void;
+  onDeleteProduct?: (productId: string) => void;
 }
 
 // Proxy external Shopify CDN URLs through our edge function to bypass hotlink protection
@@ -51,8 +52,10 @@ export const ProductReferencePicker = ({
   onSync,
   isSyncing = false,
   onClearAll,
+  onDeleteProduct,
 }: ProductReferencePickerProps) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['phone-case', 'bag', 'strap', 'pouch', 'accessory', 'other']));
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
@@ -96,6 +99,16 @@ export const ProductReferencePicker = ({
 
   const handleImageError = (productId: string) => {
     setImageErrors(prev => new Set(prev).add(productId));
+  };
+
+  const handleDelete = (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation(); // Prevent selecting the product
+    if (onDeleteProduct) {
+      setDeletingId(productId);
+      onDeleteProduct(productId);
+      // Reset after a short delay
+      setTimeout(() => setDeletingId(null), 500);
+    }
   };
 
   return (
@@ -211,54 +224,80 @@ export const ProductReferencePicker = ({
                     const atLimit = selectedIds.length >= maxSelection && !isSelected;
 
                     return (
-                      <button
+                      <div
                         key={product.id}
-                        type="button"
-                        onClick={() => handleSelect(product.id)}
-                        disabled={atLimit}
                         className={cn(
-                          "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                          "focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2",
+                          "group relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
                           isSelected
                             ? "border-accent ring-1 ring-accent/30 shadow-md"
                             : "border-border hover:border-accent/50",
-                          atLimit && "opacity-50 cursor-not-allowed"
+                          atLimit && "opacity-50"
                         )}
                       >
-                        {/* Image - proxied through edge function to bypass hotlink protection */}
-                        {!hasError ? (
-                          <img
-                            src={getProxiedUrl(product.thumbnailUrl)}
-                            alt={product.name}
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover"
-                            onError={() => handleImageError(product.id)}
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-secondary flex items-center justify-center p-2">
-                            <span className="text-xs text-muted-foreground text-center line-clamp-3">
-                              {product.name}
-                            </span>
-                          </div>
-                        )}
+                        {/* Main clickable area for selection */}
+                        <button
+                          type="button"
+                          onClick={() => handleSelect(product.id)}
+                          disabled={atLimit}
+                          className="absolute inset-0 w-full h-full focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-lg"
+                        >
+                          {/* Image - proxied through edge function to bypass hotlink protection */}
+                          {!hasError ? (
+                            <img
+                              src={getProxiedUrl(product.thumbnailUrl)}
+                              alt={product.name}
+                              loading="lazy"
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={() => handleImageError(product.id)}
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-secondary flex items-center justify-center p-2">
+                              <span className="text-xs text-muted-foreground text-center line-clamp-3">
+                                {product.name}
+                              </span>
+                            </div>
+                          )}
 
-                        {/* Gradient overlay for label */}
-                        {!hasError && (
-                          <>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                            <span className="absolute bottom-1 left-1 right-1 text-[10px] font-medium text-white truncate">
-                              {product.name}
-                            </span>
-                          </>
-                        )}
+                          {/* Gradient overlay for label */}
+                          {!hasError && (
+                            <>
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                              <span className="absolute bottom-1 left-1 right-6 text-[10px] font-medium text-white truncate">
+                                {product.name}
+                              </span>
+                            </>
+                          )}
 
-                        {/* Selected check */}
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                            <Check className="w-3 h-3 text-accent-foreground" />
-                          </div>
+                          {/* Selected check */}
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+                              <Check className="w-3 h-3 text-accent-foreground" />
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Delete button - shows on hover */}
+                        {onDeleteProduct && !isSelected && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, product.id)}
+                            disabled={deletingId === product.id}
+                            className={cn(
+                              "absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 hover:bg-destructive flex items-center justify-center",
+                              "opacity-0 group-hover:opacity-100 transition-opacity",
+                              "focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-destructive",
+                              deletingId === product.id && "opacity-100"
+                            )}
+                            title="Delete product"
+                          >
+                            {deletingId === product.id ? (
+                              <Loader2 className="w-3 h-3 text-white animate-spin" />
+                            ) : (
+                              <X className="w-3 h-3 text-white" />
+                            )}
+                          </button>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
