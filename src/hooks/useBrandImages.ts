@@ -23,6 +23,16 @@ export interface ColorPalette {
   seasonalPops?: string[];
 }
 
+export interface ModelStyling {
+  usesModels: boolean;
+  demographics: string; // e.g., "diverse, young professionals, 25-35"
+  expression: string; // e.g., "confident, subtle smile, candid"
+  poseStyle: string; // e.g., "natural, relaxed, lifestyle in motion"
+  stylingAesthetic: string; // e.g., "minimalist, elevated casual, monochromatic"
+  hairAndMakeup: string; // e.g., "natural glam, soft waves, dewy skin"
+  bodyLanguage: string; // e.g., "open, approachable, dynamic"
+}
+
 export interface VisualDNA {
   colorPalette: ColorPalette;
   primaryColors?: string[]; // Deprecated - for backwards compatibility
@@ -32,6 +42,7 @@ export interface VisualDNA {
   lightingStyle: string;
   compositionStyle: string;
   avoidElements: string[];
+  modelStyling?: ModelStyling; // NEW - optional since not all brands use models
 }
 
 export interface BrandVoice {

@@ -13,6 +13,16 @@ interface ColorPalette {
   seasonalPops?: string[];
 }
 
+interface ModelStyling {
+  usesModels: boolean;
+  demographics: string;
+  expression: string;
+  poseStyle: string;
+  stylingAesthetic: string;
+  hairAndMakeup: string;
+  bodyLanguage: string;
+}
+
 interface VisualDNA {
   colorPalette: ColorPalette;
   colorMood: string;
@@ -21,6 +31,7 @@ interface VisualDNA {
   lightingStyle: string;
   compositionStyle: string;
   avoidElements: string[];
+  modelStyling?: ModelStyling;
 }
 
 interface BrandVoice {
@@ -44,6 +55,15 @@ interface ImageAnalysis {
   mood: string;
   style: string;
   category: string;
+  // Model detection fields
+  hasModel: boolean;
+  modelDetails?: {
+    demographics: string;
+    expression: string;
+    pose: string;
+    styling: string;
+    hairMakeup: string;
+  };
 }
 
 Deno.serve(async (req) => {
@@ -240,7 +260,8 @@ You MUST call the extract_image_analysis function with your findings.`;
 - Textures and materials visible
 - Overall mood/vibe
 - Photography/visual style
-- Category: Determine if this is a logo, campaign/editorial shot, product photo, lifestyle image, texture/pattern closeup, or general brand image`;
+- Category: Determine if this is a logo, campaign/editorial shot, product photo, lifestyle image, texture/pattern closeup, or general brand image
+- Model Detection: Does the image contain a model/person? If yes, describe their demographics (age range, diversity), facial expression, pose style, clothing/styling aesthetic, and hair & makeup`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -260,7 +281,7 @@ You MUST call the extract_image_analysis function with your findings.`;
           ]
         }
       ],
-      tools: [
+            tools: [
         {
           type: "function",
           function: {
@@ -299,9 +320,39 @@ You MUST call the extract_image_analysis function with your findings.`;
                   type: "string",
                   enum: ["logo", "campaign", "product", "lifestyle", "texture", "general"],
                   description: "Image category: 'logo' for brand logos/marks/wordmarks, 'campaign' for editorial/advertising/hero shots, 'product' for product-focused shots on plain backgrounds, 'lifestyle' for products in use/context/with models, 'texture' for material/pattern/detail closeups, 'general' for other brand imagery"
+                },
+                hasModel: {
+                  type: "boolean",
+                  description: "Whether the image contains a model/person"
+                },
+                modelDetails: {
+                  type: "object",
+                  properties: {
+                    demographics: {
+                      type: "string",
+                      description: "Age range and diversity characteristics (e.g., 'young professional, 25-35, diverse')"
+                    },
+                    expression: {
+                      type: "string",
+                      description: "Facial expression and energy (e.g., 'confident, subtle smile, candid')"
+                    },
+                    pose: {
+                      type: "string",
+                      description: "Pose style (e.g., 'natural, relaxed, lifestyle in motion')"
+                    },
+                    styling: {
+                      type: "string",
+                      description: "Wardrobe/styling aesthetic (e.g., 'minimalist, elevated casual, monochromatic')"
+                    },
+                    hairMakeup: {
+                      type: "string",
+                      description: "Hair and makeup style (e.g., 'natural glam, soft waves, dewy skin')"
+                    }
+                  },
+                  description: "Details about the model if hasModel is true"
                 }
               },
-              required: ["colors", "lighting", "composition", "textures", "mood", "style", "category"],
+              required: ["colors", "lighting", "composition", "textures", "mood", "style", "category", "hasModel"],
               additionalProperties: false
             }
           }
@@ -355,6 +406,11 @@ captures the brand's visual DNA, voice, and creative direction.
 
 You MUST call the create_brand_brain function with your synthesis.`;
 
+  // Extract model data from images that have models
+  const modelAnalyses = imageAnalyses
+    .filter((analysis: any) => analysis.hasModel && analysis.modelDetails)
+    .map((analysis: any) => analysis.modelDetails);
+
   const userPrompt = `Create a Brand Brain for "${brandName}" based on this data:
 
 EXISTING BRAND CONTEXT:
@@ -369,11 +425,15 @@ EXISTING BRAND CONTEXT:
 VISUAL ANALYSIS FROM ${imageAnalyses.length} BRAND IMAGES:
 ${JSON.stringify(imageAnalyses, null, 2)}
 
+MODEL ANALYSIS (from ${modelAnalyses.length} images with models):
+${modelAnalyses.length > 0 ? JSON.stringify(modelAnalyses, null, 2) : "No models detected in brand imagery - this brand may not use models, or no lifestyle/campaign imagery has been uploaded yet."}
+
 Synthesize this into a cohesive Brand Brain that:
 1. Identifies the dominant visual patterns across all sources
 2. Reconciles any conflicts between stated guidelines and actual imagery
 3. Creates a clear, actionable creative direction summary
-4. Defines what to avoid based on brand identity`;
+4. Defines what to avoid based on brand identity
+5. If models are detected, synthesize consistent model styling guidelines (demographics, expression, pose, wardrobe, hair & makeup, body language)`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -449,6 +509,41 @@ Synthesize this into a cohesive Brand Brain that:
                       type: "array",
                       items: { type: "string" },
                       description: "Visual elements to avoid"
+                    },
+                    modelStyling: {
+                      type: "object",
+                      properties: {
+                        usesModels: {
+                          type: "boolean",
+                          description: "Whether the brand typically uses models in imagery"
+                        },
+                        demographics: {
+                          type: "string",
+                          description: "Target model demographics (e.g., 'diverse, young professionals, 25-35')"
+                        },
+                        expression: {
+                          type: "string",
+                          description: "Preferred facial expression and energy (e.g., 'confident, subtle smile, candid')"
+                        },
+                        poseStyle: {
+                          type: "string",
+                          description: "Preferred pose style (e.g., 'natural, relaxed, lifestyle in motion')"
+                        },
+                        stylingAesthetic: {
+                          type: "string",
+                          description: "Wardrobe/styling aesthetic (e.g., 'minimalist, elevated casual, monochromatic')"
+                        },
+                        hairAndMakeup: {
+                          type: "string",
+                          description: "Hair and makeup style (e.g., 'natural glam, soft waves, dewy skin')"
+                        },
+                        bodyLanguage: {
+                          type: "string",
+                          description: "Body language and energy (e.g., 'open, approachable, dynamic')"
+                        }
+                      },
+                      required: ["usesModels"],
+                      description: "Model styling guidelines if the brand uses models"
                     }
                   },
                   required: ["colorPalette", "colorMood", "photographyStyle", "texturePreferences", "lightingStyle", "compositionStyle", "avoidElements"]

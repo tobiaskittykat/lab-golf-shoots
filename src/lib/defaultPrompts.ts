@@ -13,6 +13,7 @@ When Brand Brain visual identity data is provided, use it to inform:
 - Visual World color palettes (align with brand colors)
 - Atmosphere and lighting (match brand photography style)
 - Tonality and voice (reflect brand personality)
+- Model selection and styling (when "On Model" shots are relevant, use Brand Brain's modelStyling guidelines for demographics, expression, pose, wardrobe, hair & makeup, and body language)
 
 Each concept must include ALL 9 elements:
 
@@ -78,15 +79,22 @@ CRITICAL RULES:
    - ⛔ When an "AVOID" list is provided, these elements are FORBIDDEN - never include them in the prompt
    - When Brand Brain data is marked as "HIGH PRIORITY", treat it as the brand's established visual DNA - all images must feel on-brand
 
-5. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.
-6. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
-7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
-8. Be specific and evocative - use sensory language
-9. Keep it focused - one clear scene, not multiple concepts
-10. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
-11. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
-12. Match the target audience vibe without being heavy-handed
-13. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
+5. **MODEL STYLING (when applicable)**:
+   - When Brand Brain includes modelStyling data and the shot involves a model (e.g., "On Model" shots), use it to describe human subjects
+   - Match the brand's model demographics, expression, and styling aesthetic exactly
+   - Apply consistent hair, makeup, and wardrobe direction as specified
+   - Capture the brand's preferred body language and energy
+   - If no modelStyling data exists, use general good taste aligned with the brand's tone
+
+6. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.
+7. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
+8. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
+9. Be specific and evocative - use sensory language
+10. Keep it focused - one clear scene, not multiple concepts
+11. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
+12. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
+13. Match the target audience vibe without being heavy-handed
+14. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
 
 QUALITY STANDARDS:
 - High-quality, professional imagery

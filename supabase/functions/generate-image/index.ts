@@ -113,6 +113,15 @@ interface GenerateImageRequest {
       lightingStyle?: string;
       compositionStyle?: string;
       avoidElements?: string[];
+      modelStyling?: {
+        usesModels?: boolean;
+        demographics?: string;
+        expression?: string;
+        poseStyle?: string;
+        stylingAesthetic?: string;
+        hairAndMakeup?: string;
+        bodyLanguage?: string;
+      };
     };
     brandVoice?: {
       personality?: string;
@@ -204,6 +213,19 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         if (vd.compositionStyle) sections.push(`Composition: ${vd.compositionStyle}`);
         if (vd.texturePreferences?.length) sections.push(`Preferred Textures: ${vd.texturePreferences.join(", ")}`);
         if (vd.avoidElements?.length) sections.push(`⛔ AVOID: ${vd.avoidElements.join(", ")}`);
+        
+        // Model Styling Guidelines
+        if (vd.modelStyling?.usesModels) {
+          sections.push("");
+          sections.push("=== MODEL STYLING GUIDELINES ===");
+          sections.push("When models are used in this image, follow these guidelines:");
+          if (vd.modelStyling.demographics) sections.push(`Model Demographics: ${vd.modelStyling.demographics}`);
+          if (vd.modelStyling.expression) sections.push(`Expression: ${vd.modelStyling.expression}`);
+          if (vd.modelStyling.poseStyle) sections.push(`Pose Style: ${vd.modelStyling.poseStyle}`);
+          if (vd.modelStyling.stylingAesthetic) sections.push(`Wardrobe/Styling: ${vd.modelStyling.stylingAesthetic}`);
+          if (vd.modelStyling.hairAndMakeup) sections.push(`Hair & Makeup: ${vd.modelStyling.hairAndMakeup}`);
+          if (vd.modelStyling.bodyLanguage) sections.push(`Body Language: ${vd.modelStyling.bodyLanguage}`);
+        }
       }
       
       if (request.brandBrain.brandVoice) {

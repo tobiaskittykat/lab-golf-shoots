@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Brain, Upload, Trash2, RefreshCw, Palette, Camera, Type, Sparkles, X, Edit2, Check, Globe } from "lucide-react";
+import { Brain, Upload, Trash2, RefreshCw, Palette, Camera, Type, Sparkles, X, Edit2, Check, Globe, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useBrandImages, BrandBrain, VisualDNA, ColorPalette } from "@/hooks/useBrandImages";
+import { useBrandImages, BrandBrain, VisualDNA, ColorPalette, ModelStyling } from "@/hooks/useBrandImages";
 import { useBrands } from "@/hooks/useBrands";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +43,7 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
   const [isOpen, setIsOpen] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("general");
   const [isEditingDNA, setIsEditingDNA] = useState(false);
+  const [isEditingModelStyling, setIsEditingModelStyling] = useState(false);
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState("");
   const [editedPalette, setEditedPalette] = useState<ColorPalette>({
@@ -52,6 +53,15 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
     seasonalPops: [],
   });
   const [editedAvoid, setEditedAvoid] = useState<string[]>([]);
+  const [editedModelStyling, setEditedModelStyling] = useState<ModelStyling>({
+    usesModels: false,
+    demographics: "",
+    expression: "",
+    poseStyle: "",
+    stylingAesthetic: "",
+    hairAndMakeup: "",
+    bodyLanguage: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const brandBrain = getBrandBrain();
@@ -76,6 +86,16 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
       };
       setEditedPalette(palette);
       setEditedAvoid(brandBrain.visualDNA?.avoidElements || []);
+      // Sync model styling
+      setEditedModelStyling(brandBrain.visualDNA?.modelStyling || {
+        usesModels: false,
+        demographics: "",
+        expression: "",
+        poseStyle: "",
+        stylingAesthetic: "",
+        hairAndMakeup: "",
+        bodyLanguage: "",
+      });
     }
   }, [brandBrain]);
 
@@ -151,6 +171,22 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
 
   const removeAvoidItem = (index: number) => {
     setEditedAvoid(editedAvoid.filter((_, i) => i !== index));
+  };
+
+  const updateModelStylingField = (field: keyof ModelStyling, value: string | boolean) => {
+    setEditedModelStyling(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveModelStyling = async () => {
+    if (!brandBrain) return;
+    
+    const updatedDNA: VisualDNA = {
+      ...brandBrain.visualDNA,
+      modelStyling: editedModelStyling,
+    };
+    
+    await updateBrandBrain({ visualDNA: updatedDNA });
+    setIsEditingModelStyling(false);
   };
 
   if (!currentBrand) {
@@ -524,6 +560,162 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
               </div>
               </div>
             </div>
+          </div>
+
+          {/* Model Styling Section */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Model Styling
+                {brandBrain.visualDNA?.modelStyling?.usesModels && (
+                  <Badge variant="secondary" className="text-xs">Active</Badge>
+                )}
+              </h4>
+              {isEditingModelStyling ? (
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditingModelStyling(false)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveModelStyling}>
+                    <Check className="h-4 w-4 mr-1" />
+                    Save
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingModelStyling(true)}>
+                  <Edit2 className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
+
+            {(() => {
+              const modelStyling = isEditingModelStyling 
+                ? editedModelStyling 
+                : brandBrain.visualDNA?.modelStyling;
+              
+              if (!modelStyling?.usesModels && !isEditingModelStyling) {
+                return (
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    <p>No model styling guidelines detected. This brand may not use models in imagery, or no lifestyle/campaign photos have been analyzed yet.</p>
+                    <p className="mt-2 text-xs">Regenerate the Brand Brain after uploading lifestyle or campaign photos with models to auto-detect styling patterns.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4 text-sm">
+                  {/* Uses Models Toggle (only in edit mode) */}
+                  {isEditingModelStyling && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="usesModels"
+                        checked={editedModelStyling.usesModels}
+                        onChange={(e) => updateModelStylingField('usesModels', e.target.checked)}
+                        className="rounded"
+                      />
+                      <label htmlFor="usesModels" className="text-sm">Brand uses models in imagery</label>
+                    </div>
+                  )}
+
+                  {(modelStyling?.usesModels || isEditingModelStyling) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Demographics */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Demographics</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.demographics}
+                            onChange={(e) => updateModelStylingField('demographics', e.target.value)}
+                            placeholder="e.g., diverse, young professionals, 25-35"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.demographics || "Not specified"}</p>
+                        )}
+                      </div>
+
+                      {/* Expression */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Expression</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.expression}
+                            onChange={(e) => updateModelStylingField('expression', e.target.value)}
+                            placeholder="e.g., confident, subtle smile, candid"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.expression || "Not specified"}</p>
+                        )}
+                      </div>
+
+                      {/* Pose Style */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Pose Style</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.poseStyle}
+                            onChange={(e) => updateModelStylingField('poseStyle', e.target.value)}
+                            placeholder="e.g., natural, relaxed, lifestyle in motion"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.poseStyle || "Not specified"}</p>
+                        )}
+                      </div>
+
+                      {/* Wardrobe/Styling */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Wardrobe/Styling</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.stylingAesthetic}
+                            onChange={(e) => updateModelStylingField('stylingAesthetic', e.target.value)}
+                            placeholder="e.g., minimalist, elevated casual"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.stylingAesthetic || "Not specified"}</p>
+                        )}
+                      </div>
+
+                      {/* Hair & Makeup */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Hair & Makeup</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.hairAndMakeup}
+                            onChange={(e) => updateModelStylingField('hairAndMakeup', e.target.value)}
+                            placeholder="e.g., natural glam, soft waves, dewy skin"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.hairAndMakeup || "Not specified"}</p>
+                        )}
+                      </div>
+
+                      {/* Body Language */}
+                      <div className="space-y-1.5">
+                        <span className="text-muted-foreground text-xs">Body Language</span>
+                        {isEditingModelStyling ? (
+                          <Input
+                            value={editedModelStyling.bodyLanguage}
+                            onChange={(e) => updateModelStylingField('bodyLanguage', e.target.value)}
+                            placeholder="e.g., open, approachable, dynamic"
+                            className="text-sm"
+                          />
+                        ) : (
+                          <p className="text-foreground">{modelStyling?.bodyLanguage || "Not specified"}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Brand Voice */}
