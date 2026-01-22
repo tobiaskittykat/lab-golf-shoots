@@ -25,10 +25,22 @@ interface MoodboardInput {
   visualAnalysis?: VisualAnalysis;
 }
 
+interface ProductDescription {
+  summary?: string;
+  product_type?: string;
+  use_cases?: string[];
+  colors?: string[];
+  materials?: string[];
+  style_keywords?: string[];
+  hardware_finish?: string;
+  best_for?: string[];
+}
+
 interface ProductInput {
   id: string;
   name: string;
   category?: string;
+  description?: ProductDescription;
 }
 
 interface ConceptInput {
@@ -111,9 +123,24 @@ serve(async (req) => {
       return parts.join(' | ');
     }).join('\n');
 
-    const productsList = products.map((p, i) => 
-      `${i + 1}. ID: "${p.id}" | Name: "${p.name}"${p.category ? ` | Category: ${p.category}` : ''}`
-    ).join('\n');
+    const productsList = products.map((p, i) => {
+      const parts = [`${i + 1}. ID: "${p.id}" | Name: "${p.name}"`];
+      if (p.category) parts.push(`Category: ${p.category}`);
+      
+      // Include rich description data for intelligent matching
+      if (p.description) {
+        const d = p.description;
+        if (d.summary) parts.push(`What it is: ${d.summary}`);
+        if (d.product_type) parts.push(`Type: ${d.product_type}`);
+        if (d.colors?.length) parts.push(`Colors: ${d.colors.join(', ')}`);
+        if (d.materials?.length) parts.push(`Materials: ${d.materials.join(', ')}`);
+        if (d.style_keywords?.length) parts.push(`Style: ${d.style_keywords.join(', ')}`);
+        if (d.hardware_finish) parts.push(`Hardware: ${d.hardware_finish}`);
+        if (d.use_cases?.length) parts.push(`Use cases: ${d.use_cases.join(', ')}`);
+        if (d.best_for?.length) parts.push(`Best for: ${d.best_for.join(', ')}`);
+      }
+      return parts.join(' | ');
+    }).join('\n');
 
     const prompt = `You are a creative director matching campaign concepts to visual assets.
 
@@ -130,8 +157,13 @@ ${productsList || '(none available)'}
 
 Instructions:
 1. For moodboards: Rank the top 3 whose visual analysis (mood, colors, key elements, best_for) best matches the visual world, atmosphere, and tonality of the concept. The #1 should be the absolute best match.
-2. For products: Rank the top 5 whose name/category best matches the product focus category. The #1 should be the absolute best match.
-3. Be intelligent about semantic matching - match colors, moods, and visual elements not just names.
+2. For products: Rank the top 5 based on:
+   - Visual match: product colors, materials, hardware finish aligning with concept's visual world palette and materials
+   - Use case fit: product's best_for and use_cases matching concept's target audience and situation
+   - Style coherence: product's style_keywords matching concept's tonality adjectives
+   - Product type: matching the concept's product focus category
+   The #1 should be the absolute best match across all these dimensions.
+3. Be intelligent about semantic matching - understand that "cognac leather with gold hardware" matches "warm, luxurious, elegant" concepts.
 4. Return empty arrays if no good matches exist.
 
 Return ONLY valid JSON (no markdown):

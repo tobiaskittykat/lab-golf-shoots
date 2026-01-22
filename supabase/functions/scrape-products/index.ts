@@ -232,7 +232,7 @@ IMPORTANT RULES:
       return `bandolier-${normalized}`;
     };
 
-    // Mirror each image to Supabase storage
+// Mirror each image to Supabase storage
     const mirrorResults = await Promise.all(
       preFilteredProducts.map(async (product: ScrapedProduct) => {
         const externalId = generateExternalId(product.name);
@@ -244,6 +244,30 @@ IMPORTANT RULES:
         );
         
         if (mirrorResult) {
+          // Analyze the product image with AI vision
+          let description = null;
+          try {
+            console.log(`Analyzing product: ${product.name}`);
+            const analysisResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-product`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+              body: JSON.stringify({ imageUrl: mirrorResult.publicUrl })
+            });
+            
+            if (analysisResponse.ok) {
+              const analysisData = await analysisResponse.json();
+              description = analysisData.description || null;
+              console.log(`Analysis complete for ${product.name}: ${description?.summary || 'no summary'}`);
+            } else {
+              console.log(`Analysis failed for ${product.name}: ${analysisResponse.status}`);
+            }
+          } catch (analysisError) {
+            console.error(`Analysis error for ${product.name}:`, analysisError);
+          }
+
           return {
             id: externalId,
             externalId: externalId, // Stable ID for upsert
@@ -254,6 +278,7 @@ IMPORTANT RULES:
             category: product.category || 'product',
             color: product.color,
             collection: product.collection,
+            description, // NEW: AI-generated product analysis
           };
         }
         return null;

@@ -322,6 +322,7 @@ export type Database = {
           category: string | null
           collection: string | null
           created_at: string | null
+          description: Json | null
           external_id: string
           full_url: string
           id: string
@@ -334,6 +335,7 @@ export type Database = {
           category?: string | null
           collection?: string | null
           created_at?: string | null
+          description?: Json | null
           external_id: string
           full_url: string
           id?: string
@@ -346,6 +348,7 @@ export type Database = {
           category?: string | null
           collection?: string | null
           created_at?: string | null
+          description?: Json | null
           external_id?: string
           full_url?: string
           id?: string

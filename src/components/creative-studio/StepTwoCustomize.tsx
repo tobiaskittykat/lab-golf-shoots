@@ -618,7 +618,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
             products: allProductReferences.map(p => ({ 
               id: p.id, 
               name: p.name, 
-              category: (p as any).productType 
+              category: (p as any).productType,
+              description: (p as any).description, // Pass rich description for intelligent matching
             })),
           }
         });

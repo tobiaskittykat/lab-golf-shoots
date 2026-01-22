@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.analyze-moodboard]
 verify_jwt = false
 
+[functions.analyze-product]
+verify_jwt = false
+
 [functions.chat]
 verify_jwt = false
 
