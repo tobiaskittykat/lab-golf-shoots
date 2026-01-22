@@ -53,6 +53,10 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
     seasonalPops: [],
   });
   const [editedAvoid, setEditedAvoid] = useState<string[]>([]);
+  const [editedPhotographyStyle, setEditedPhotographyStyle] = useState("");
+  const [editedColorMood, setEditedColorMood] = useState("");
+  const [editedLightingStyle, setEditedLightingStyle] = useState("");
+  const [editedTextures, setEditedTextures] = useState<string[]>([]);
   const [editedModelStyling, setEditedModelStyling] = useState<ModelStyling>({
     usesModels: false,
     demographics: "",
@@ -86,6 +90,10 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
       };
       setEditedPalette(palette);
       setEditedAvoid(brandBrain.visualDNA?.avoidElements || []);
+      setEditedPhotographyStyle(brandBrain.visualDNA?.photographyStyle || "");
+      setEditedColorMood(brandBrain.visualDNA?.colorMood || "");
+      setEditedLightingStyle(brandBrain.visualDNA?.lightingStyle || "");
+      setEditedTextures(brandBrain.visualDNA?.texturePreferences || []);
       // Sync model styling
       setEditedModelStyling(brandBrain.visualDNA?.modelStyling || {
         usesModels: false,
@@ -136,6 +144,10 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
       ...brandBrain.visualDNA,
       colorPalette: editedPalette,
       avoidElements: editedAvoid,
+      photographyStyle: editedPhotographyStyle,
+      colorMood: editedColorMood,
+      lightingStyle: editedLightingStyle,
+      texturePreferences: editedTextures,
     };
     
     await updateBrandBrain({ visualDNA: updatedDNA });
@@ -498,66 +510,118 @@ export function BrandBrainSection({ variant = "standalone" }: BrandBrainSectionP
                 {/* Color Mood */}
                 <div className="space-y-2">
                   <span className="text-muted-foreground">Color Mood</span>
-                  <p className="text-foreground">{brandBrain.visualDNA.colorMood}</p>
-                </div>
-
-              {/* Photography Style */}
-              <div className="space-y-2">
-                <span className="text-muted-foreground">Photography Style</span>
-                <p className="text-foreground">{brandBrain.visualDNA.photographyStyle}</p>
-              </div>
-
-              {/* Lighting */}
-              <div className="space-y-2">
-                <span className="text-muted-foreground">Lighting</span>
-                <p className="text-foreground">{brandBrain.visualDNA.lightingStyle}</p>
-              </div>
-
-              {/* Textures */}
-              <div className="space-y-2">
-                <span className="text-muted-foreground">Textures</span>
-                <div className="flex flex-wrap gap-1">
-                  {brandBrain.visualDNA.texturePreferences.map((tex, i) => (
-                    <Badge key={i} variant="secondary" className="text-xs">
-                      {tex}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Avoid */}
-              <div className="space-y-2">
-                <span className="text-muted-foreground">Avoid</span>
-                <div className="flex flex-wrap gap-1">
-                  {(isEditingDNA ? editedAvoid : brandBrain.visualDNA.avoidElements).map((item, i) => (
-                    <Badge
-                      key={i}
-                      variant="destructive"
-                      className={cn("text-xs", isEditingDNA && "pr-1")}
-                    >
-                      {item}
-                      {isEditingDNA && (
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeAvoidItem(i)}
-                        />
-                      )}
-                    </Badge>
-                  ))}
-                  {isEditingDNA && (
+                  {isEditingDNA ? (
                     <Input
-                      placeholder="Add..."
-                      className="h-6 w-20 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          addAvoidItem((e.target as HTMLInputElement).value);
-                          (e.target as HTMLInputElement).value = "";
-                        }
-                      }}
+                      value={editedColorMood}
+                      onChange={(e) => setEditedColorMood(e.target.value)}
+                      placeholder="e.g., warm and inviting, cool and sophisticated"
+                      className="text-sm"
                     />
+                  ) : (
+                    <p className="text-foreground">{brandBrain.visualDNA.colorMood}</p>
                   )}
                 </div>
-              </div>
+
+                {/* Photography Style */}
+                <div className="space-y-2">
+                  <span className="text-muted-foreground">Photography Style</span>
+                  {isEditingDNA ? (
+                    <Textarea
+                      value={editedPhotographyStyle}
+                      onChange={(e) => setEditedPhotographyStyle(e.target.value)}
+                      placeholder="Describe your photography style..."
+                      className="text-sm min-h-[60px]"
+                    />
+                  ) : (
+                    <p className="text-foreground">{brandBrain.visualDNA.photographyStyle}</p>
+                  )}
+                </div>
+
+                {/* Lighting */}
+                <div className="space-y-2">
+                  <span className="text-muted-foreground">Lighting</span>
+                  {isEditingDNA ? (
+                    <Input
+                      value={editedLightingStyle}
+                      onChange={(e) => setEditedLightingStyle(e.target.value)}
+                      placeholder="e.g., soft natural light, dramatic studio lighting"
+                      className="text-sm"
+                    />
+                  ) : (
+                    <p className="text-foreground">{brandBrain.visualDNA.lightingStyle}</p>
+                  )}
+                </div>
+
+                {/* Textures */}
+                <div className="space-y-2">
+                  <span className="text-muted-foreground">Textures</span>
+                  <div className="flex flex-wrap gap-1">
+                    {(isEditingDNA ? editedTextures : brandBrain.visualDNA.texturePreferences).map((tex, i) => (
+                      <Badge
+                        key={i}
+                        variant="secondary"
+                        className={cn("text-xs", isEditingDNA && "pr-1")}
+                      >
+                        {tex}
+                        {isEditingDNA && (
+                          <X
+                            className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive"
+                            onClick={() => setEditedTextures(editedTextures.filter((_, idx) => idx !== i))}
+                          />
+                        )}
+                      </Badge>
+                    ))}
+                    {isEditingDNA && (
+                      <Input
+                        placeholder="Add..."
+                        className="h-6 w-20 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const value = (e.target as HTMLInputElement).value.trim();
+                            if (value && !editedTextures.includes(value)) {
+                              setEditedTextures([...editedTextures, value]);
+                            }
+                            (e.target as HTMLInputElement).value = "";
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Avoid */}
+                <div className="space-y-2">
+                  <span className="text-muted-foreground">Avoid</span>
+                  <div className="flex flex-wrap gap-1">
+                    {(isEditingDNA ? editedAvoid : brandBrain.visualDNA.avoidElements).map((item, i) => (
+                      <Badge
+                        key={i}
+                        variant="destructive"
+                        className={cn("text-xs", isEditingDNA && "pr-1")}
+                      >
+                        {item}
+                        {isEditingDNA && (
+                          <X
+                            className="h-3 w-3 ml-1 cursor-pointer"
+                            onClick={() => removeAvoidItem(i)}
+                          />
+                        )}
+                      </Badge>
+                    ))}
+                    {isEditingDNA && (
+                      <Input
+                        placeholder="Add..."
+                        className="h-6 w-20 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            addAvoidItem((e.target as HTMLInputElement).value);
+                            (e.target as HTMLInputElement).value = "";
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
