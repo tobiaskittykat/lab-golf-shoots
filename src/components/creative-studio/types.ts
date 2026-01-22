@@ -196,6 +196,10 @@ export interface CreativeStudioState {
   // Curated options from smart-match
   curatedMoodboards: string[];
   curatedProducts: string[];
+  
+  // Stable display order (set by smart-match, only modified by gallery selection)
+  displayedMoodboardIds: string[];
+  displayedProductIds: string[];
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -243,6 +247,10 @@ export const initialCreativeStudioState: CreativeStudioState = {
   // Curated options from smart-match
   curatedMoodboards: [],
   curatedProducts: [],
+  
+  // Stable display order
+  displayedMoodboardIds: [],
+  displayedProductIds: [],
 };
 
 export const typeCards = [

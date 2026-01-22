@@ -570,24 +570,53 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     setEditModalOpen(true);
   }, []);
 
-  // Handle moodboard toggle (deselect if already selected)
-  const handleMoodboardSelect = (moodboardId: string) => {
+  // Handle moodboard selection with stable ordering
+  // fromGallery = true means we should bring the item into the visible grid if not already there
+  const handleMoodboardSelect = (moodboardId: string, fromGallery: boolean = false) => {
     if (state.moodboard === moodboardId) {
-      onUpdate({ moodboard: null }); // Deselect
+      // Deselect - don't change display order
+      onUpdate({ moodboard: null });
     } else {
-      onUpdate({ moodboard: moodboardId }); // Select
+      const updates: Partial<CreativeStudioState> = { moodboard: moodboardId };
+      
+      // Only update display order if selecting from gallery (item not already visible)
+      const currentDisplayIds = state.displayedMoodboardIds || [];
+      if (fromGallery && !currentDisplayIds.includes(moodboardId)) {
+        // Bring selected into visible set at position 0, push out last item
+        const newDisplayed = [moodboardId, ...currentDisplayIds.slice(0, 2)];
+        updates.displayedMoodboardIds = newDisplayed;
+      }
+      
+      onUpdate(updates);
     }
   };
 
-  // Handle product selection (multi-select, max 3)
-  const handleProductSelect = (productId: string) => {
+  // Handle product selection with stable ordering (multi-select, max 3)
+  // fromGallery = true means we should bring the item into the visible grid if not already there
+  const handleProductSelect = (productId: string, fromGallery: boolean = false) => {
     const isSelected = state.productReferences.includes(productId);
+    const currentDisplayIds = state.displayedProductIds || [];
+    
     if (isSelected) {
-      // Deselect
+      // Deselect - don't change display order
       onUpdate({ productReferences: state.productReferences.filter(id => id !== productId) });
     } else if (state.productReferences.length < 3) {
       // Select (only if under limit)
-      onUpdate({ productReferences: [...state.productReferences, productId] });
+      const updates: Partial<CreativeStudioState> = { 
+        productReferences: [...state.productReferences, productId] 
+      };
+      
+      // Only update display order if selecting from gallery (item not already visible)
+      if (fromGallery && !currentDisplayIds.includes(productId)) {
+        // Keep all currently selected, add new selection, fill rest with non-selected
+        const selectedAfter = [...state.productReferences, productId];
+        const nonSelectedDisplay = currentDisplayIds.filter(id => !selectedAfter.includes(id));
+        // New item goes to front, keep other selected, fill to 5 with non-selected
+        const newDisplayed = [productId, ...currentDisplayIds.filter(id => id !== productId)].slice(0, 5);
+        updates.displayedProductIds = newDisplayed;
+      }
+      
+      onUpdate(updates);
     } else {
       toast({ title: 'Maximum 3 products', description: 'Deselect one to add another' });
     }
@@ -636,43 +665,41 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       .filter(Boolean) as ReferenceImage[];
   }, [state.curatedProducts, allProductReferences]);
 
-  // Displayed moodboards: selected first, then curated, then fill to 3
+  // Displayed moodboards: use stable displayedMoodboardIds if set, otherwise derive from curated
   const displayedMoodboards = useMemo(() => {
-    const selectedMoodboard = state.moodboard 
-      ? customMoodboards.find(m => m.id === state.moodboard) 
-      : null;
+    const displayIds = state.displayedMoodboardIds || [];
     
-    const curated = curatedMoodboardItems.filter(m => m.id !== state.moodboard);
-    const remaining = customMoodboards.filter(m => 
-      m.id !== state.moodboard && !curatedMoodboardItems.some(c => c.id === m.id)
-    );
+    // If we have stable display IDs, use them directly (maintains order)
+    if (displayIds.length > 0) {
+      return displayIds
+        .map(id => customMoodboards.find(m => m.id === id))
+        .filter(Boolean) as Moodboard[];
+    }
     
-    const result: Moodboard[] = [];
-    if (selectedMoodboard) result.push(selectedMoodboard);
-    result.push(...curated.slice(0, 3 - result.length));
-    if (result.length < 3) result.push(...remaining.slice(0, 3 - result.length));
-    
-    return result;
-  }, [state.moodboard, customMoodboards, curatedMoodboardItems]);
+    // Fallback: use curated or first 3 (initial state before smart-match runs)
+    if (curatedMoodboardItems.length > 0) {
+      return curatedMoodboardItems.slice(0, 3);
+    }
+    return customMoodboards.slice(0, 3);
+  }, [state.displayedMoodboardIds, customMoodboards, curatedMoodboardItems]);
 
-  // Displayed products: selected first, then curated, then fill to 5
+  // Displayed products: use stable displayedProductIds if set, otherwise derive from curated
   const displayedProducts = useMemo(() => {
-    const selectedIds = state.productReferences;
-    const selectedItems = selectedIds
-      .map(id => allProductReferences.find(p => p.id === id))
-      .filter(Boolean) as ReferenceImage[];
+    const displayIds = state.displayedProductIds || [];
     
-    const curated = curatedProductItems.filter(p => !selectedIds.includes(p.id));
-    const remaining = allProductReferences.filter(p => 
-      !selectedIds.includes(p.id) && !curatedProductItems.some(c => c.id === p.id)
-    );
+    // If we have stable display IDs, use them directly (maintains order)
+    if (displayIds.length > 0) {
+      return displayIds
+        .map(id => allProductReferences.find(p => p.id === id))
+        .filter(Boolean) as ReferenceImage[];
+    }
     
-    const result: ReferenceImage[] = [...selectedItems];
-    result.push(...curated.slice(0, 5 - result.length));
-    if (result.length < 5) result.push(...remaining.slice(0, 5 - result.length));
-    
-    return result;
-  }, [state.productReferences, allProductReferences, curatedProductItems]);
+    // Fallback: use curated or first 5 (initial state before smart-match runs)
+    if (curatedProductItems.length > 0) {
+      return curatedProductItems.slice(0, 5);
+    }
+    return allProductReferences.slice(0, 5);
+  }, [state.displayedProductIds, allProductReferences, curatedProductItems]);
 
   // Smart AI-powered auto-selection of moodboard and product based on selected concept
   // IMPORTANT: Only runs when concept CHANGES, not when moodboards/products data loads
@@ -745,7 +772,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           return null; // Invalid ID
         };
         
-        // Store curated options (normalize IDs)
+        // Store curated options (normalize IDs) and set initial display order
         if (data?.rankedMoodboards?.length > 0) {
           const validMoodboardIds = customMoodboards.map(m => m.id);
           const normalizedMoodboards = data.rankedMoodboards
@@ -755,6 +782,8 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           if (normalizedMoodboards.length > 0) {
             updates.curatedMoodboards = normalizedMoodboards;
             updates.moodboard = normalizedMoodboards[0]; // Pre-select best
+            // Set stable display order (top 3)
+            updates.displayedMoodboardIds = normalizedMoodboards.slice(0, 3);
           }
         }
         if (data?.rankedProducts?.length > 0) {
@@ -766,6 +795,8 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           if (normalizedProducts.length > 0) {
             updates.curatedProducts = normalizedProducts;
             updates.productReferences = [normalizedProducts[0]]; // Pre-select best
+            // Set stable display order (top 5)
+            updates.displayedProductIds = normalizedProducts.slice(0, 5);
           }
         }
 
@@ -1393,7 +1424,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         isOpen={showMoodboardModal}
         onClose={() => setShowMoodboardModal(false)}
         selectedMoodboard={state.moodboard}
-        onSelect={(id) => onUpdate({ moodboard: id })}
+        onSelect={handleMoodboardSelect}
       />
 
       <ProductReferencePicker
@@ -1407,7 +1438,21 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
           category: (p as any).productType || 'other',
         }))}
         selectedIds={state.productReferences}
-        onSelectionChange={(ids) => onUpdate({ productReferences: ids })}
+        onSelectionChange={(ids, fromGallery) => {
+          // Determine which product was added (if any)
+          const addedId = ids.find(id => !state.productReferences.includes(id));
+          const currentDisplayIds = state.displayedProductIds || [];
+          
+          const updates: Partial<CreativeStudioState> = { productReferences: ids };
+          
+          // If an item was added from gallery and not in visible set, update display order
+          if (fromGallery && addedId && !currentDisplayIds.includes(addedId)) {
+            const newDisplayed = [addedId, ...currentDisplayIds.filter(id => id !== addedId)].slice(0, 5);
+            updates.displayedProductIds = newDisplayed;
+          }
+          
+          onUpdate(updates);
+        }}
         maxSelection={3}
         isLoading={loadingScrapedProducts}
         onSync={handleScrapeProducts}

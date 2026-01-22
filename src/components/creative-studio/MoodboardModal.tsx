@@ -29,7 +29,7 @@ interface MoodboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedMoodboard: string | null;
-  onSelect: (moodboardId: string) => void;
+  onSelect: (moodboardId: string, fromGallery: boolean) => void;
 }
 
 interface CustomMoodboard {
@@ -84,7 +84,7 @@ export const MoodboardModal = ({
   });
 
   const handleSelect = (moodboardId: string) => {
-    onSelect(moodboardId);
+    onSelect(moodboardId, true); // fromGallery = true when selecting from modal
     onClose();
   };
 

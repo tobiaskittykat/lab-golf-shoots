@@ -23,7 +23,7 @@ interface ProductReferencePickerProps {
   onClose: () => void;
   products: ProductItem[];
   selectedIds: string[];
-  onSelectionChange: (ids: string[]) => void;
+  onSelectionChange: (ids: string[], fromGallery: boolean) => void;
   maxSelection?: number;
   isLoading?: boolean;
   onSync?: () => void;
@@ -95,9 +95,9 @@ export const ProductReferencePicker = ({
   const handleSelect = (productId: string) => {
     const isSelected = selectedIds.includes(productId);
     if (isSelected) {
-      onSelectionChange(selectedIds.filter(id => id !== productId));
+      onSelectionChange(selectedIds.filter(id => id !== productId), true); // fromGallery = true
     } else if (selectedIds.length < maxSelection) {
-      onSelectionChange([...selectedIds, productId]);
+      onSelectionChange([...selectedIds, productId], true); // fromGallery = true
     }
   };
 
