@@ -30,6 +30,8 @@ interface ProductReferencePickerProps {
   isSyncing?: boolean;
   onClearAll?: () => void;
   onDeleteProduct?: (productId: string) => void;
+  onUploadProduct?: (file: File) => Promise<void>;
+  isUploading?: boolean;
 }
 
 // Proxy external Shopify CDN URLs through our edge function to bypass hotlink protection
@@ -53,6 +55,8 @@ export const ProductReferencePicker = ({
   isSyncing = false,
   onClearAll,
   onDeleteProduct,
+  onUploadProduct,
+  isUploading = false,
 }: ProductReferencePickerProps) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -308,13 +312,46 @@ export const ProductReferencePicker = ({
           {/* Upload section */}
           <div className="pt-4 border-t border-border">
             <p className="text-sm font-medium text-foreground mb-3">Or upload your own</p>
-            <button className="w-full py-8 rounded-xl border-2 border-dashed border-border hover:border-accent/50 bg-secondary/30 flex flex-col items-center justify-center gap-2 transition-colors">
-              <Upload className="w-8 h-8 text-muted-foreground" />
-              <div className="text-center">
-                <p className="font-medium text-foreground text-sm">Upload image</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
-              </div>
-            </button>
+            <label className={cn(
+              "relative w-full py-8 rounded-xl border-2 border-dashed bg-secondary/30 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer",
+              isUploading 
+                ? "border-accent/50 cursor-wait" 
+                : "border-border hover:border-accent/50"
+            )}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={isUploading}
+                onChange={async (e) => {
+                  if (e.target.files && onUploadProduct) {
+                    for (const file of Array.from(e.target.files)) {
+                      await onUploadProduct(file);
+                    }
+                  }
+                  // Reset input so same file can be uploaded again
+                  e.target.value = '';
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-wait"
+              />
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-8 h-8 text-accent animate-spin" />
+                  <div className="text-center">
+                    <p className="font-medium text-accent text-sm">Analyzing product...</p>
+                    <p className="text-xs text-muted-foreground">AI is extracting details</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                  <div className="text-center">
+                    <p className="font-medium text-foreground text-sm">Upload image</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
+                  </div>
+                </>
+              )}
+            </label>
           </div>
         </div>
 

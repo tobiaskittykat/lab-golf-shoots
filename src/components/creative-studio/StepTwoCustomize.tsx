@@ -77,6 +77,7 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
   const [editingConcept, setEditingConcept] = useState<Concept | null>(null);
   const [isNewConcept, setIsNewConcept] = useState(false);
   const [isScrapingProducts, setIsScrapingProducts] = useState(false);
+  const [isUploadingProduct, setIsUploadingProduct] = useState(false);
   const [isSmartMatching, setIsSmartMatching] = useState(false);
   const [lastMatchedConcept, setLastMatchedConcept] = useState<string | null>(null);
   
@@ -260,6 +261,78 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
     } catch (err) {
       console.error('Failed to delete product:', err);
       toast({ title: 'Failed to remove product', variant: 'destructive' });
+    }
+  };
+
+  // Handle manual product upload with AI analysis
+  const handleUploadProduct = async (file: File) => {
+    if (!user) {
+      toast({ title: 'Please sign in to upload products', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploadingProduct(true);
+    try {
+      // 1. Upload to product-images storage bucket
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, { contentType: file.type });
+      
+      if (uploadError) throw uploadError;
+
+      // 2. Get public URL
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(uploadData.path);
+      
+      const publicUrl = urlData.publicUrl;
+
+      // 3. Call analyze-product edge function for AI description
+      let description = null;
+      try {
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-product', {
+          body: { imageUrl: publicUrl }
+        });
+        
+        if (!analysisError && analysisData?.description) {
+          description = analysisData.description;
+        }
+      } catch (analysisErr) {
+        console.warn('Product analysis failed, continuing without description:', analysisErr);
+      }
+
+      // 4. Insert into scraped_products with custom-upload category
+      const productName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      const { error: insertError } = await supabase
+        .from('scraped_products')
+        .insert({
+          user_id: user.id,
+          external_id: `custom-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          name: productName,
+          thumbnail_url: publicUrl,
+          full_url: publicUrl,
+          storage_path: uploadData.path,
+          category: 'custom-upload',
+          description,
+        });
+
+      if (insertError) throw insertError;
+
+      // 5. Refresh product list
+      await refetchScrapedProducts();
+      
+      toast({ 
+        title: 'Product uploaded', 
+        description: description ? 'AI analysis complete' : 'Added to your library'
+      });
+    } catch (err) {
+      console.error('Failed to upload product:', err);
+      toast({ title: 'Failed to upload product', variant: 'destructive' });
+    } finally {
+      setIsUploadingProduct(false);
     }
   };
 
@@ -1313,6 +1386,8 @@ export const StepTwoCustomize = ({ state, onUpdate }: StepTwoCustomizeProps) => 
         isSyncing={isScrapingProducts}
         onClearAll={handleClearAllProducts}
         onDeleteProduct={handleDeleteScrapedProduct}
+        onUploadProduct={handleUploadProduct}
+        isUploading={isUploadingProduct}
       />
 
       <ReferenceGalleryModal
