@@ -32,13 +32,7 @@ interface MoodboardModalProps {
   onSelect: (moodboardId: string, fromGallery: boolean) => void;
 }
 
-interface CustomMoodboard {
-  id: string;
-  name: string;
-  description: string | null;
-  thumbnail_url: string;
-  file_path: string;
-}
+// CustomMoodboard removed - now using Moodboard type from types.ts for cache consistency
 
 interface RepairChange {
   id: string;
@@ -66,8 +60,8 @@ export const MoodboardModal = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch custom moodboards
-  const { data: customMoodboards = [], isLoading: loadingCustom } = useQuery({
+  // Fetch custom moodboards - transform to Moodboard shape for cache consistency with StepTwoCustomize
+  const { data: customMoodboards = [], isLoading: loadingCustom } = useQuery<Moodboard[]>({
     queryKey: ['custom-moodboards', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -78,7 +72,15 @@ export const MoodboardModal = ({
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as CustomMoodboard[];
+      
+      // Transform to Moodboard shape (matching StepTwoCustomize)
+      return (data || []).map(m => ({
+        id: `custom-${m.id}`,
+        name: m.name,
+        thumbnail: m.thumbnail_url,
+        filePath: m.file_path,
+        description: m.description || 'Custom moodboard',
+      }));
     },
     enabled: !!user?.id && isOpen,
   });
@@ -176,13 +178,19 @@ export const MoodboardModal = ({
     }
   }, [handleFileUpload]);
 
-  const handleDeleteCustomMoodboard = async (moodboard: CustomMoodboard) => {
+  const handleDeleteCustomMoodboard = async (moodboard: Moodboard) => {
     try {
+      // Extract raw ID (strip custom- prefix) and file path
+      const rawId = moodboard.id.replace(/^custom-/, '');
+      const filePath = moodboard.filePath || '';
+      
       // Delete from storage
-      await supabase.storage.from('moodboards').remove([moodboard.file_path]);
+      if (filePath) {
+        await supabase.storage.from('moodboards').remove([filePath]);
+      }
       
       // Delete from database
-      await supabase.from('custom_moodboards').delete().eq('id', moodboard.id);
+      await supabase.from('custom_moodboards').delete().eq('id', rawId);
       
       queryClient.invalidateQueries({ queryKey: ['custom-moodboards'] });
       toast({ title: 'Moodboard deleted' });
@@ -246,14 +254,8 @@ export const MoodboardModal = ({
     }
   };
 
-  // All moodboards come from the database now
-  const allMoodboards: Moodboard[] = customMoodboards.map(m => ({
-    id: `custom-${m.id}`,
-    name: m.name,
-    thumbnail: m.thumbnail_url,
-    filePath: m.file_path,
-    description: m.description || 'Custom moodboard',
-  }));
+  // All moodboards come from the database now - already transformed in query
+  const allMoodboards: Moodboard[] = customMoodboards;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -392,15 +394,9 @@ export const MoodboardModal = ({
                     {customMoodboards.map((moodboard) => (
                       <div key={moodboard.id} className="group relative">
                         <MoodboardThumbnail
-                          moodboard={{
-                            id: `custom-${moodboard.id}`,
-                            name: moodboard.name,
-                            thumbnail: moodboard.thumbnail_url,
-                            filePath: moodboard.file_path,
-                            description: moodboard.description || 'Custom moodboard',
-                          }}
-                          isSelected={selectedMoodboard === `custom-${moodboard.id}`}
-                          onSelect={() => handleSelect(`custom-${moodboard.id}`)}
+                          moodboard={moodboard}
+                          isSelected={selectedMoodboard === moodboard.id}
+                          onSelect={() => handleSelect(moodboard.id)}
                           size="default"
                         />
                         {/* Delete button overlay */}
