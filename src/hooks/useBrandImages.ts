@@ -201,7 +201,7 @@ export function useBrandImages() {
     }
   }, [user, toast]);
 
-  const regenerateBrandBrain = useCallback(async () => {
+  const regenerateBrandBrain = useCallback(async (): Promise<BrandBrain | null> => {
     if (!user || !currentBrand) {
       toast({
         title: "No brand selected",
@@ -229,10 +229,20 @@ export function useBrandImages() {
       if (data?.brandBrain) {
         // Refresh the brand data
         await refetchBrands();
-        toast({
-          title: "Brand Brain generated",
-          description: "Your brand's visual DNA has been updated",
-        });
+        
+        // Check if there are remaining images to analyze
+        if (data.pendingAnalysis && data.remainingImages > 0) {
+          toast({
+            title: `Analyzed ${data.analyzedThisBatch} images`,
+            description: `${data.remainingImages} images remaining. Click Regenerate again to continue.`,
+          });
+        } else {
+          toast({
+            title: "Brand Brain generated",
+            description: "Your brand's visual DNA has been updated",
+          });
+        }
+        
         return data.brandBrain as BrandBrain;
       }
 

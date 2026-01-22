@@ -173,6 +173,10 @@ Deno.serve(async (req) => {
     if (regenerateBrain) {
       console.log(`Regenerating Brand Brain for brand: ${brandId}`);
 
+      // Batch size to prevent timeout - analyze max 10 images per call
+      const BATCH_SIZE = 10;
+      const PARALLEL_LIMIT = 3;
+
       // Fetch all brand images
       const { data: brandImages, error: imagesError } = await supabase
         .from('brand_images')
@@ -193,23 +197,40 @@ Deno.serve(async (req) => {
         if (analysis.hasModel === undefined) return true;
         return false;
       });
-      console.log(`Found ${unanalyzedImages.length} images needing analysis (including legacy without model data)`);
+      
+      const totalNeedingAnalysis = unanalyzedImages.length;
+      const imagesToAnalyze = unanalyzedImages.slice(0, BATCH_SIZE);
+      const remainingCount = Math.max(0, totalNeedingAnalysis - BATCH_SIZE);
+      
+      console.log(`Found ${totalNeedingAnalysis} images needing analysis. Processing ${imagesToAnalyze.length} this batch, ${remainingCount} remaining.`);
 
-      for (const img of unanalyzedImages) {
-        try {
-          const analysis = await analyzeImage(img.image_url, LOVABLE_API_KEY);
-          await supabase
-            .from('brand_images')
-            .update({ visual_analysis: analysis })
-            .eq('id', img.id);
-          img.visual_analysis = analysis;
-        } catch (err) {
-          console.error(`Failed to analyze image ${img.id}:`, err);
-        }
+      // Process images in parallel batches for speed
+      for (let i = 0; i < imagesToAnalyze.length; i += PARALLEL_LIMIT) {
+        const batch = imagesToAnalyze.slice(i, i + PARALLEL_LIMIT);
+        await Promise.all(batch.map(async (img) => {
+          try {
+            const analysis = await analyzeImage(img.image_url, LOVABLE_API_KEY);
+            await supabase
+              .from('brand_images')
+              .update({ visual_analysis: analysis })
+              .eq('id', img.id);
+            img.visual_analysis = analysis;
+            console.log(`Analyzed image ${img.id}`);
+          } catch (err) {
+            console.error(`Failed to analyze image ${img.id}:`, err);
+          }
+        }));
       }
 
-      // Fetch existing brand context
+      // Fetch existing brand context and preserve manual overrides
       const existingContext = brand.brand_context || {};
+      const existingBrain = (existingContext as any).brandBrain;
+      
+      // Capture manual overrides that should be preserved
+      const manualOverrides = {
+        avoidElements: existingBrain?.visualDNA?.avoidElements,
+        // Add other fields users might manually edit here
+      };
 
       // Synthesize Brand Brain from all sources
       const brandBrain = await synthesizeBrandBrain(
@@ -218,6 +239,12 @@ Deno.serve(async (req) => {
         brand.name,
         LOVABLE_API_KEY
       );
+
+      // Merge back manual overrides if they existed and had content
+      if (manualOverrides.avoidElements && manualOverrides.avoidElements.length > 0) {
+        console.log(`Preserving ${manualOverrides.avoidElements.length} manual avoid elements`);
+        brandBrain.visualDNA.avoidElements = manualOverrides.avoidElements;
+      }
 
       // Update brand with new Brand Brain
       const newContext = {
@@ -235,7 +262,13 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, brandBrain }),
+        JSON.stringify({ 
+          success: true, 
+          brandBrain,
+          pendingAnalysis: remainingCount > 0,
+          remainingImages: remainingCount,
+          analyzedThisBatch: imagesToAnalyze.length
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
