@@ -265,7 +265,7 @@ Make each concept unique and commercially viable. Think like a high-end creative
 
     const userPrompt = `Generate 3 complete campaign concepts for: ${prompt}`;
 
-    // Call Lovable AI Gateway
+    // Call Lovable AI Gateway with stable model
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -273,7 +273,7 @@ Make each concept unique and commercially viable. Think like a high-end creative
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -290,9 +290,12 @@ Make each concept unique and commercially viable. Think like a high-end creative
     }
 
     const aiResponse = await response.json();
+    console.log("AI response structure:", JSON.stringify(aiResponse).slice(0, 500));
+    
     const content = aiResponse.choices?.[0]?.message?.content;
 
     if (!content) {
+      console.error("Empty content. Full response:", JSON.stringify(aiResponse));
       throw new Error("No content in AI response");
     }
 
