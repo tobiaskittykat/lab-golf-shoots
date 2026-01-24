@@ -1,6 +1,6 @@
-import { GeneratedImage } from './types';
+import { GeneratedImage, LogoPlacement } from './types';
 import { GeneratedImageCard, GeneratedImageCardSkeleton } from './GeneratedImageCard';
-import { RefreshCw, Images, MousePointerClick, GripVertical } from 'lucide-react';
+import { RefreshCw, Images, GripVertical } from 'lucide-react';
 
 interface GeneratedImagesGalleryProps {
   images: GeneratedImage[];
@@ -15,6 +15,8 @@ interface GeneratedImagesGalleryProps {
   onBack?: () => void;
   compact?: boolean;
   enableDrag?: boolean;
+  logoPlacement?: LogoPlacement;
+  logoUrl?: string;
 }
 
 export const GeneratedImagesGallery = ({
@@ -30,6 +32,8 @@ export const GeneratedImagesGallery = ({
   onBack,
   compact = false,
   enableDrag = false,
+  logoPlacement,
+  logoUrl,
 }: GeneratedImagesGalleryProps) => {
   const successfulImages = images.filter(img => img.status === 'completed');
   const failedImages = images.filter(img => img.status === 'failed');
@@ -109,6 +113,8 @@ export const GeneratedImagesGallery = ({
               onDelete={onDelete}
               onSelect={onSelectForEdit}
               enableDrag={enableDrag}
+              logoPlacement={logoPlacement}
+              logoUrl={logoUrl}
             />
           ))
         )}
