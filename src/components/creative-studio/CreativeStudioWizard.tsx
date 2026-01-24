@@ -278,8 +278,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }));
     handleUpdate({ generatedImages: placeholders });
     
-    // Call real AI to generate images
-    const images = await generateImages(state);
+    // Call real AI to generate images (pass logoUrl for server-side compositing)
+    const images = await generateImages(state, logoUrl);
     
     handleUpdate({ 
       isGenerating: false, 
@@ -511,7 +511,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           onDelete={handleDelete}
           onRegenerate={state.step === 2 ? handleGenerate : undefined}
           isEditing={isGeneratingImages}
-          logoUrl={logoUrl}
         />
         
         {/* Floating Footer for Step 2 */}
