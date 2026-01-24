@@ -87,7 +87,8 @@ export function useImageGeneration() {
 
   // Generate images from state
   const generateImages = useCallback(async (
-    state: CreativeStudioState
+    state: CreativeStudioState,
+    logoUrl?: string // Logo URL for compositing
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -276,6 +277,16 @@ export function useImageGeneration() {
           seed: state.seed,
           
           folder: state.saveToFolder,
+          
+          // Logo placement for server-side compositing
+          logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
+            enabled: true,
+            position: state.logoPlacement.position,
+            sizePercent: state.logoPlacement.sizePercent,
+            opacity: state.logoPlacement.opacity,
+            paddingPx: state.logoPlacement.paddingPx,
+            logoUrl: logoUrl,
+          } : null,
         },
       });
 

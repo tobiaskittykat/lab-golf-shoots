@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Logo placement settings for compositing
+interface LogoPlacement {
+  enabled: boolean;
+  position: 'top-left' | 'top-right' | 'center' | 'bottom-left' | 'bottom-right';
+  sizePercent: number;
+  opacity: number;
+  paddingPx: number;
+  logoUrl: string;
+}
+
 interface GenerateImageRequest {
   // Concept info
   prompt: string;
@@ -133,6 +143,9 @@ interface GenerateImageRequest {
   
   // Custom prompt agent system prompt
   customPromptAgentSystemPrompt?: string;
+  
+  // Logo placement for compositing
+  logoPlacement?: LogoPlacement | null;
 }
 
 // AI model mapping
@@ -495,6 +508,120 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+// Calculate logo position on canvas
+function calculateLogoPosition(
+  position: LogoPlacement['position'],
+  canvasWidth: number,
+  canvasHeight: number,
+  logoWidth: number,
+  logoHeight: number,
+  padding: number
+): { x: number; y: number } {
+  switch (position) {
+    case 'top-left':
+      return { x: padding, y: padding };
+    case 'top-right':
+      return { x: canvasWidth - logoWidth - padding, y: padding };
+    case 'center':
+      return { x: (canvasWidth - logoWidth) / 2, y: (canvasHeight - logoHeight) / 2 };
+    case 'bottom-left':
+      return { x: padding, y: canvasHeight - logoHeight - padding };
+    case 'bottom-right':
+    default:
+      return { x: canvasWidth - logoWidth - padding, y: canvasHeight - logoHeight - padding };
+  }
+}
+
+// Composite logo onto image using fetch + canvas simulation
+async function compositeLogoOnImage(
+  imageBase64: string,
+  logoPlacement: LogoPlacement
+): Promise<string> {
+  try {
+    console.log("Compositing logo onto image...");
+    console.log("Logo URL:", logoPlacement.logoUrl);
+    console.log("Position:", logoPlacement.position, "Size:", logoPlacement.sizePercent + "%", "Opacity:", logoPlacement.opacity);
+
+    // Fetch logo as base64
+    const logoResponse = await fetch(logoPlacement.logoUrl);
+    if (!logoResponse.ok) {
+      console.error("Failed to fetch logo:", logoResponse.status);
+      return imageBase64; // Return original if logo fetch fails
+    }
+    
+    const logoBlob = await logoResponse.arrayBuffer();
+    const logoBase64 = btoa(String.fromCharCode(...new Uint8Array(logoBlob)));
+    const logoContentType = logoResponse.headers.get('content-type') || 'image/png';
+    
+    // Use Lovable AI to composite images (since Deno doesn't have Canvas natively)
+    // We'll send both images to a simple compositing request
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("No API key for compositing");
+      return imageBase64;
+    }
+
+    // Create a compositing prompt that instructs the AI to add the logo
+    const positionText = logoPlacement.position.replace('-', ' ');
+    const compositingPrompt = `Take this image and add the provided logo in the ${positionText} corner. 
+The logo should be approximately ${logoPlacement.sizePercent}% of the image width.
+The logo opacity should be ${Math.round(logoPlacement.opacity * 100)}%.
+Keep the main image EXACTLY as is - only add the logo overlay. Do not modify, enhance, or change the main image in any way.
+The result should look like a simple watermark/branding overlay.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-pro-image-preview",
+        messages: [
+          { 
+            role: "user", 
+            content: [
+              { type: "text", text: compositingPrompt },
+              { 
+                type: "image_url", 
+                image_url: { url: `data:image/png;base64,${imageBase64}` } 
+              },
+              { 
+                type: "image_url", 
+                image_url: { url: `data:${logoContentType};base64,${logoBase64}` } 
+              },
+            ]
+          }
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Logo compositing API error:", response.status);
+      return imageBase64;
+    }
+
+    const aiResponse = await response.json();
+    const compositedImage = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    if (compositedImage && compositedImage.startsWith('data:image')) {
+      // Extract base64 from data URL
+      const match = compositedImage.match(/^data:image\/\w+;base64,(.+)$/);
+      if (match) {
+        console.log("✅ Logo successfully composited onto image");
+        return match[1];
+      }
+    }
+    
+    console.warn("Compositing returned unexpected format, using original");
+    return imageBase64;
+  } catch (err) {
+    console.error("Error compositing logo:", err);
+    return imageBase64; // Return original on any error
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -694,7 +821,14 @@ MANDATORY REQUIREMENTS:
         }
 
         const imageFormat = base64Match[1];
-        const base64Data = base64Match[2];
+        let base64Data = base64Match[2];
+        
+        // Composite logo if enabled
+        if (body.logoPlacement?.enabled && body.logoPlacement.logoUrl) {
+          console.log("Logo placement enabled, compositing...");
+          base64Data = await compositeLogoOnImage(base64Data, body.logoPlacement);
+        }
+        
         const imageBytes = base64ToUint8Array(base64Data);
         
         // Generate unique filename
@@ -760,6 +894,9 @@ MANDATORY REQUIREMENTS:
                 shotTypePrompt: body.shotTypePrompt || null,
                 sourceImageUrl: body.sourceImageUrl || null,
               },
+              // Track if logo was applied
+              logoApplied: body.logoPlacement?.enabled || false,
+              logoPosition: body.logoPlacement?.position || null,
             },
             concept_id: body.conceptTitle ? `concept-${index}` : null,
             concept_title: body.conceptTitle || null,
