@@ -32,6 +32,7 @@ interface ProductReferencePickerProps {
   onDeleteProduct?: (productId: string) => void;
   onUploadProduct?: (file: File) => Promise<void>;
   isUploading?: boolean;
+  brandName?: string; // Dynamic brand name for labels
 }
 
 // Proxy external Shopify CDN URLs through our edge function to bypass hotlink protection
@@ -57,6 +58,7 @@ export const ProductReferencePicker = ({
   onDeleteProduct,
   onUploadProduct,
   isUploading = false,
+  brandName,
 }: ProductReferencePickerProps) => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -182,7 +184,7 @@ export const ProductReferencePicker = ({
                   ) : (
                     <RefreshCw className="w-4 h-4" />
                   )}
-                  {isSyncing ? 'Syncing...' : 'Sync from Bandolier'}
+                  {isSyncing ? 'Syncing...' : `Sync from ${brandName || 'website'}`}
                 </button>
               )}
             </div>
@@ -199,7 +201,7 @@ export const ProductReferencePicker = ({
           {!isLoading && products.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <p>No products found.</p>
-              {onSync && <p className="text-sm mt-1">Click "Sync from Bandolier" to import products.</p>}
+              {onSync && <p className="text-sm mt-1">Click "Sync from {brandName || 'website'}" to import products.</p>}
             </div>
           )}
 

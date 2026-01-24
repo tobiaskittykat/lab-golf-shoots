@@ -24,6 +24,7 @@ interface ReferenceGalleryModalProps {
   onSelect: (referenceId: string) => void;
   onDelete?: (referenceId: string) => void; // For deleting scraped products
   multiSelect?: boolean;
+  brandName?: string; // Dynamic brand name for labels
 }
 
 export const ReferenceGalleryModal = ({ 
@@ -35,7 +36,8 @@ export const ReferenceGalleryModal = ({
   selectedReferences = [],
   onSelect,
   onDelete,
-  multiSelect = false
+  multiSelect = false,
+  brandName
 }: ReferenceGalleryModalProps) => {
   const handleSelect = (referenceId: string) => {
     onSelect(referenceId);
@@ -92,7 +94,7 @@ export const ReferenceGalleryModal = ({
           {scrapedRefs.length > 0 && (
             <div>
               <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-                From Bandolier
+                From {brandName || 'Your Brand'}
                 <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full">
                   {scrapedRefs.length}
                 </span>

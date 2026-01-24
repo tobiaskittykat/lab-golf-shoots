@@ -95,8 +95,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url, userId } = await req.json();
-    const targetUrl = url || 'https://www.bandolierstyle.com/collections/all';
+    const { url, userId, brandId, brandName } = await req.json();
+
+    if (!url) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'url is required for scraping' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!userId) {
       return new Response(
@@ -119,7 +125,12 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Scraping products from:', targetUrl);
+    // Generate brand slug for external IDs (fallback to 'custom' if no brand name)
+    const brandSlug = brandName 
+      ? brandName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').substring(0, 20)
+      : 'custom';
+
+    console.log('Scraping products from:', url, 'for brand:', brandName || 'unknown');
 
     // Use Firecrawl's JSON extraction with LLM to get clean product data
     const productSchema = {
@@ -167,17 +178,17 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: targetUrl,
+        url: url,
         formats: ['extract'],
         extract: {
           schema: productSchema,
           prompt: `Extract up to 100 actual product items from this e-commerce page. 
           
 IMPORTANT RULES:
-- Only extract real products for sale (phone cases, crossbody bags, straps, wallets, pouches, accessories)
+- Only extract real products for sale (phone cases, crossbody bags, straps, wallets, pouches, accessories, apparel, etc.)
 - DO NOT include: logos, icons, banners, promotional graphics, Adobe files, or any non-product images
 - Product image URLs should show actual product photos from any valid image CDN
-- Clean up product names: remove file codes, dimensions, dates (e.g., "Hailey Big D Ring Gold 17 20250811 003" should become "Hailey D-Ring - Gold")
+- Clean up product names: remove file codes, dimensions, dates
 - Combine product name with color/finish in a clean format like "Product Name - Color"
 - Assign accurate categories based on what the product actually is
 - Extract as many unique products as possible - each color variant is a separate product`
@@ -227,12 +238,12 @@ IMPORTANT RULES:
 
     // Generate stable external_id from product name (for upsert deduplication)
     const generateExternalId = (name: string) => {
-      // Create a stable hash-like ID from the product name
+      // Create a stable hash-like ID from the product name, prefixed with brand slug
       const normalized = name.toLowerCase().trim().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
-      return `bandolier-${normalized}`;
+      return `${brandSlug}-${normalized}`;
     };
 
-// Mirror each image to Supabase storage
+    // Mirror each image to Supabase storage
     const mirrorResults = await Promise.all(
       preFilteredProducts.map(async (product: ScrapedProduct) => {
         const externalId = generateExternalId(product.name);
@@ -278,7 +289,8 @@ IMPORTANT RULES:
             category: product.category || 'product',
             color: product.color,
             collection: product.collection,
-            description, // NEW: AI-generated product analysis
+            description, // AI-generated product analysis
+            brandId: brandId || null, // Include brand_id for database insert
           };
         }
         return null;
