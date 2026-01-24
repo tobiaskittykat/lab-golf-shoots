@@ -10,28 +10,28 @@ interface StepOnePromptProps {
   onDeleteSavedConcept?: (conceptId: string) => void;
 }
 
-// Marketing-style briefs for Bandolier - organized by type
+// Marketing-style briefs - generic examples that work for any brand
 const exampleBriefsByType: Record<string, string[]> = {
   lifestyle: [
     // Summer/Travel campaigns
-    "Summer crossbody launch campaign - effortless European getaway vibes, golden hour luxury",
-    "Vacation essentials shoot - yacht deck to seaside dinner, one bag does it all",
-    "Coastal collection campaign - sun-drenched elegance, linen and ocean blues",
+    "Summer collection launch - effortless getaway vibes, golden hour luxury",
+    "Vacation essentials shoot - poolside to dinner, versatile elegance",
+    "Coastal collection campaign - sun-drenched elegance, ocean blues",
     
     // Festival/Desert campaigns
     "Festival season drop - desert sunset energy, bold and expressive",
-    "Road trip content series - open highways, adventure-ready accessories",
+    "Road trip content series - open highways, adventure-ready style",
     "Southwest-inspired editorial - earthy tones, effortless boho-luxe",
     
     // Urban/Street Style campaigns
-    "City essentials campaign - coffee run to cocktail hour, hands-free living",
-    "Street style editorial - fashion week energy, urban sophistication",
-    "Morning routine content - getting ready moments, everyday luxury",
+    "City essentials campaign - coffee run to cocktail hour, urban chic",
+    "Street style editorial - fashion week energy, sophisticated edge",
+    "Morning routine content - everyday luxury, authentic moments",
     
     // Party/Evening campaigns
     "Holiday party campaign - champagne moments, after-dark glamour",
     "NYE collection shoot - celebration vibes, sparkle and spontaneity",
-    "Girls night content - getting ready together, going out in style",
+    "Night out content - getting ready together, going out in style",
     
     // Floral/Spring campaigns
     "Spring refresh campaign - garden party meets street style",
@@ -39,7 +39,7 @@ const exampleBriefsByType: Record<string, string[]> = {
     "New arrivals launch - spring color story, bright and optimistic",
     
     // Bold/Statement campaigns
-    "Statement print drop - leopard season, unapologetically bold",
+    "Statement print drop - bold patterns, unapologetically confident",
     "Power accessories editorial - strong silhouettes, confident energy",
     "Fall fashion campaign - rich tones, texture-forward styling",
   ],

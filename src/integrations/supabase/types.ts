@@ -364,6 +364,7 @@ export type Database = {
       }
       scraped_products: {
         Row: {
+          brand_id: string | null
           category: string | null
           collection: string | null
           created_at: string | null
@@ -377,6 +378,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brand_id?: string | null
           category?: string | null
           collection?: string | null
           created_at?: string | null
@@ -390,6 +392,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brand_id?: string | null
           category?: string | null
           collection?: string | null
           created_at?: string | null
@@ -402,7 +405,15 @@ export type Database = {
           thumbnail_url?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scraped_products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

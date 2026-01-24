@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
 import { 
   CreativeStudioState, 
   Concept,
@@ -90,6 +91,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const { currentBrand } = useBrands();
   const { log: auditLog } = useAuditLog();
 
   const proxyImageUrl = (raw?: string | null) => {
@@ -99,16 +101,17 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     return `${base}/functions/v1/image-proxy?url=${encodeURIComponent(raw)}`;
   };
 
-  // Fetch scraped products from database
+  // Fetch scraped products from database - filtered by brand_id
   // Since products are now mirrored to our storage, we use direct URLs (no proxy needed)
   const { data: scrapedProducts = [], isLoading: loadingScrapedProducts, refetch: refetchScrapedProducts } = useQuery({
-    queryKey: ['scraped-products', user?.id],
+    queryKey: ['scraped-products', user?.id, currentBrand?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id || !currentBrand?.id) return [];
       const { data, error } = await supabase
         .from('scraped_products')
         .select('*')
         .eq('user_id', user.id)
+        .eq('brand_id', currentBrand.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -125,7 +128,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         storagePath: p.storage_path || undefined,
       }));
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!currentBrand?.id,
   });
 
   // Infer product type for grouping when category is missing or too generic
@@ -178,18 +181,35 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     }));
   }, [scrapedProducts, inferProductType]);
 
-  // Handle scraping products from Bandolier (UPSERT: preserves existing products)
+  // Handle scraping products from brand website (UPSERT: preserves existing products)
   const handleScrapeProducts = async () => {
     if (!user) {
       toast({ title: 'Please sign in to scrape products', variant: 'destructive' });
       return;
     }
+    if (!currentBrand) {
+      toast({ title: 'Please select a brand first', variant: 'destructive' });
+      return;
+    }
+    if (!currentBrand.website) {
+      toast({ title: 'Please set a website URL in brand settings', variant: 'destructive' });
+      return;
+    }
 
     setIsScrapingProducts(true);
     try {
-      // Pass userId so edge function can mirror images to user's storage folder
+      // Pass brand info so edge function can categorize and link products
+      const scrapeUrl = currentBrand.website.includes('/collections') 
+        ? currentBrand.website 
+        : `${currentBrand.website.replace(/\/$/, '')}/collections/all`;
+      
       const { data, error } = await supabase.functions.invoke('scrape-products', {
-        body: { url: 'https://www.bandolierstyle.com/collections/all', userId: user.id }
+        body: { 
+          url: scrapeUrl, 
+          userId: user.id,
+          brandId: currentBrand.id,
+          brandName: currentBrand.name
+        }
       });
 
       if (error) throw error;
@@ -199,12 +219,13 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         // This preserves products from previous syncs that may not be in current scrape
         const productsToInsert = data.products.map((p: any) => ({
           user_id: user.id,
+          brand_id: currentBrand.id,
           external_id: p.externalId || p.storagePath || p.id,
           name: p.name,
           thumbnail_url: p.thumbnail,
           full_url: p.url || p.thumbnail,
           category: p.category || inferProductType(p.name),
-          collection: p.collection || 'bandolier',
+          collection: p.collection || currentBrand.name.toLowerCase(),
           storage_path: p.storagePath || null,
         }));
 
@@ -233,7 +254,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         auditLog({
           action: 'scrape_products',
           resourceType: 'scraped_products',
-          metadata: { url: 'https://www.bandolierstyle.com/collections/all', count: newCount, droppedCount }
+          metadata: { url: scrapeUrl, brandId: currentBrand.id, count: newCount, droppedCount }
         });
         
         refetchScrapedProducts();
@@ -248,9 +269,9 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     }
   };
 
-  // Handle clearing all products (explicit user action)
+  // Handle clearing all products for current brand (explicit user action)
   const handleClearAllProducts = async () => {
-    if (!user) return;
+    if (!user || !currentBrand) return;
     
     // Get count before deletion for audit
     const countBeforeDelete = scrapedProducts.length;
@@ -259,7 +280,8 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
       const { error } = await supabase
         .from('scraped_products')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('brand_id', currentBrand.id);
 
       if (error) throw error;
       
@@ -368,6 +390,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         .from('scraped_products')
         .insert({
           user_id: user.id,
+          brand_id: currentBrand?.id || null,
           external_id: `custom-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           name: productName,
           thumbnail_url: publicUrl,
@@ -1621,6 +1644,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         onDeleteProduct={handleDeleteScrapedProduct}
         onUploadProduct={handleUploadProduct}
         isUploading={isUploadingProduct}
+        brandName={currentBrand?.name}
       />
 
       <ReferenceGalleryModal
