@@ -1,5 +1,8 @@
 // ============= 9-POINT CAMPAIGN CONCEPT FRAMEWORK =============
 
+import { LogoPlacement, defaultLogoPlacement } from '@/lib/imageCompositing';
+export type { LogoPlacement } from '@/lib/imageCompositing';
+
 // Product Focus - high-level product category (exact product chosen via reference image)
 export interface ProductFocus {
   productCategory: string;    // "Nike basketball sneaker" or "luxury crossbody bag"
@@ -211,6 +214,9 @@ export interface CreativeStudioState {
   // Stable display order (set by smart-match, only modified by gallery selection)
   displayedMoodboardIds: string[];
   displayedProductIds: string[];
+  
+  // Logo placement settings
+  logoPlacement: LogoPlacement;
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -262,6 +268,9 @@ export const initialCreativeStudioState: CreativeStudioState = {
   // Stable display order
   displayedMoodboardIds: [],
   displayedProductIds: [],
+  
+  // Logo placement defaults (OFF by default)
+  logoPlacement: defaultLogoPlacement,
 };
 
 export const typeCards = [

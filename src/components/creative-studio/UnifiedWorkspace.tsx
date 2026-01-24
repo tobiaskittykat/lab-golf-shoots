@@ -12,7 +12,7 @@ import {
   ChevronDown as ChevronDownIcon,
   GripVertical
 } from 'lucide-react';
-import { CreativeStudioState, GeneratedImage, aiModels } from './types';
+import { CreativeStudioState, GeneratedImage, aiModels, LogoPlacement } from './types';
 import { GeneratedImagesGallery } from './GeneratedImagesGallery';
 import { ImageDetailModal } from './ImageDetailModal';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ interface UnifiedWorkspaceProps {
   onDelete: (image: GeneratedImage) => void;
   onRegenerate?: () => void;
   isEditing: boolean;
+  logoUrl?: string;
 }
 
 type EditModeType = 'generate' | 'edit' | 'variation';
@@ -43,6 +44,7 @@ export const UnifiedWorkspace = ({
   onDelete,
   onRegenerate,
   isEditing,
+  logoUrl,
 }: UnifiedWorkspaceProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -356,6 +358,8 @@ export const UnifiedWorkspace = ({
           onSelectForEdit={handleImageClick}
           compact={true}
           enableDrag={true}
+          logoPlacement={state.logoPlacement}
+          logoUrl={logoUrl}
         />
       </div>
 
@@ -367,6 +371,8 @@ export const UnifiedWorkspace = ({
         onVariation={handleVariationFromModal}
         onEdit={handleEditFromModal}
         onDelete={handleDeleteFromModal}
+        logoPlacement={state.logoPlacement}
+        logoUrl={logoUrl}
       />
     </div>
   );

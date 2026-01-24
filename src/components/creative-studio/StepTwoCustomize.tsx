@@ -35,6 +35,7 @@ import { Slider } from "@/components/ui/slider";
 import { ConceptCard, AddConceptCard, SavedConceptCard, ConceptCardSkeleton } from "./ConceptCard";
 import { ConceptEditModal } from "./ConceptEditModal";
 import { CustomizationSection } from "./CustomizationSection";
+import { BrandingSection } from "./BrandingSection";
 import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { ReferenceThumbnail } from "./ReferenceThumbnail";
 import { MoodboardModal } from "./MoodboardModal";
@@ -1508,8 +1509,16 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
             </div>
           </CustomizationSection>
 
+          {/* ===== 8. BRANDING SECTION ===== */}
+          <BrandingSection
+            logoPlacement={state.logoPlacement}
+            onUpdate={(updates) => onUpdate({ 
+              logoPlacement: { ...state.logoPlacement, ...updates } 
+            })}
+          />
+
           {/* ===== 9. ADVANCED SETTINGS ===== */}
-          <CustomizationSection 
+          <CustomizationSection
             title="Advanced Settings" 
             icon={<Settings2 className="w-4 h-4" />}
             defaultOpen={false}

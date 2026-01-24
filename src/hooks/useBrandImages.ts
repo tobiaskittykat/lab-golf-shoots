@@ -422,6 +422,11 @@ export function useBrandImages() {
     }
   }, [user, currentBrand, fetchImages, toast]);
 
+  // Get the first logo image for the current brand
+  const getBrandLogo = useCallback((): BrandImage | null => {
+    return images.find(img => img.category === 'logo') || null;
+  }, [images]);
+
   return {
     images,
     isLoading,
@@ -435,5 +440,6 @@ export function useBrandImages() {
     getBrandBrain,
     updateBrandBrain,
     scrapeFromWebsite,
+    getBrandLogo,
   };
 }

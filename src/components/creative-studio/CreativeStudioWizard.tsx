@@ -10,6 +10,7 @@ import { SelectionIndicators } from "./SelectionIndicators";
 import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
+import { useBrandImages } from "@/hooks/useBrandImages";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +27,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   const navigate = useNavigate();
   const { currentBrand } = useBrands();
   const { user } = useAuth();
+  const { images: brandImages, fetchImages: fetchBrandImages } = useBrandImages();
   const { 
     isGeneratingConcepts, 
     isGeneratingImages, 
@@ -36,6 +38,10 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     deleteImage,
     editImage
   } = useImageGeneration();
+  
+  // Get brand logo URL
+  const brandLogo = brandImages.find(img => img.category === 'logo');
+  const logoUrl = brandLogo?.image_url;
   
   // Refs for floating footer positioning
   const step2CardRef = useRef<HTMLDivElement>(null);
@@ -98,7 +104,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   // Initial fetch on mount
   useEffect(() => {
     fetchPreviousImages();
-  }, [fetchPreviousImages]);
+    fetchBrandImages();
+  }, [fetchPreviousImages, fetchBrandImages]);
 
   // Fetch saved concepts on mount for Step 1 display
   useEffect(() => {
@@ -504,6 +511,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           onDelete={handleDelete}
           onRegenerate={state.step === 2 ? handleGenerate : undefined}
           isEditing={isGeneratingImages}
+          logoUrl={logoUrl}
         />
         
         {/* Floating Footer for Step 2 */}

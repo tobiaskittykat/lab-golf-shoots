@@ -1,7 +1,8 @@
 import { useState, DragEvent } from 'react';
 import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check, GripVertical } from 'lucide-react';
-import { GeneratedImage } from './types';
+import { GeneratedImage, LogoPlacement } from './types';
 import { cn } from '@/lib/utils';
+import { getLogoOverlayStyles, compositeLogoOnImage } from '@/lib/imageCompositing';
 
 interface GeneratedImageCardProps {
   image: GeneratedImage;
@@ -10,6 +11,8 @@ interface GeneratedImageCardProps {
   onDelete: (image: GeneratedImage) => void;
   onSelect?: (image: GeneratedImage) => void;
   enableDrag?: boolean;
+  logoPlacement?: LogoPlacement;
+  logoUrl?: string;
 }
 
 export const GeneratedImageCard = ({ 
@@ -18,11 +21,16 @@ export const GeneratedImageCard = ({
   onEdit, 
   onDelete,
   onSelect,
-  enableDrag = false
+  enableDrag = false,
+  logoPlacement,
+  logoUrl
 }: GeneratedImageCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const showLogo = logoPlacement?.enabled && logoUrl && image.status === 'completed';
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
     if (!enableDrag || image.status !== 'completed') {
@@ -49,19 +57,39 @@ export const GeneratedImageCard = ({
   const handleDownload = async () => {
     if (!image.imageUrl) return;
     
+    setIsDownloading(true);
     try {
-      const response = await fetch(image.imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `generated-image-${image.id}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      let downloadUrl = image.imageUrl;
+      
+      // If logo is enabled, composite it onto the image
+      if (showLogo && logoUrl && logoPlacement) {
+        downloadUrl = await compositeLogoOnImage(image.imageUrl, logoUrl, logoPlacement);
+      }
+      
+      // For data URLs, download directly; for regular URLs, fetch first
+      if (downloadUrl.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `generated-image-${image.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const response = await fetch(downloadUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `generated-image-${image.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
     } catch (error) {
       console.error('Download failed:', error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -166,6 +194,19 @@ export const GeneratedImageCard = ({
               }`}
               onLoad={() => setImageLoaded(true)}
             />
+            {/* Logo overlay preview */}
+            {showLogo && logoUrl && logoPlacement && imageLoaded && (
+              <img
+                src={logoUrl}
+                alt="Brand logo"
+                style={getLogoOverlayStyles(
+                  logoPlacement.position,
+                  logoPlacement.sizePercent,
+                  logoPlacement.opacity,
+                  logoPlacement.paddingPx
+                )}
+              />
+            )}
           </>
         )}
 
@@ -196,9 +237,14 @@ export const GeneratedImageCard = ({
             <button
               onClick={(e) => { e.stopPropagation(); handleDownload(); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
-              title="Download"
+              title={showLogo ? "Download with logo" : "Download"}
+              disabled={isDownloading}
             >
-              <Download className="w-4 h-4" />
+              {isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(image); }}

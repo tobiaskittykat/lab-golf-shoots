@@ -14,9 +14,10 @@ import {
   Expand
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogContentClean } from '@/components/ui/dialog';
-import { GeneratedImage } from './types';
+import { GeneratedImage, LogoPlacement } from './types';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogoOverlayStyles, compositeLogoOnImage } from '@/lib/imageCompositing';
 
 interface ImageDetailModalProps {
   image: GeneratedImage | null;
@@ -25,6 +26,8 @@ interface ImageDetailModalProps {
   onVariation: (image: GeneratedImage) => void;
   onEdit: (image: GeneratedImage) => void;
   onDelete: (image: GeneratedImage) => void;
+  logoPlacement?: LogoPlacement;
+  logoUrl?: string;
 }
 
 export const ImageDetailModal = ({
@@ -34,11 +37,16 @@ export const ImageDetailModal = ({
   onVariation,
   onEdit,
   onDelete,
+  logoPlacement,
+  logoUrl,
 }: ImageDetailModalProps) => {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [resolvedMoodboardUrl, setResolvedMoodboardUrl] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const showLogo = logoPlacement?.enabled && logoUrl;
 
   // Resolve moodboard URL if we have ID but no URL
   useEffect(() => {
@@ -92,19 +100,39 @@ export const ImageDetailModal = ({
   const handleDownload = async () => {
     if (!image.imageUrl) return;
     
+    setIsDownloading(true);
     try {
-      const response = await fetch(image.imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `generated-image-${image.id}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      let downloadUrl = image.imageUrl;
+      
+      // If logo is enabled, composite it onto the image
+      if (showLogo && logoUrl && logoPlacement) {
+        downloadUrl = await compositeLogoOnImage(image.imageUrl, logoUrl, logoPlacement);
+      }
+      
+      // For data URLs, download directly; for regular URLs, fetch first
+      if (downloadUrl.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `generated-image-${image.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        const response = await fetch(downloadUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `generated-image-${image.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
     } catch (error) {
       console.error('Download failed:', error);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -145,11 +173,27 @@ export const ImageDetailModal = ({
         <DialogContentClean className="max-w-6xl w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden bg-background flex">
           {/* Left Side - Image */}
           <div className="flex-1 bg-secondary/30 flex items-center justify-center p-6 relative min-w-0">
-            <img
-              src={image.imageUrl}
-              alt={image.prompt}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            />
+            <div className="relative max-w-full max-h-full">
+              <img
+                src={image.imageUrl}
+                alt={image.prompt}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              />
+              {/* Logo overlay preview */}
+              {showLogo && logoUrl && logoPlacement && (
+                <img
+                  src={logoUrl}
+                  alt="Brand logo"
+                  style={getLogoOverlayStyles(
+                    logoPlacement.position,
+                    logoPlacement.sizePercent,
+                    logoPlacement.opacity,
+                    logoPlacement.paddingPx
+                  )}
+                  className="rounded"
+                />
+              )}
+            </div>
             
             {/* Close button */}
             <button
