@@ -78,11 +78,11 @@ export const BrandingSection = ({ logoPlacement, onUpdate }: BrandingSectionProp
             {/* Logo preview */}
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground">Your brand logo</label>
-              <div className="w-16 h-16 rounded-lg border border-border bg-secondary/30 overflow-hidden">
+              <div className="max-w-[120px] h-16 rounded-lg border border-border bg-secondary/30 overflow-hidden flex items-center justify-center">
                 <img
                   src={logoImage.image_url}
                   alt="Brand logo"
-                  className="w-full h-full object-contain p-1"
+                  className="w-auto h-full max-w-full object-contain p-1"
                 />
               </div>
             </div>

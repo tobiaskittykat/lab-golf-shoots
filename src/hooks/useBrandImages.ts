@@ -108,15 +108,18 @@ export function useBrandImages() {
 
     setIsUploading(true);
     try {
-      // Upload to storage
-      const fileExt = file.name.split(".").pop();
+      // Upload to storage - preserve original format for logos
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || 'png';
       const fileName = `${user.id}/${currentBrand.id}/${Date.now()}.${fileExt}`;
+      const isLogo = category === 'logo';
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("brand-assets")
         .upload(fileName, file, {
           cacheControl: "3600",
           upsert: false,
+          // Preserve original MIME type for logos to avoid lossy compression
+          contentType: isLogo ? file.type : undefined,
         });
 
       if (uploadError) throw uploadError;

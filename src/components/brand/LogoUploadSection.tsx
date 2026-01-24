@@ -109,18 +109,18 @@ export function LogoUploadSection({
             <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">Drop logo images here or click upload</p>
             <p className="text-xs mt-1">
-              PNG or SVG with transparent background recommended
+              PNG with transparent background recommended (min 500px width)
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 items-center">
             {logos.map((logo) => {
               const isPrimary = logo.id === effectivePrimaryId;
               return (
                 <div
                   key={logo.id}
                   className={cn(
-                    "relative group w-20 h-20 rounded-lg border-2 overflow-hidden cursor-pointer transition-all",
+                    "relative group h-20 min-w-[80px] max-w-[160px] rounded-lg border-2 overflow-hidden cursor-pointer transition-all flex items-center justify-center",
                     isPrimary
                       ? "border-primary bg-primary/5"
                       : "border-border bg-secondary/30 hover:border-muted-foreground"
@@ -129,9 +129,9 @@ export function LogoUploadSection({
                   title={isPrimary ? "Primary logo" : "Click to set as primary"}
                 >
                   <img
-                    src={logo.thumbnail_url || logo.image_url}
+                    src={logo.image_url}
                     alt="Brand logo"
-                    className="w-full h-full object-contain p-2"
+                    className="w-auto h-full max-w-full object-contain p-2"
                   />
 
                   {/* Primary indicator */}

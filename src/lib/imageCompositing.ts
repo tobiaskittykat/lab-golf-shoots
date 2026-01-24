@@ -89,6 +89,10 @@ export async function compositeLogoOnImage(
     throw new Error('Failed to get canvas 2D context');
   }
 
+  // Enable high-quality image scaling
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   // Draw main image
   ctx.drawImage(mainImage, 0, 0);
 
