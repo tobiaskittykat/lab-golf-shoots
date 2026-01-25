@@ -88,7 +88,13 @@ export function useImageGeneration() {
   // Generate images from state
   const generateImages = useCallback(async (
     state: CreativeStudioState,
-    logoUrl?: string // Logo URL for compositing
+    logoUrl?: string, // Logo URL for compositing
+    currentBrand?: { // Pass current brand directly to avoid multi-brand query issues
+      id: string;
+      name: string;
+      personality?: string | null;
+      brand_context?: unknown;
+    } | null
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -163,35 +169,27 @@ export function useImageGeneration() {
         }
       }
       
-      // Fetch brand context, custom AI prompts, and Brand Brain
+      // Use brand from parameter (avoids multi-brand query issues)
       let brandContext: Record<string, unknown> | undefined;
       let brandName: string | undefined;
       let brandPersonality: string | undefined;
       let customPromptAgentSystemPrompt: string | undefined;
       let brandBrain: Record<string, unknown> | undefined;
       
-      if (user?.id) {
-        const { data: brand } = await supabase
-          .from('brands')
-          .select('name, personality, brand_context')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      if (currentBrand) {
+        brandName = currentBrand.name;
+        brandPersonality = currentBrand.personality || undefined;
+        brandContext = currentBrand.brand_context as Record<string, unknown> | undefined;
         
-        if (brand) {
-          brandName = brand.name;
-          brandPersonality = brand.personality || undefined;
-          brandContext = brand.brand_context as Record<string, unknown> | undefined;
-          
-          // Extract custom prompt agent system prompt if set
-          const aiPrompts = (brandContext as any)?.aiPrompts;
-          if (aiPrompts?.promptAgent) {
-            customPromptAgentSystemPrompt = aiPrompts.promptAgent;
-          }
-          
-          // Extract Brand Brain if set
-          if ((brandContext as any)?.brandBrain) {
-            brandBrain = (brandContext as any).brandBrain;
-          }
+        // Extract custom prompt agent system prompt if set
+        const aiPrompts = (brandContext as any)?.aiPrompts;
+        if (aiPrompts?.promptAgent) {
+          customPromptAgentSystemPrompt = aiPrompts.promptAgent;
+        }
+        
+        // Extract Brand Brain if set
+        if ((brandContext as any)?.brandBrain) {
+          brandBrain = (brandContext as any).brandBrain;
         }
       }
 

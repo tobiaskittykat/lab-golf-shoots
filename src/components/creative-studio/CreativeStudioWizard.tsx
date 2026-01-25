@@ -278,8 +278,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }));
     handleUpdate({ generatedImages: placeholders });
     
-    // Call real AI to generate images (pass logoUrl for server-side compositing)
-    const images = await generateImages(state, logoUrl);
+    // Call real AI to generate images (pass logoUrl + currentBrand for full brand context)
+    const images = await generateImages(state, logoUrl, currentBrand || undefined);
     
     handleUpdate({ 
       isGenerating: false, 
@@ -329,7 +329,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
 
       // Use editDescription as the prompt
       const editState = { ...state, prompt: state.editDescription };
-      const images = await generateImages(editState);
+      const images = await generateImages(editState, undefined, currentBrand || undefined);
       
       handleUpdate({ 
         isGenerating: false, 
