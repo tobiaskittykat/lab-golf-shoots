@@ -192,6 +192,11 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       }));
     };
     
+    // Extract Brand Brain and custom prompts from brand context
+    const brandContext = currentBrand?.brand_context as Record<string, unknown> | undefined;
+    const brandBrain = brandContext?.brandBrain as Record<string, unknown> | undefined;
+    const customConceptAgentPrompt = (brandContext?.aiPrompts as any)?.conceptAgent as string | undefined;
+    
     // Call real AI to generate concepts with progressive reveal
     await generateConcepts(
       state.prompt,
@@ -200,7 +205,9 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       currentBrand?.industry || undefined,
       state.useCase,
       state.targetPersona || undefined,
-      onConceptReady
+      onConceptReady,
+      customConceptAgentPrompt, // Custom system prompt from brand settings
+      brandBrain // Brand Brain visual identity data
     );
     
     handleUpdate({ isLoadingConcepts: false });

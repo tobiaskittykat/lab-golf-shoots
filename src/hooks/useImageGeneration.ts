@@ -28,7 +28,8 @@ export function useImageGeneration() {
     useCase?: string,
     targetPersona?: string,
     onConceptReady?: (concept: Concept, index: number) => void,
-    customSystemPrompt?: string // Custom concept agent prompt from brand settings
+    customSystemPrompt?: string, // Custom concept agent prompt from brand settings
+    brandBrain?: Record<string, unknown> // Brand Brain visual identity data
   ): Promise<Concept[]> => {
     setIsGeneratingConcepts(true);
     setConceptsProgress(0);
@@ -43,6 +44,7 @@ export function useImageGeneration() {
           useCase,
           targetPersona,
           customSystemPrompt,
+          brandBrain, // Pass Brand Brain to concept agent
         },
       });
 
@@ -160,12 +162,24 @@ export function useImageGeneration() {
           if (!scrapedErr && scrapedRow) {
             const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
             if (url) productReferenceUrls.push(url);
-            if (scrapedRow.name) productNames.push(scrapedRow.name);
+          // Prefix with brand name for better identification in prompts
+          if (scrapedRow.name) {
+            const prefixedName = currentBrand?.name 
+              ? `${currentBrand.name} ${scrapedRow.name}` 
+              : scrapedRow.name;
+            productNames.push(prefixedName);
+          }
           }
         } else {
           const ref = sampleProductReferences.find(r => r.id === productRef);
           if (ref?.url) productReferenceUrls.push(ref.url);
-          if (ref?.name) productNames.push(ref.name);
+          // Prefix sample products with brand name too
+          if (ref?.name) {
+            const prefixedName = currentBrand?.name 
+              ? `${currentBrand.name} ${ref.name}` 
+              : ref.name;
+            productNames.push(prefixedName);
+          }
         }
       }
       
