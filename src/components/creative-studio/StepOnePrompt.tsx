@@ -1,4 +1,4 @@
-import { Shuffle, Plus, Bookmark, RefreshCw } from "lucide-react";
+import { Plus, Bookmark, RefreshCw } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { CreativeStudioState, SavedConcept } from "./types";
 import { SavedConceptsModal } from "./SavedConceptsModal";
@@ -24,18 +24,25 @@ const genericFallbackBriefs = [
   "Street style editorial - fashion week energy, sophisticated edge",
 ];
 
+const BRIEFS_PER_PAGE = 6;
+const INITIAL_POOL_SIZE = 36;
+const REFILL_THRESHOLD = 12;
+
 export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcept, onDeleteSavedConcept }: StepOnePromptProps) => {
-  const [displayedBriefs, setDisplayedBriefs] = useState<string[]>([]);
-  const [cachedBriefs, setCachedBriefs] = useState<string[]>([]);
-  const [isLoadingBriefs, setIsLoadingBriefs] = useState(false);
+  const [briefPool, setBriefPool] = useState<string[]>([]);
+  const [poolIndex, setPoolIndex] = useState(0);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
+  const [isBackgroundFetching, setIsBackgroundFetching] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastBrandIdRef = useRef<string | null>(null);
 
   // Fetch brand-specific briefs from AI
-  const fetchBrandBriefs = useCallback(async (brand: Brand) => {
-    setIsLoadingBriefs(true);
+  const fetchBrandBriefs = useCallback(async (brand: Brand, append = false) => {
+    if (!append) {
+      setIsLoadingInitial(true);
+    }
     
     try {
       const brandContext = brand.brand_context as Record<string, any> | null;
@@ -52,27 +59,72 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
           personality: brand.personality,
           brandBrain: brandBrain,
           productCategories: productCategories,
-          count: 18
+          count: INITIAL_POOL_SIZE
         }
       });
 
       if (error) {
         console.error('Error fetching briefs:', error);
-        setCachedBriefs(genericFallbackBriefs);
-        setDisplayedBriefs(genericFallbackBriefs);
+        if (!append) {
+          setBriefPool(genericFallbackBriefs);
+          setPoolIndex(0);
+        }
       } else {
         const briefs = data?.briefs || genericFallbackBriefs;
-        setCachedBriefs(briefs);
-        setDisplayedBriefs(briefs.slice(0, 6));
+        if (append) {
+          setBriefPool(prev => [...prev, ...briefs]);
+        } else {
+          setBriefPool(briefs);
+          setPoolIndex(0);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch brand briefs:', err);
-      setCachedBriefs(genericFallbackBriefs);
-      setDisplayedBriefs(genericFallbackBriefs);
+      if (!append) {
+        setBriefPool(genericFallbackBriefs);
+        setPoolIndex(0);
+      }
     } finally {
-      setIsLoadingBriefs(false);
+      if (!append) {
+        setIsLoadingInitial(false);
+      }
     }
   }, []);
+
+  // Background refill when pool is running low
+  const refillPoolInBackground = useCallback(async () => {
+    if (!currentBrand || isBackgroundFetching) return;
+    
+    setIsBackgroundFetching(true);
+    console.log('Background refilling brief pool...');
+    
+    try {
+      const brandContext = currentBrand.brand_context as Record<string, any> | null;
+      const brandBrain = brandContext?.brandBrain;
+      const productCategories = brandContext?.productCategories || 
+        (currentBrand.industry === 'Fashion & Accessories' ? ['phone cases', 'crossbody straps', 'leather accessories', 'tech accessories'] : []);
+      
+      const { data, error } = await supabase.functions.invoke('generate-brief-suggestions', {
+        body: {
+          brandName: currentBrand.name,
+          industry: currentBrand.industry,
+          personality: currentBrand.personality,
+          brandBrain: brandBrain,
+          productCategories: productCategories,
+          count: INITIAL_POOL_SIZE
+        }
+      });
+
+      if (!error && data?.briefs) {
+        setBriefPool(prev => [...prev, ...data.briefs]);
+        console.log('Brief pool refilled, new size:', briefPool.length + data.briefs.length);
+      }
+    } catch (err) {
+      console.error('Background refill failed:', err);
+    } finally {
+      setIsBackgroundFetching(false);
+    }
+  }, [currentBrand, isBackgroundFetching, briefPool.length]);
 
   // Fetch briefs when brand changes
   useEffect(() => {
@@ -81,8 +133,9 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
       fetchBrandBriefs(currentBrand);
     } else if (!currentBrand) {
       // No brand - use generic fallbacks
-      setCachedBriefs(genericFallbackBriefs);
-      setDisplayedBriefs(genericFallbackBriefs);
+      setBriefPool(genericFallbackBriefs);
+      setPoolIndex(0);
+      setIsLoadingInitial(false);
     }
   }, [currentBrand?.id, fetchBrandBriefs]);
 
@@ -95,21 +148,24 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
     }
   }, [state.prompt]);
 
-  const handleShuffle = () => {
-    if (cachedBriefs.length <= 6) {
-      // Not enough cached, just shuffle what we have
-      const shuffled = [...cachedBriefs].sort(() => Math.random() - 0.5);
-      setDisplayedBriefs(shuffled.slice(0, 6));
-    } else {
-      // Pick 6 random from cache
-      const shuffled = [...cachedBriefs].sort(() => Math.random() - 0.5);
-      setDisplayedBriefs(shuffled.slice(0, 6));
-    }
-  };
+  // Get current 6 briefs to display
+  const displayedBriefs = briefPool.slice(poolIndex, poolIndex + BRIEFS_PER_PAGE);
 
-  const handleRegenerate = () => {
-    if (currentBrand) {
-      fetchBrandBriefs(currentBrand);
+  const handleNewIdeas = () => {
+    const nextIndex = poolIndex + BRIEFS_PER_PAGE;
+    
+    // Check if we need to wrap around or advance
+    if (nextIndex >= briefPool.length) {
+      // Wrap around to start
+      setPoolIndex(0);
+    } else {
+      setPoolIndex(nextIndex);
+    }
+    
+    // Check if we need to refill in background
+    const remaining = briefPool.length - nextIndex;
+    if (remaining <= REFILL_THRESHOLD && !isBackgroundFetching && currentBrand) {
+      refillPoolInBackground();
     }
   };
 
@@ -140,8 +196,8 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
 
         {/* Brief Cards Grid - KittyKat style */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {isLoadingBriefs ? (
-            // Loading skeletons
+          {isLoadingInitial ? (
+            // Loading skeletons - only shown on initial load
             Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
@@ -155,7 +211,7 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
           ) : (
             displayedBriefs.map((brief, index) => (
               <button
-                key={index}
+                key={`${poolIndex}-${index}`}
                 onClick={() => handleBriefClick(brief)}
                 className="group flex items-start gap-3 p-5 rounded-2xl bg-card border border-border hover:border-accent/40 hover:shadow-md transition-all duration-200 text-left"
                 style={{
@@ -171,24 +227,15 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
           )}
         </div>
 
-        {/* Action Buttons Row */}
+        {/* Action Buttons Row - Only "New ideas" button now */}
         <div className="flex justify-center items-center gap-3 pt-2">
           <button
-            onClick={handleShuffle}
+            onClick={handleNewIdeas}
             className="action-chip"
-            disabled={isLoadingBriefs}
+            disabled={isLoadingInitial}
           >
-            <Shuffle className="w-4 h-4" />
-            Shuffle
-          </button>
-          
-          <button
-            onClick={handleRegenerate}
-            className="action-chip"
-            disabled={isLoadingBriefs}
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoadingBriefs ? 'animate-spin' : ''}`} />
-            {isLoadingBriefs ? 'Generating...' : 'New ideas'}
+            <RefreshCw className="w-4 h-4" />
+            New ideas
           </button>
           
           {state.savedConcepts.length > 0 && onLoadSavedConcept && (
