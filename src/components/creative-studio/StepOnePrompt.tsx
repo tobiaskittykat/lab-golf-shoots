@@ -182,10 +182,10 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
       {/* Example Briefs Section - smooth fade-out transition */}
       <div 
         ref={containerRef}
-        className={`w-full space-y-5 transition-all duration-300 ease-out ${
+        className={`w-full space-y-5 transition-all duration-300 ease-out overflow-hidden ${
           !isVisible 
-            ? 'opacity-0 h-0 overflow-hidden pointer-events-none' 
-            : 'opacity-100'
+            ? 'opacity-0 max-h-0 pointer-events-none' 
+            : 'opacity-100 max-h-[1000px]'
         }`}>
         {/* Section Header */}
         <div className="flex items-center gap-4">
