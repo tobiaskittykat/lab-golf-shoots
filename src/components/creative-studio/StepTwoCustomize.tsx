@@ -829,8 +829,17 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     // Skip if we already matched for this concept
     if (lastMatchedConcept === state.selectedConcept) return;
     
-    // Wait for both data sources to be ready before running
-    if (customMoodboards.length === 0 && allProductReferences.length === 0) return;
+    // Wait for data loading to complete before running smart-match
+    if (loadingMoodboards || loadingScrapedProducts) {
+      console.log('[Smart-Match] Waiting for data to load...');
+      return;
+    }
+    
+    // Skip if no data available at all
+    if (customMoodboards.length === 0 && allProductReferences.length === 0) {
+      console.log('[Smart-Match] No moodboards or products available');
+      return;
+    }
     
     const selectedConcept = state.concepts.find(c => c.id === state.selectedConcept) || 
                            state.savedConcepts.find(c => c.id === state.selectedConcept);
@@ -900,6 +909,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         };
         
         // Store curated options (normalize IDs) and set initial display order
+        // Process moodboard selections
         if (data?.rankedMoodboards?.length > 0) {
           const validMoodboardIds = customMoodboards.map(m => m.id);
           const normalizedMoodboards = data.rankedMoodboards
@@ -911,8 +921,20 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
             updates.moodboard = normalizedMoodboards[0]; // Pre-select best
             // Set stable display order (top 3)
             updates.displayedMoodboardIds = normalizedMoodboards.slice(0, 3);
+          } else if (customMoodboards.length > 0) {
+            // Fallback: use first available moodboards if AI returned invalid IDs
+            console.log('[Smart-Match] Moodboard IDs invalid, using fallback');
+            updates.moodboard = customMoodboards[0].id;
+            updates.displayedMoodboardIds = customMoodboards.slice(0, 3).map(m => m.id);
           }
+        } else if (customMoodboards.length > 0) {
+          // Fallback: AI returned empty array, use first available
+          console.log('[Smart-Match] No moodboards from AI, using fallback');
+          updates.moodboard = customMoodboards[0].id;
+          updates.displayedMoodboardIds = customMoodboards.slice(0, 3).map(m => m.id);
         }
+        
+        // Process product selections
         if (data?.rankedProducts?.length > 0) {
           const validProductIds = allProductReferences.map(p => p.id);
           const normalizedProducts = data.rankedProducts
@@ -924,7 +946,17 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
             updates.productReferences = [normalizedProducts[0]]; // Pre-select best
             // Set stable display order (top 5)
             updates.displayedProductIds = normalizedProducts.slice(0, 5);
+          } else if (allProductReferences.length > 0) {
+            // Fallback: use first available products if AI returned invalid IDs
+            console.log('[Smart-Match] Product IDs invalid, using fallback');
+            updates.productReferences = [allProductReferences[0].id];
+            updates.displayedProductIds = allProductReferences.slice(0, 5).map(p => p.id);
           }
+        } else if (allProductReferences.length > 0) {
+          // Fallback: AI returned empty array, use first available
+          console.log('[Smart-Match] No products from AI, using fallback');
+          updates.productReferences = [allProductReferences[0].id];
+          updates.displayedProductIds = allProductReferences.slice(0, 5).map(p => p.id);
         }
 
         if (Object.keys(updates).length > 0) {
@@ -946,7 +978,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
     };
 
     runSmartMatch();
-  }, [state.selectedConcept, customMoodboards.length, allProductReferences.length, state.concepts, state.savedConcepts, lastMatchedConcept]);
+  }, [state.selectedConcept, customMoodboards.length, allProductReferences.length, state.concepts, state.savedConcepts, lastMatchedConcept, loadingMoodboards, loadingScrapedProducts]);
 
   return (
     <div className="space-y-8">

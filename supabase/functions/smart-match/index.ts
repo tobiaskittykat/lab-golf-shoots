@@ -173,50 +173,97 @@ Return ONLY valid JSON (no markdown):
   "matchReason": "1-sentence summary of why these were chosen"
 }`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a creative director AI that matches campaign concepts to visual assets. Always respond with valid JSON only, no markdown formatting.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
-      throw new Error(`AI API error: ${response.status}`);
-    }
-
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content?.trim() || '';
+    // Retry logic for AI calls
+    let content = '';
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    console.log('AI response:', content);
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`Smart-match AI attempt ${attempts}/${maxAttempts}`);
+      
+      try {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: [
+              { 
+                role: 'system', 
+                content: 'You are a creative director AI that matches campaign concepts to visual assets. Always respond with valid JSON only, no markdown formatting.' 
+              },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.3,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`AI API error (attempt ${attempts}):`, errorText);
+          if (attempts >= maxAttempts) {
+            throw new Error(`AI API error: ${response.status}`);
+          }
+          continue;
+        }
+
+        const aiResponse = await response.json();
+        content = aiResponse.choices?.[0]?.message?.content?.trim() || '';
+        
+        console.log(`AI response (attempt ${attempts}):`, content.substring(0, 200));
+
+        // Validate response has minimum expected structure
+        if (content && content.length > 20 && content.includes('"rankedMoodboards"')) {
+          break; // Valid response, exit retry loop
+        }
+        
+        console.log(`Attempt ${attempts}: Empty or invalid AI response, retrying...`);
+      } catch (fetchError) {
+        console.error(`Fetch error (attempt ${attempts}):`, fetchError);
+        if (attempts >= maxAttempts) throw fetchError;
+      }
+    }
 
     // Parse the JSON response
     let matchResult;
-    try {
-      // Clean up potential markdown formatting
-      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      matchResult = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      // Return empty result if parsing fails
+    
+    // Check if we have a valid response to parse
+    if (!content || content.length < 20 || !content.includes('{')) {
+      console.log('AI returned insufficient response after retries, using fallback');
+      // Return graceful fallback with first available items
       matchResult = {
-        rankedMoodboards: [],
-        rankedProducts: [],
-        matchReason: 'Could not determine best matches'
+        rankedMoodboards: moodboards.slice(0, 3).map(m => m.id),
+        rankedProducts: products.slice(0, 5).map(p => p.id),
+        matchReason: 'Using your most recent uploads (AI matching unavailable)'
       };
+    } else {
+      try {
+        // Clean up potential markdown formatting
+        const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        matchResult = JSON.parse(cleanContent);
+        
+        // Validate parsed result has expected arrays
+        if (!matchResult.rankedMoodboards || !matchResult.rankedProducts) {
+          console.log('Parsed result missing expected arrays, using fallback');
+          matchResult = {
+            rankedMoodboards: moodboards.slice(0, 3).map(m => m.id),
+            rankedProducts: products.slice(0, 5).map(p => p.id),
+            matchReason: 'Using your most recent uploads'
+          };
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        // Return fallback with first available items
+        matchResult = {
+          rankedMoodboards: moodboards.slice(0, 3).map(m => m.id),
+          rankedProducts: products.slice(0, 5).map(p => p.id),
+          matchReason: 'Using your most recent uploads'
+        };
+      }
     }
 
     // Validate the IDs actually exist and filter to valid ones
