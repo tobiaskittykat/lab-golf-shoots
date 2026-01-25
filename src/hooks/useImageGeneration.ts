@@ -28,8 +28,7 @@ export function useImageGeneration() {
     useCase?: string,
     targetPersona?: string,
     onConceptReady?: (concept: Concept, index: number) => void,
-    customSystemPrompt?: string, // Custom concept agent prompt from brand settings
-    brandBrain?: Record<string, unknown> // Brand Brain visual identity data
+    customSystemPrompt?: string // Custom concept agent prompt from brand settings
   ): Promise<Concept[]> => {
     setIsGeneratingConcepts(true);
     setConceptsProgress(0);
@@ -44,7 +43,6 @@ export function useImageGeneration() {
           useCase,
           targetPersona,
           customSystemPrompt,
-          brandBrain, // Pass Brand Brain to concept agent
         },
       });
 
@@ -90,13 +88,7 @@ export function useImageGeneration() {
   // Generate images from state
   const generateImages = useCallback(async (
     state: CreativeStudioState,
-    logoUrl?: string, // Logo URL for compositing
-    currentBrand?: { // Pass current brand directly to avoid multi-brand query issues
-      id: string;
-      name: string;
-      personality?: string | null;
-      brand_context?: unknown;
-    } | null
+    logoUrl?: string // Logo URL for compositing
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -162,48 +154,44 @@ export function useImageGeneration() {
           if (!scrapedErr && scrapedRow) {
             const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
             if (url) productReferenceUrls.push(url);
-          // Prefix with brand name for better identification in prompts
-          if (scrapedRow.name) {
-            const prefixedName = currentBrand?.name 
-              ? `${currentBrand.name} ${scrapedRow.name}` 
-              : scrapedRow.name;
-            productNames.push(prefixedName);
-          }
+            if (scrapedRow.name) productNames.push(scrapedRow.name);
           }
         } else {
           const ref = sampleProductReferences.find(r => r.id === productRef);
           if (ref?.url) productReferenceUrls.push(ref.url);
-          // Prefix sample products with brand name too
-          if (ref?.name) {
-            const prefixedName = currentBrand?.name 
-              ? `${currentBrand.name} ${ref.name}` 
-              : ref.name;
-            productNames.push(prefixedName);
-          }
+          if (ref?.name) productNames.push(ref.name);
         }
       }
       
-      // Use brand from parameter (avoids multi-brand query issues)
+      // Fetch brand context, custom AI prompts, and Brand Brain
       let brandContext: Record<string, unknown> | undefined;
       let brandName: string | undefined;
       let brandPersonality: string | undefined;
       let customPromptAgentSystemPrompt: string | undefined;
       let brandBrain: Record<string, unknown> | undefined;
       
-      if (currentBrand) {
-        brandName = currentBrand.name;
-        brandPersonality = currentBrand.personality || undefined;
-        brandContext = currentBrand.brand_context as Record<string, unknown> | undefined;
+      if (user?.id) {
+        const { data: brand } = await supabase
+          .from('brands')
+          .select('name, personality, brand_context')
+          .eq('user_id', user.id)
+          .maybeSingle();
         
-        // Extract custom prompt agent system prompt if set
-        const aiPrompts = (brandContext as any)?.aiPrompts;
-        if (aiPrompts?.promptAgent) {
-          customPromptAgentSystemPrompt = aiPrompts.promptAgent;
-        }
-        
-        // Extract Brand Brain if set
-        if ((brandContext as any)?.brandBrain) {
-          brandBrain = (brandContext as any).brandBrain;
+        if (brand) {
+          brandName = brand.name;
+          brandPersonality = brand.personality || undefined;
+          brandContext = brand.brand_context as Record<string, unknown> | undefined;
+          
+          // Extract custom prompt agent system prompt if set
+          const aiPrompts = (brandContext as any)?.aiPrompts;
+          if (aiPrompts?.promptAgent) {
+            customPromptAgentSystemPrompt = aiPrompts.promptAgent;
+          }
+          
+          // Extract Brand Brain if set
+          if ((brandContext as any)?.brandBrain) {
+            brandBrain = (brandContext as any).brandBrain;
+          }
         }
       }
 

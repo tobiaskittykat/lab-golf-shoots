@@ -192,11 +192,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       }));
     };
     
-    // Extract Brand Brain and custom prompts from brand context
-    const brandContext = currentBrand?.brand_context as Record<string, unknown> | undefined;
-    const brandBrain = brandContext?.brandBrain as Record<string, unknown> | undefined;
-    const customConceptAgentPrompt = (brandContext?.aiPrompts as any)?.conceptAgent as string | undefined;
-    
     // Call real AI to generate concepts with progressive reveal
     await generateConcepts(
       state.prompt,
@@ -205,9 +200,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       currentBrand?.industry || undefined,
       state.useCase,
       state.targetPersona || undefined,
-      onConceptReady,
-      customConceptAgentPrompt, // Custom system prompt from brand settings
-      brandBrain // Brand Brain visual identity data
+      onConceptReady
     );
     
     handleUpdate({ isLoadingConcepts: false });
@@ -285,8 +278,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }));
     handleUpdate({ generatedImages: placeholders });
     
-    // Call real AI to generate images (pass logoUrl + currentBrand for full brand context)
-    const images = await generateImages(state, logoUrl, currentBrand || undefined);
+    // Call real AI to generate images (pass logoUrl for server-side compositing)
+    const images = await generateImages(state, logoUrl);
     
     handleUpdate({ 
       isGenerating: false, 
@@ -336,7 +329,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
 
       // Use editDescription as the prompt
       const editState = { ...state, prompt: state.editDescription };
-      const images = await generateImages(editState, undefined, currentBrand || undefined);
+      const images = await generateImages(editState);
       
       handleUpdate({ 
         isGenerating: false, 
@@ -459,7 +452,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 <StepOnePrompt 
                   state={state} 
                   onUpdate={handleUpdate}
-                  currentBrand={currentBrand}
                   onLoadSavedConcept={handleLoadSavedConcept}
                   onDeleteSavedConcept={handleDeleteSavedConcept}
                 />
