@@ -41,12 +41,17 @@ export const StepOnePrompt = ({ state, onUpdate, currentBrand, onLoadSavedConcep
       const brandContext = brand.brand_context as Record<string, any> | null;
       const brandBrain = brandContext?.brandBrain;
       
+      // Extract product categories from brand context if available
+      const productCategories = brandContext?.productCategories || 
+        (brand.industry === 'Fashion & Accessories' ? ['phone cases', 'crossbody straps', 'leather accessories', 'tech accessories'] : []);
+      
       const { data, error } = await supabase.functions.invoke('generate-brief-suggestions', {
         body: {
           brandName: brand.name,
           industry: brand.industry,
           personality: brand.personality,
           brandBrain: brandBrain,
+          productCategories: productCategories,
           count: 18
         }
       });

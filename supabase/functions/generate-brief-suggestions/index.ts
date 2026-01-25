@@ -30,6 +30,7 @@ interface BriefRequest {
   industry?: string;
   personality?: string;
   brandBrain?: BrandBrain;
+  productCategories?: string[];
   count?: number;
 }
 
@@ -39,7 +40,7 @@ serve(async (req) => {
   }
 
   try {
-    const { brandName, industry, personality, brandBrain, count = 18 }: BriefRequest = await req.json();
+    const { brandName, industry, personality, brandBrain, productCategories, count = 18 }: BriefRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -58,33 +59,37 @@ serve(async (req) => {
     const accentColors = visualDNA?.colorPalette?.accents?.slice(0, 2).join(', ') || '';
     const seasonalColors = visualDNA?.colorPalette?.seasonalPops?.slice(0, 2).join(', ') || '';
     const creativeSummary = brandBrain?.creativeDirectionSummary || '';
+    const productList = productCategories?.length ? productCategories.join(', ') : '';
 
     const systemPrompt = `You are a creative director at a top marketing agency generating campaign brief ideas for a brand.
 
-Given a brand's identity, generate exactly ${count} short, punchy marketing brief suggestions that a marketing team would use to kick off a creative shoot or campaign.
+Given a brand's identity and product lineup, generate exactly ${count} short, punchy marketing brief suggestions that a marketing team would use to kick off a creative shoot or campaign.
 
 Each brief should be:
 - 8-15 words maximum
 - Written as a campaign direction, not a product description
 - Include both the concept AND the visual style/mood
 - Format: "Campaign theme or moment - visual style, mood/energy"
+- MUST be relevant to the brand's actual products (e.g., for a phone case brand, reference phone cases, straps, crossbody accessories, etc.)
 
 Generate diverse briefs covering:
-- Seasonal campaigns (spring, summer, fall, winter, holiday)
-- Lifestyle moments (travel, city life, weekend, morning routines)
-- Occasion-based (party, date night, work, brunch, festival)
-- Editorial styles (street style, fashion week, magazine editorial)
-- Product launches (new collection, limited edition, collaboration)
-- Brand storytelling (heritage, craftsmanship, customer moments)
+- Seasonal campaigns featuring the brand's products (spring, summer, fall, winter, holiday)
+- Lifestyle moments where the products shine (travel, city life, work commute, weekend outings)
+- Occasion-based campaigns (date night, work meeting, brunch, festival, vacation)
+- Editorial styles showcasing the products (street style, fashion week, magazine editorial)
+- Product launches (new collection, limited edition, collaboration, new colorways)
+- Brand storytelling (craftsmanship details, customer moments, hands-free lifestyle)
 
 Important:
 - Do NOT mention the brand name in the briefs
+- Each brief MUST be relevant to the brand's product categories
 - Make each brief unique and actionable
 - Tailor the visual language to match the brand's style
 - Output ONLY a JSON array of strings, nothing else`;
 
     const userPrompt = `Brand: ${brandName || 'Lifestyle brand'}
 Industry: ${industry || 'Fashion & Accessories'}
+${productList ? `Products: ${productList}` : ''}
 Personality: ${personality || 'Premium, sophisticated'}
 Photography Style: ${photographyStyle}
 Color Mood: ${colorMood}
@@ -95,7 +100,7 @@ ${accentColors ? `Accent Colors: ${accentColors}` : ''}
 ${seasonalColors ? `Seasonal Colors: ${seasonalColors}` : ''}
 ${creativeSummary ? `Creative Direction: ${creativeSummary}` : ''}
 
-Generate ${count} campaign brief ideas that match this brand's identity and visual language.`;
+Generate ${count} campaign brief ideas that are specifically relevant to this brand's products and visual identity. Each brief should feel like it was written for a ${productList || 'fashion accessories'} brand.`;
 
     console.log('Generating brand-specific briefs for:', brandName);
     
