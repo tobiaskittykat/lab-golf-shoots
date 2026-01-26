@@ -369,7 +369,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function analyzeImage(imageUrl: string, apiKey: string): Promise<ImageAnalysis> {
+async function analyzeImage(imageUrl: string, apiKey: string, retries = 2): Promise<ImageAnalysis> {
   const systemPrompt = `You are an expert visual analyst specializing in brand identity and aesthetics.
 Analyze the provided brand image and extract visual elements that define the brand's look and feel.
 You MUST call the extract_image_analysis function with your findings.`;
@@ -384,119 +384,153 @@ You MUST call the extract_image_analysis function with your findings.`;
 - Category: Determine if this is a logo, campaign/editorial shot, product photo, lifestyle image, texture/pattern closeup, or general brand image
 - Model Detection: Does the image contain a model/person? If yes, describe their demographics (age range, diversity), facial expression, pose style, clothing/styling aesthetic, and hair & makeup`;
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "image_url", image_url: { url: imageUrl } },
-            { type: "text", text: userPrompt }
-          ]
-        }
-      ],
-            tools: [
-        {
-          type: "function",
-          function: {
-            name: "extract_image_analysis",
-            description: "Extract structured visual analysis from a brand image",
-            parameters: {
-              type: "object",
-              properties: {
-                colors: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "List of 3-6 colors with specific names"
-                },
-                lighting: {
-                  type: "string",
-                  description: "Lighting style description"
-                },
-                composition: {
-                  type: "string",
-                  description: "Composition style description"
-                },
-                textures: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Textures and materials visible"
-                },
-                mood: {
-                  type: "string",
-                  description: "Overall mood/vibe"
-                },
-                style: {
-                  type: "string",
-                  description: "Photography/visual style"
-                },
-                category: {
-                  type: "string",
-                  enum: ["logo", "campaign", "product", "lifestyle", "texture", "general"],
-                  description: "Image category: 'logo' for brand logos/marks/wordmarks, 'campaign' for editorial/advertising/hero shots, 'product' for product-focused shots on plain backgrounds, 'lifestyle' for products in use/context/with models, 'texture' for material/pattern/detail closeups, 'general' for other brand imagery"
-                },
-                hasModel: {
-                  type: "boolean",
-                  description: "Whether the image contains a model/person"
-                },
-                modelDetails: {
-                  type: "object",
-                  properties: {
-                    demographics: {
-                      type: "string",
-                      description: "Age range and diversity characteristics (e.g., 'young professional, 25-35, diverse')"
-                    },
-                    expression: {
-                      type: "string",
-                      description: "Facial expression and energy (e.g., 'confident, subtle smile, candid')"
-                    },
-                    pose: {
-                      type: "string",
-                      description: "Pose style (e.g., 'natural, relaxed, lifestyle in motion')"
-                    },
-                    styling: {
-                      type: "string",
-                      description: "Wardrobe/styling aesthetic (e.g., 'minimalist, elevated casual, monochromatic')"
-                    },
-                    hairMakeup: {
-                      type: "string",
-                      description: "Hair and makeup style (e.g., 'natural glam, soft waves, dewy skin')"
-                    }
+  // Create abort controller with 50 second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000);
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      signal: controller.signal,
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: imageUrl } },
+              { type: "text", text: userPrompt }
+            ]
+          }
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "extract_image_analysis",
+              description: "Extract structured visual analysis from a brand image",
+              parameters: {
+                type: "object",
+                properties: {
+                  colors: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "List of 3-6 colors with specific names"
                   },
-                  description: "Details about the model if hasModel is true"
-                }
-              },
-              required: ["colors", "lighting", "composition", "textures", "mood", "style", "category", "hasModel"],
-              additionalProperties: false
+                  lighting: {
+                    type: "string",
+                    description: "Lighting style description"
+                  },
+                  composition: {
+                    type: "string",
+                    description: "Composition style description"
+                  },
+                  textures: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Textures and materials visible"
+                  },
+                  mood: {
+                    type: "string",
+                    description: "Overall mood/vibe"
+                  },
+                  style: {
+                    type: "string",
+                    description: "Photography/visual style"
+                  },
+                  category: {
+                    type: "string",
+                    enum: ["logo", "campaign", "product", "lifestyle", "texture", "general"],
+                    description: "Image category: 'logo' for brand logos/marks/wordmarks, 'campaign' for editorial/advertising/hero shots, 'product' for product-focused shots on plain backgrounds, 'lifestyle' for products in use/context/with models, 'texture' for material/pattern/detail closeups, 'general' for other brand imagery"
+                  },
+                  hasModel: {
+                    type: "boolean",
+                    description: "Whether the image contains a model/person"
+                  },
+                  modelDetails: {
+                    type: "object",
+                    properties: {
+                      demographics: {
+                        type: "string",
+                        description: "Age range and diversity characteristics (e.g., 'young professional, 25-35, diverse')"
+                      },
+                      expression: {
+                        type: "string",
+                        description: "Facial expression and energy (e.g., 'confident, subtle smile, candid')"
+                      },
+                      pose: {
+                        type: "string",
+                        description: "Pose style (e.g., 'natural, relaxed, lifestyle in motion')"
+                      },
+                      styling: {
+                        type: "string",
+                        description: "Wardrobe/styling aesthetic (e.g., 'minimalist, elevated casual, monochromatic')"
+                      },
+                      hairMakeup: {
+                        type: "string",
+                        description: "Hair and makeup style (e.g., 'natural glam, soft waves, dewy skin')"
+                      }
+                    },
+                    description: "Details about the model if hasModel is true"
+                  }
+                },
+                required: ["colors", "lighting", "composition", "textures", "mood", "style", "category", "hasModel"],
+                additionalProperties: false
+              }
             }
           }
-        }
-      ],
-      tool_choice: { type: "function", function: { name: "extract_image_analysis" } }
-    }),
-  });
+        ],
+        tool_choice: { type: "function", function: { name: "extract_image_analysis" } }
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("AI analysis failed:", response.status, errorText);
-    throw new Error(`AI analysis failed: ${response.status}`);
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI analysis failed:", response.status, errorText);
+      throw new Error(`AI analysis failed: ${response.status}`);
+    }
+
+    const aiResponse = await response.json();
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (!toolCall || toolCall.function.name !== "extract_image_analysis") {
+      throw new Error("Failed to extract analysis from AI response");
+    }
+
+    return JSON.parse(toolCall.function.arguments) as ImageAnalysis;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Check if it's a timeout/abort error and we have retries left
+    if (retries > 0 && (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted')))) {
+      console.log(`Image analysis timed out, retrying... (${retries} retries left)`);
+      // Wait 1 second before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return analyzeImage(imageUrl, apiKey, retries - 1);
+    }
+    
+    // If we've exhausted retries or it's a different error, return a fallback
+    console.error(`Image analysis failed after retries:`, error);
+    
+    // Return fallback analysis instead of throwing
+    return {
+      colors: ["neutral", "earth tones"],
+      lighting: "natural",
+      composition: "standard",
+      textures: ["unknown"],
+      mood: "professional",
+      style: "brand imagery",
+      category: "general",
+      hasModel: false
+    };
   }
-
-  const aiResponse = await response.json();
-  const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-  
-  if (!toolCall || toolCall.function.name !== "extract_image_analysis") {
-    throw new Error("Failed to extract analysis from AI response");
-  }
-
-  return JSON.parse(toolCall.function.arguments) as ImageAnalysis;
 }
 
 async function synthesizeBrandBrain(
