@@ -42,17 +42,22 @@ async function expandMoodToSearchTerms(mood: string, style: string): Promise<str
         messages: [
           {
             role: 'system',
-            content: `You are an expert at visual moodboard curation. Generate 10-12 SHORT search terms (1-3 words MAX) for finding ${style === 'editorial' ? 'artistic, editorial' : style === 'commercial' ? 'polished, professional' : 'diverse, creative'} imagery.
+            content: `You are an expert at visual moodboard curation for FASHION and LIFESTYLE brands. Generate 10-12 SHORT search terms (1-3 words MAX) for finding ${style === 'editorial' ? 'artistic, editorial' : style === 'commercial' ? 'polished, professional' : 'diverse, creative'} imagery.
 
-CRITICAL: Terms must be SHORT and SEARCHABLE for image APIs:
-- GOOD: "alpine cabin", "frost texture", "golden hour", "minimalist"
-- BAD: "snow-dusted chalets with alpen glow" (WAY too long - won't match!)
+CRITICAL RULES:
+1. Terms must be SHORT (1-3 words) and SEARCHABLE
+2. Focus on AESTHETIC/VISUAL terms, not literal objects
+3. For colors like "terracotta", use: "terracotta tones", "warm earth palette", "rust color aesthetic"
+4. AVOID terms that could match museum/artifact/historical imagery
 
 Include a balanced mix:
-- 3-4 specific subjects: "swiss chalet", "frozen lake", "wool sweater"
-- 2-3 textures/materials: "linen fabric", "marble", "rough wood"
-- 2-3 moods/atmospheres: "cozy", "misty morning", "serene"
-- 2 colors: "cream white", "forest green", "terracotta"
+- 3-4 contemporary settings: "beach villa", "rooftop terrace", "boutique hotel"
+- 2-3 textures/materials: "linen fabric", "natural stone", "woven rattan"
+- 2-3 moods/atmospheres: "golden hour", "sun-drenched", "relaxed luxury"
+- 2 color aesthetics: "warm earth tones", "ocean blue palette"
+
+GOOD examples: "golden hour beach", "olive grove", "white linen", "warm sunset"
+BAD examples: "Mediterranean" (too vague), "terracotta" (matches pottery artifacts)
 
 Return ONLY a JSON array of strings, no explanation.`
           },
@@ -100,10 +105,7 @@ async function rankForArtisticQuality(
   }
 
   try {
-    // For efficiency, only rank if we have more than target images
-    if (images.length <= 12) {
-      return images;
-    }
+    // Always rank images for quality, even small sets
 
     // Use AI to score images based on titles/descriptions (can't analyze actual images here)
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -117,13 +119,24 @@ async function rankForArtisticQuality(
         messages: [
           {
             role: 'system',
-            content: `You are a visual curator. Given a list of image titles/descriptions, score each from 0-100 based on how well it matches this mood: "${mood}"
+            content: `You are a visual curator for FASHION/LIFESTYLE moodboards. Score images 0-100 based on how well they match: "${mood}"
 
-Consider:
-- Relevance to the mood/vibe
-- Artistic/editorial quality indicators in the title
-- ${style === 'editorial' ? 'Prefer experimental, artistic, non-commercial imagery' : 'Prefer polished, professional imagery'}
-- Avoid generic stock-looking descriptions
+SCORING GUIDE:
+- 80-100: Perfect match - modern lifestyle photography, correct mood/aesthetic
+- 60-79: Good match - relevant subject, some mood alignment  
+- 40-59: Partial match - somewhat relevant but not ideal
+- 20-39: Poor match - tangentially related, wrong vibe
+- 0-19: REJECT - completely irrelevant
+
+CRITICAL - Score 0-19 for:
+- Ancient artifacts, museum pieces, historical items (pottery, sculptures, etc.)
+- Random stock photos unrelated to the mood
+- Text-heavy graphics, logos, or diagrams
+- Low-quality, blurry, or amateur images
+- Wikipedia/encyclopedia-style educational images
+
+${style === 'editorial' ? 'Prefer experimental, artistic, non-commercial imagery' : 'Prefer polished, professional imagery'}
+The mood is LIFESTYLE/FASHION oriented - prefer CONTEMPORARY photography over historical/archival content.
 
 Return ONLY a JSON array of scores in the same order as input, e.g. [85, 72, 90, ...]`
           },
@@ -162,8 +175,13 @@ Return ONLY a JSON array of scores in the same order as input, e.g. [85, 72, 90,
       // Sort by score descending
       scored.sort((a, b) => (b.score || 0) - (a.score || 0));
       
-      // Return top scored + remaining unscored
-      return [...scored, ...images.slice(30)];
+      // Filter out low-quality images (score < 40) - eliminates irrelevant results like museum artifacts
+      const filtered = scored.filter(img => (img.score || 0) >= 40);
+      console.log(`Filtered ${scored.length - filtered.length} low-quality images (score < 40)`);
+      
+      // Return filtered images, or fall back to top 6 if too many filtered
+      const result = filtered.length >= 6 ? filtered : scored.slice(0, 6);
+      return [...result, ...images.slice(30)];
     }
     
     return images;
