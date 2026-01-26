@@ -1,83 +1,140 @@
 
-# Fix: "Create Moodboard" Button Not Working on Homepage
 
-## Problem Analysis
+# Fix: Moodboard Quality Issues - Ancient Pottery Problem
 
-Looking at the screenshot, the user sees:
-1. The **Moodboard Section** with the header "Sunlit Steps: Begin Your Yellow Diamond Story"
-2. A **"Campaign Concept" card** with description text about diamonds
-3. Tags: "Radiant", "Empowering", "Editorial", "Modern", "Aspirational"  
-4. A coral **"Create Moodboard"** button at the bottom
+## Problem Summary
 
-However, this content **does not exist in the current codebase**. The current `Index.tsx` shows:
-- Lines 689-731: Moodboard section header (static title)
-- Lines 733-808: `CollapsibleContent` with the new MoodboardBuilder integration
+Your "Mediterranean summer, terracotta, golden hour" moodboard included Greek pottery artifacts instead of beautiful Mediterranean lifestyle imagery because:
 
-The new integration shows either:
-- **Empty state**: "Build with AI" / "Browse Gallery" buttons
-- **Building state**: Inline `MoodboardBuilder` component
-- **Completed state**: Success message with options
+1. **AI Ranking Skipped**: The quality filter only runs when there are >12 images. With exactly 12, it was bypassed entirely
+2. **"Terracotta" matched artifacts**: Openverse returned ancient Greek pottery for the "terracotta" search term
+3. **No minimum quality threshold**: Even low-scoring images aren't filtered out - they're just sorted
 
 ## Root Cause
 
-The "Campaign Concept" card with "Create Moodboard" button that the user sees must be **OLD static content** that either:
-1. Was not properly removed during the integration
-2. Exists elsewhere in the file and is being rendered OUTSIDE the `CollapsibleContent`
-3. The preview has cached content that hasn't refreshed
-
-After reviewing lines 689-820 of `Index.tsx`, I confirmed:
-- There is NO "Campaign Concept" card in the current code
-- The `CollapsibleContent` correctly contains the new dynamic states
-- The old static content appears to have been removed
+```typescript
+// Line 103-106 in build-moodboard/index.ts
+if (images.length <= 12) {
+  return images;  // <-- SKIPS ALL RANKING!
+}
+```
 
 ## Solution
 
-The issue is that the static "Campaign Concept" card shown in the screenshot was never actually replaced. The previous integration added the new content INSIDE `CollapsibleContent` but did NOT remove the old static content that was likely OUTSIDE or BEFORE the `CollapsibleContent`.
+### 1. Always Run AI Quality Ranking
 
-### Changes Required
+Remove the skip condition so ranking ALWAYS happens, even for small result sets.
 
-**File: `src/pages/Index.tsx`**
+### 2. Add Minimum Quality Threshold
 
-1. **Remove old static "Campaign Concept" card** - Find and remove any remaining static content between the header (line ~731) and the `CollapsibleContent` (line 733) or anywhere else in the moodboard section
+Filter out images that score below 40/100 - this would eliminate obviously irrelevant results like ancient pottery.
 
-2. **Wire the "+" button in header** - The Plus button at line 727-729 should trigger `setIsBuildingMoodboard(true)` or `setShowMoodboardModal(true)`:
-   ```typescript
-   <button 
-     onClick={() => setIsBuildingMoodboard(true)}
-     className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors"
-   >
-     <Plus className="w-5 h-5 text-muted-foreground" />
-   </button>
-   ```
+### 3. Improve Ranking Prompt
 
-3. **Ensure section is expanded by default** - Verify `isMoodboardOpen` is initialized to `true` (it currently is at line 163)
+Update the AI prompt to be more strict about relevance:
+- Explicitly instruct to score 0-20 for completely irrelevant images (artifacts, museums, unrelated subjects)
+- Add examples of what should score low
+- Consider the "vibe" not just literal keyword matches
 
-4. **Look for old "Create Moodboard" button** - Search the file for any remaining static "Create Moodboard" button text and remove/replace it
+### 4. Smarter Search Terms
 
-### What the User Should See
+Add a filter in the search term expansion to avoid literal interpretations:
+- "terracotta" should become "terracotta color", "terracotta tiles", "warm earth tones"
+- NOT just "terracotta" which matches pottery artifacts
 
-After the fix, when the Moodboard section is expanded, users will see:
-- A centered "Create Your Moodboard" card with an icon
-- Description text about building AI-curated moodboards
-- Two buttons: **"Build with AI"** and **"Browse Gallery"**
+---
 
-Clicking "Build with AI" will reveal the inline `MoodboardBuilder` component with:
-- Mood description input
-- Style preference buttons (Editorial/Mixed/Commercial)
-- Temperature slider
-- Image grid after generation
-- Save/Cancel actions
+## Technical Changes
 
-## Technical Details
+### File: `supabase/functions/build-moodboard/index.ts`
 
-Lines to modify in `src/pages/Index.tsx`:
-- **Line 727-729**: Add `onClick={() => setIsBuildingMoodboard(true)}` to the Plus button
-- **Search for any old static content** between header and CollapsibleContent that may not have been removed
-- The file currently has 934 lines; the moodboard section spans lines 689-822
+**Change 1: Remove skip condition (lines 103-106)**
+```typescript
+// BEFORE
+if (images.length <= 12) {
+  return images;
+}
+
+// AFTER
+// Remove this entirely - always rank images
+```
+
+**Change 2: Add quality threshold (after line 163)**
+```typescript
+// Sort by score descending
+scored.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+// NEW: Filter out low-quality images (score < 40)
+const filtered = scored.filter(img => (img.score || 0) >= 40);
+
+// Return filtered or at least top 3 if all filtered
+return filtered.length >= 3 ? filtered : scored.slice(0, 6);
+```
+
+**Change 3: Improve ranking prompt (lines 119-128)**
+```typescript
+content: `You are a visual curator for fashion/lifestyle moodboards. Score images 0-100 based on how well they match: "${mood}"
+
+SCORING GUIDE:
+- 80-100: Perfect match - modern lifestyle photography, correct mood/aesthetic
+- 60-79: Good match - relevant subject, some mood alignment
+- 40-59: Partial match - somewhat relevant but not ideal
+- 20-39: Poor match - tangentially related, wrong vibe
+- 0-19: REJECT - completely irrelevant (museum artifacts, unrelated subjects, stock graphics)
+
+CRITICAL: Score 0-19 for:
+- Ancient artifacts, museum pieces, historical items
+- Random stock photos unrelated to the mood
+- Text-heavy graphics or logos
+- Low-quality or blurry images
+
+The mood is LIFESTYLE/FASHION oriented - prefer contemporary photography over historical/archival content.`
+```
+
+**Change 4: Smarter search term generation (lines 39-67)**
+
+Update the AI prompt to generate aesthetic-focused terms:
+```typescript
+content: `Generate 10-12 SHORT search terms for finding ${style} imagery matching: "${mood}"
+
+RULES:
+1. Terms must be 1-3 words maximum
+2. Focus on AESTHETIC/VISUAL terms, not literal objects
+3. For colors like "terracotta", use: "terracotta tones", "warm earth palette", "rust color aesthetic"
+4. Include: lighting moods, textures, settings, color palettes
+5. AVOID terms that could match museum/artifact imagery
+
+Example for "Mediterranean summer":
+GOOD: "golden hour beach", "olive grove", "white linen", "warm sunset"
+BAD: "Mediterranean" (too vague), "terracotta" (matches pottery)`
+```
+
+---
+
+## Expected Results After Fix
+
+| Before | After |
+|--------|-------|
+| 6 golden hour photos + 6 ancient Greek pottery | 12 Mediterranean lifestyle images |
+| No quality filtering | Images below 40/100 rejected |
+| Literal "terracotta" search | "terracotta tones", "warm earth" |
+| Pottery artifacts included | Only modern photography |
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/build-moodboard/index.ts` | Remove skip condition, add quality threshold, improve prompts |
+
+---
 
 ## Summary
 
-The MoodboardBuilder component exists and is correctly integrated inside the CollapsibleContent, but the user is seeing old static content (the "Campaign Concept" card with "Create Moodboard" button) that was never removed. The fix is to:
-1. Remove any remaining old static content
-2. Wire the header "+" button to trigger the moodboard builder
-3. Ensure the CollapsibleContent is visible and showing the new dynamic UI
+The fix ensures:
+1. AI ranking ALWAYS runs (no skip for small result sets)
+2. Low-quality images (ancient pottery) are filtered out
+3. Search terms are aesthetic-focused, not literal
+4. Minimum quality threshold prevents irrelevant images from appearing
+
