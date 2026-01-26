@@ -724,7 +724,11 @@ const Index = () => {
                         <path d="m21 21-4.3-4.3" />
                       </svg>
                     </div>
-                    <button className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors">
+                    <button 
+                      onClick={() => setIsBuildingMoodboard(true)}
+                      className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors"
+                      title="Create new moodboard"
+                    >
                       <Plus className="w-5 h-5 text-muted-foreground" />
                     </button>
                   </div>
