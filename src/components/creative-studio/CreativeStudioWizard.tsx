@@ -478,8 +478,9 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     console.log('Moodboard matches:', moodboardMatches);
     
     // Generate discovery batch with matched moodboards and products
+    // NOTE: Don't flatten productReferences - each concept uses its own matched products
     const images = await generateDiscoveryBatch(
-      { ...state, productReferences: moodboardMatches.flatMap(m => m.productIds.map(id => `scraped-${id}`)) },
+      state,  // Don't override productReferences - they come from moodboardMatches per-concept
       state.concepts, 
       moodboardMatches, 
       logoUrl
@@ -515,8 +516,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     // Persist to database
     await updateImageLike(imageId, newLiked);
     
-    // Update preferences
-    if (newLiked === true && image.conceptId && image.moodboardId && image.shotType) {
+    // Update preferences (moodboardId is optional, productIds carried forward)
+    if (newLiked === true && image.conceptId && image.shotType) {
       const concept = state.concepts.find(c => c.id === image.conceptId);
       if (concept) {
         handleUpdate({
@@ -527,8 +528,9 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
             {
               conceptId: image.conceptId,
               conceptTitle: concept.title,
-              moodboardId: image.moodboardId,
+              moodboardId: image.moodboardId || '',
               shotType: image.shotType,
+              productIds: image.productIds || [], // Carry forward product IDs
               liked: true,
             },
           ],
@@ -562,6 +564,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           conceptTitle: concept?.title || 'Unknown',
           moodboardId: img.moodboardId || '', // Empty string if missing
           shotType: img.shotType!,
+          productIds: img.productIds || [], // Carry forward product IDs
           liked: true,
         };
       });

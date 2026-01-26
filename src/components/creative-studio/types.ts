@@ -148,6 +148,7 @@ export interface GeneratedImage {
   moodboardUrl?: string;
   productReferenceUrl?: string;
   productReferenceUrls?: string[]; // Support multiple product references
+  productIds?: string[]; // Product IDs used (for preference tracking)
   contextReferenceUrl?: string;
   contextReferenceUrls?: string[]; // Support multiple context references
   // Discovery mode fields
@@ -171,6 +172,7 @@ export interface UserPreference {
   conceptTitle: string;
   moodboardId: string; // Can be empty string if not matched
   shotType: string;
+  productIds?: string[]; // Product IDs to carry forward
   liked: boolean;
 }
 

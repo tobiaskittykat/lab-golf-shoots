@@ -524,7 +524,7 @@ export function useImageGeneration() {
   const generateDiscoveryBatch = useCallback(async (
     state: CreativeStudioState,
     concepts: Concept[],
-    moodboards: { conceptId: string; moodboardId: string; moodboardUrl: string }[],
+    moodboards: { conceptId: string; moodboardId: string; moodboardUrl: string; productIds: string[] }[],
     logoUrl?: string,
     onImageReady?: (image: GeneratedImage) => void
   ): Promise<GeneratedImage[]> => {
@@ -539,11 +539,41 @@ export function useImageGeneration() {
     // Generate images for each concept in parallel batches
     const batchPromises = concepts.map(async (concept, conceptIdx) => {
       const moodboardInfo = moodboards.find(m => m.conceptId === concept.id);
-      const conceptImages: GeneratedImage[] = [];
+      
+      // Get product IDs for THIS concept only (from smart-match)
+      const conceptProductIds = moodboardInfo?.productIds || [];
+      console.log(`Concept "${concept.title}" has ${conceptProductIds.length} matched products`);
       
       // Generate all 4 shots for this concept in parallel
       const shotPromises = shotTypes.map(async (shot) => {
         try {
+          // Determine max products based on shot type
+          // Composition shots can have up to 3 products, others get 1
+          const isCompositionShot = shot.id === 'shot-composition';
+          const maxProducts = isCompositionShot ? 3 : 1;
+          
+          // Resolve product references for THIS concept only
+          const productReferenceUrls: string[] = [];
+          const productNames: string[] = [];
+          
+          // Only take the allowed number of products for this shot type
+          const productIdsToUse = conceptProductIds.slice(0, maxProducts);
+          
+          for (const productId of productIdsToUse) {
+            const { data: scrapedRow } = await supabase
+              .from('scraped_products')
+              .select('full_url, thumbnail_url, name')
+              .eq('id', productId)
+              .maybeSingle();
+            if (scrapedRow) {
+              const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+              if (url) productReferenceUrls.push(url);
+              if (scrapedRow.name) productNames.push(scrapedRow.name);
+            }
+          }
+          
+          console.log(`Shot "${shot.name}" (${isCompositionShot ? 'composition' : 'standard'}): ${productReferenceUrls.length} products attached`);
+          
           // Create a minimal state for this single image
           const singleState: CreativeStudioState = {
             ...state,
@@ -554,29 +584,6 @@ export function useImageGeneration() {
             resolution: '512', // Fast generation
             imageCount: 1,
           };
-          
-          // Resolve product references
-          const productReferenceUrls: string[] = [];
-          const productNames: string[] = [];
-          for (const productRef of state.productReferences) {
-            if (productRef.startsWith('scraped-')) {
-              const dbId = productRef.replace('scraped-', '');
-              const { data: scrapedRow } = await supabase
-                .from('scraped_products')
-                .select('full_url, thumbnail_url, name')
-                .eq('id', dbId)
-                .maybeSingle();
-              if (scrapedRow) {
-                const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
-                if (url) productReferenceUrls.push(url);
-                if (scrapedRow.name) productNames.push(scrapedRow.name);
-              }
-            } else {
-              const ref = sampleProductReferences.find(r => r.id === productRef);
-              if (ref?.url) productReferenceUrls.push(ref.url);
-              if (ref?.name) productNames.push(ref.name);
-            }
-          }
           
           const { data, error } = await supabase.functions.invoke('generate-image', {
             body: {
@@ -636,6 +643,7 @@ export function useImageGeneration() {
               moodboardId: moodboardInfo?.moodboardId,
               moodboardUrl: moodboardInfo?.moodboardUrl,
               productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+              productIds: productIdsToUse, // Store the product IDs used
               shotType: shot.id,
               liked: null, // Not rated yet
             };
@@ -736,25 +744,28 @@ export function useImageGeneration() {
       
       const shotType = sampleContextReferences.find(s => s.id === pref.shotType);
       
-      // Resolve product references
+      // Determine max products based on shot type (same as discovery)
+      const isCompositionShot = pref.shotType === 'shot-composition';
+      const maxProducts = isCompositionShot ? 3 : 1;
+      
+      // Use productIds from preference (carried from discovery), not state.productReferences
+      const productIdsToUse = (pref.productIds || []).slice(0, maxProducts);
+      
+      // Resolve product references from preference productIds
       const productReferenceUrls: string[] = [];
-      for (const productRef of state.productReferences) {
-        if (productRef.startsWith('scraped-')) {
-          const dbId = productRef.replace('scraped-', '');
-          const { data: scrapedRow } = await supabase
-            .from('scraped_products')
-            .select('full_url, thumbnail_url')
-            .eq('id', dbId)
-            .maybeSingle();
-          if (scrapedRow) {
-            const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
-            if (url) productReferenceUrls.push(url);
-          }
-        } else {
-          const ref = sampleProductReferences.find(r => r.id === productRef);
-          if (ref?.url) productReferenceUrls.push(ref.url);
+      for (const productId of productIdsToUse) {
+        const { data: scrapedRow } = await supabase
+          .from('scraped_products')
+          .select('full_url, thumbnail_url')
+          .eq('id', productId)
+          .maybeSingle();
+        if (scrapedRow) {
+          const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+          if (url) productReferenceUrls.push(url);
         }
       }
+      
+      console.log(`Preference "${concept.title}" - ${pref.shotType}: ${productReferenceUrls.length} products attached`);
       
       try {
         const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -801,6 +812,8 @@ export function useImageGeneration() {
             index: allImages.length + idx,
             moodboardId: pref.moodboardId,
             moodboardUrl,
+            productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+            productIds: productIdsToUse, // Store the product IDs used
             shotType: pref.shotType,
             liked: null,
           }));
