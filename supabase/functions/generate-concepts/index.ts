@@ -293,7 +293,7 @@ Make each concept unique and commercially viable. Think like a high-end creative
     let systemPrompt: string;
     if (customSystemPrompt) {
       // Prepend brand context to custom prompt
-      const brandContext = [
+      const brandContextLines = [
         brandName ? `Brand: ${brandName}` : "",
         brandPersonality ? `Brand Personality: ${brandPersonality}` : "",
         brandIndustry ? `Industry: ${brandIndustry}` : "",
@@ -301,9 +301,27 @@ Make each concept unique and commercially viable. Think like a high-end creative
         targetPersona ? `Target Audience Hint: ${targetPersona}` : "",
       ].filter(Boolean).join("\n");
       
-      systemPrompt = brandContext ? `${brandContext}\n\n${customSystemPrompt}` : customSystemPrompt;
+      systemPrompt = brandContextLines ? `${brandContextLines}\n\n${customSystemPrompt}` : customSystemPrompt;
     } else {
       systemPrompt = defaultSystemPrompt;
+    }
+    
+    // ===== CRITICAL: Inject Brand Brain avoid elements as non-negotiable restrictions =====
+    const avoidElements = brandBrain?.visualDNA?.avoidElements;
+    if (avoidElements && avoidElements.length > 0) {
+      const avoidSection = `
+
+⛔⛔⛔ BRAND RESTRICTIONS (ABSOLUTELY FORBIDDEN) ⛔⛔⛔
+The brand has EXPLICITLY FORBIDDEN these visual elements. You MUST NOT include ANY of them in the concepts you generate:
+${avoidElements.map((e: string) => `- ❌ ${e}`).join('\n')}
+
+This is NON-NEGOTIABLE. If you generate a concept with ANY of these elements in the visualWorld.mustHave, atmosphere, materials, or any other field, you are VIOLATING the brand guidelines.
+
+When creating the visualWorld.mustHave array, DOUBLE-CHECK that NONE of the items match the forbidden elements above.
+⛔⛔⛔ END BRAND RESTRICTIONS ⛔⛔⛔`;
+      
+      systemPrompt = systemPrompt + avoidSection;
+      console.log("Added brand restrictions for avoid elements:", avoidElements);
     }
 
     const userPrompt = `Generate 3 complete campaign concepts for: ${prompt}`;

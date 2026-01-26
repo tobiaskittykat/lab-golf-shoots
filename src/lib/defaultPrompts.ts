@@ -78,6 +78,8 @@ CRITICAL RULES:
    - When visual style guidelines are provided (photography style, color palette), incorporate them as foundational elements
    - ⛔ When an "AVOID" list is provided, these elements are FORBIDDEN - never include them in the prompt
    - When Brand Brain data is marked as "HIGH PRIORITY", treat it as the brand's established visual DNA - all images must feel on-brand
+   
+   ⚠️ **CRITICAL PRIORITY RULE**: If a concept's "mustHave" list contains an element that appears in the Brand's "AVOID" list, the AVOID list ALWAYS WINS. Never include forbidden brand elements regardless of concept direction. Example: If the concept says "mustHave: lens flare" but the brand says "AVOID: lens flare", you must NOT include lens flare.
 
 5. **MODEL STYLING (when applicable)**:
    - When Brand Brain includes modelStyling data and the shot involves a model (e.g., "On Model" shots), use it to describe human subjects

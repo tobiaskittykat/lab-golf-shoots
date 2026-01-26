@@ -225,7 +225,6 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         if (vd.lightingStyle) sections.push(`Lighting: ${vd.lightingStyle}`);
         if (vd.compositionStyle) sections.push(`Composition: ${vd.compositionStyle}`);
         if (vd.texturePreferences?.length) sections.push(`Preferred Textures: ${vd.texturePreferences.join(", ")}`);
-        if (vd.avoidElements?.length) sections.push(`⛔ AVOID: ${vd.avoidElements.join(", ")}`);
         
         // Model Styling Guidelines
         if (vd.modelStyling?.usesModels) {
@@ -246,6 +245,27 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         if (bv.personality) sections.push(`Brand Personality: ${bv.personality}`);
         if (bv.toneDescriptors?.length) sections.push(`Visual Tone: ${bv.toneDescriptors.join(", ")}`);
       }
+      sections.push("");
+    }
+    
+    // ===== BRAND RESTRICTIONS (HIGHEST PRIORITY - ALWAYS WINS) =====
+    // Collect avoid elements from all sources and put them at top priority
+    const allAvoidElements: string[] = [];
+    if (request.brandBrain?.visualDNA?.avoidElements?.length) {
+      allAvoidElements.push(...request.brandBrain.visualDNA.avoidElements);
+    }
+    if (request.brandContext?.visual_style?.avoid?.length) {
+      allAvoidElements.push(...request.brandContext.visual_style.avoid);
+    }
+    
+    if (allAvoidElements.length > 0) {
+      sections.push("=== ⛔⛔⛔ BRAND RESTRICTIONS (ABSOLUTE PRIORITY) ⛔⛔⛔ ===");
+      sections.push("These elements are FORBIDDEN by the brand. NEVER include them, even if the concept's mustHave or Visual World suggests them:");
+      allAvoidElements.forEach(el => {
+        sections.push(`❌ ${el}`);
+      });
+      sections.push("");
+      sections.push("⚠️ CRITICAL: If a concept's 'mustHave' list contains any of these forbidden elements, IGNORE that mustHave item. The AVOID list ALWAYS takes precedence over concept direction.");
       sections.push("");
     }
     
