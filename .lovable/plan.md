@@ -1,124 +1,126 @@
 
-
-# Fix: Moodboard Quality Issues - Ancient Pottery Problem
+# Fix: AI-Built Moodboard Images Not Properly Combined
 
 ## Problem Summary
 
-Your "Mediterranean summer, terracotta, golden hour" moodboard included Greek pottery artifacts instead of beautiful Mediterranean lifestyle imagery because:
+When you build a moodboard with the AI tool, you carefully select 9 images that work together. However:
 
-1. **AI Ranking Skipped**: The quality filter only runs when there are >12 images. With exactly 12, it was bypassed entirely
-2. **"Terracotta" matched artifacts**: Openverse returned ancient Greek pottery for the "terracotta" search term
-3. **No minimum quality threshold**: Even low-scoring images aren't filtered out - they're just sorted
+1. **Display Issue**: The moodboard thumbnail only shows 1 of your 9 images - not the full collection
+2. **Generation Issue**: When generating images, only that single thumbnail is sent to the AI - losing the other 8 reference images you selected
 
-## Root Cause
-
-```typescript
-// Line 103-106 in build-moodboard/index.ts
-if (images.length <= 12) {
-  return images;  // <-- SKIPS ALL RANKING!
-}
-```
-
-## Solution
-
-### 1. Always Run AI Quality Ranking
-
-Remove the skip condition so ranking ALWAYS happens, even for small result sets.
-
-### 2. Add Minimum Quality Threshold
-
-Filter out images that score below 40/100 - this would eliminate obviously irrelevant results like ancient pottery.
-
-### 3. Improve Ranking Prompt
-
-Update the AI prompt to be more strict about relevance:
-- Explicitly instruct to score 0-20 for completely irrelevant images (artifacts, museums, unrelated subjects)
-- Add examples of what should score low
-- Consider the "vibe" not just literal keyword matches
-
-### 4. Smarter Search Terms
-
-Add a filter in the search term expansion to avoid literal interpretations:
-- "terracotta" should become "terracotta color", "terracotta tiles", "warm earth tones"
-- NOT just "terracotta" which matches pottery artifacts
+This means your curated moodboard aesthetic is reduced to just one image, which explains why results don't capture the full mood you intended.
 
 ---
 
-## Technical Changes
+## Current Behavior
 
-### File: `supabase/functions/build-moodboard/index.ts`
+```text
+You select 9 beautiful Mediterranean images:
+  [Image1] [Image2] [Image3]
+  [Image4] [Image5] [Image6]
+  [Image7] [Image8] [Image9]
 
-**Change 1: Remove skip condition (lines 103-106)**
-```typescript
-// BEFORE
-if (images.length <= 12) {
-  return images;
-}
-
-// AFTER
-// Remove this entirely - always rank images
-```
-
-**Change 2: Add quality threshold (after line 163)**
-```typescript
-// Sort by score descending
-scored.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-// NEW: Filter out low-quality images (score < 40)
-const filtered = scored.filter(img => (img.score || 0) >= 40);
-
-// Return filtered or at least top 3 if all filtered
-return filtered.length >= 3 ? filtered : scored.slice(0, 6);
-```
-
-**Change 3: Improve ranking prompt (lines 119-128)**
-```typescript
-content: `You are a visual curator for fashion/lifestyle moodboards. Score images 0-100 based on how well they match: "${mood}"
-
-SCORING GUIDE:
-- 80-100: Perfect match - modern lifestyle photography, correct mood/aesthetic
-- 60-79: Good match - relevant subject, some mood alignment
-- 40-59: Partial match - somewhat relevant but not ideal
-- 20-39: Poor match - tangentially related, wrong vibe
-- 0-19: REJECT - completely irrelevant (museum artifacts, unrelated subjects, stock graphics)
-
-CRITICAL: Score 0-19 for:
-- Ancient artifacts, museum pieces, historical items
-- Random stock photos unrelated to the mood
-- Text-heavy graphics or logos
-- Low-quality or blurry images
-
-The mood is LIFESTYLE/FASHION oriented - prefer contemporary photography over historical/archival content.`
-```
-
-**Change 4: Smarter search term generation (lines 39-67)**
-
-Update the AI prompt to generate aesthetic-focused terms:
-```typescript
-content: `Generate 10-12 SHORT search terms for finding ${style} imagery matching: "${mood}"
-
-RULES:
-1. Terms must be 1-3 words maximum
-2. Focus on AESTHETIC/VISUAL terms, not literal objects
-3. For colors like "terracotta", use: "terracotta tones", "warm earth palette", "rust color aesthetic"
-4. Include: lighting moods, textures, settings, color palettes
-5. AVOID terms that could match museum/artifact imagery
-
-Example for "Mediterranean summer":
-GOOD: "golden hour beach", "olive grove", "white linen", "warm sunset"
-BAD: "Mediterranean" (too vague), "terracotta" (matches pottery)`
+But the system only uses Image1 as the moodboard thumbnail and reference.
+The other 8 images are stored in the database but never used.
 ```
 
 ---
 
-## Expected Results After Fix
+## Solution Overview
 
-| Before | After |
-|--------|-------|
-| 6 golden hour photos + 6 ancient Greek pottery | 12 Mediterranean lifestyle images |
-| No quality filtering | Images below 40/100 rejected |
-| Literal "terracotta" search | "terracotta tones", "warm earth" |
-| Pottery artifacts included | Only modern photography |
+**Two-Part Fix:**
+
+1. **Create a Collage Thumbnail** - When saving an AI-built moodboard, create a composite 3x3 grid image showing all selected images. This gives users a proper visual representation.
+
+2. **Pass All Images to Generation** - When generating images, if the moodboard has multiple `imageUrls` in its visual analysis, pass ALL of them to the AI as style references (up to 4-5 for token limits).
+
+---
+
+## Technical Implementation
+
+### Part 1: Collage Thumbnail Creation
+
+**File: `src/components/creative-studio/MoodboardBuilder.tsx`**
+
+Add a function to create a 3x3 collage using HTML Canvas:
+
+```typescript
+// Create a 3x3 collage from selected images
+async function createMoodboardCollage(imageUrls: string[]): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  const gridSize = Math.min(3, Math.ceil(Math.sqrt(imageUrls.length)));
+  const cellSize = 400; // Each cell is 400x400
+  canvas.width = gridSize * cellSize;
+  canvas.height = gridSize * cellSize;
+  
+  const ctx = canvas.getContext('2d');
+  // Load and draw each image into grid cells
+  // ... (detailed implementation)
+  
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+}
+```
+
+Then in `handleSave`:
+1. Create the collage from selected images
+2. Upload to storage
+3. Use the uploaded collage URL as `thumbnail_url`
+
+### Part 2: Pass Multiple Images to Generation
+
+**File: `supabase/functions/generate-image/index.ts`**
+
+Update the moodboard attachment logic (around line 726):
+
+```typescript
+// Check if moodboard has multiple curated images
+const moodboardImageUrls = moodboardAnalysis?.imageUrls as string[] | undefined;
+
+if (moodboardImageUrls && moodboardImageUrls.length > 1) {
+  // AI-built moodboard - attach multiple reference images (up to 4)
+  const refUrls = moodboardImageUrls.slice(0, 4);
+  for (const url of refUrls) {
+    messageContent.push({
+      type: "image_url",
+      image_url: { url }
+    });
+  }
+  messageContent.push({
+    type: "text",
+    text: `PRIMARY STYLE REFERENCE: These ${refUrls.length} moodboard images define the visual aesthetic...`
+  });
+} else if (moodboardUrl) {
+  // Single-image moodboard (uploaded) - existing logic
+  messageContent.push({
+    type: "image_url", 
+    image_url: { url: moodboardUrl }
+  });
+  // ...
+}
+```
+
+**File: `src/hooks/useImageGeneration.ts`**
+
+Update to pass the full `visual_analysis` including `imageUrls` to the generation function.
+
+---
+
+## Display Improvements
+
+**File: `src/components/creative-studio/MoodboardThumbnail.tsx`**
+
+For AI-built moodboards, optionally show a mini-grid preview in the full-view dialog:
+
+```typescript
+// In the full view dialog, show all images in a grid
+{moodboard.visualAnalysis?.imageUrls?.length > 0 && (
+  <div className="grid grid-cols-3 gap-2 mt-4">
+    {moodboard.visualAnalysis.imageUrls.map((url, i) => (
+      <img key={i} src={url} className="aspect-square object-cover rounded" />
+    ))}
+  </div>
+)}
+```
 
 ---
 
@@ -126,15 +128,30 @@ BAD: "Mediterranean" (too vague), "terracotta" (matches pottery)`
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/build-moodboard/index.ts` | Remove skip condition, add quality threshold, improve prompts |
+| `src/components/creative-studio/MoodboardBuilder.tsx` | Add collage creation function, upload composite on save |
+| `src/lib/imageCompositing.ts` | Add `createMoodboardCollage()` utility function |
+| `supabase/functions/generate-image/index.ts` | Check for `imageUrls` array and attach multiple references |
+| `src/hooks/useImageGeneration.ts` | Ensure `visual_analysis` with `imageUrls` is passed through |
+| `src/components/creative-studio/MoodboardThumbnail.tsx` | Show all images in full-view dialog for AI-built moodboards |
+
+---
+
+## Expected Results
+
+| Before | After |
+|--------|-------|
+| Thumbnail shows 1 image | Thumbnail shows 3x3 collage of all 9 images |
+| Generation uses 1 reference | Generation uses up to 4 curated references |
+| Moodboard mood is lost | Full aesthetic captured in generation |
+| Dialog shows single image | Dialog shows full image grid |
 
 ---
 
 ## Summary
 
-The fix ensures:
-1. AI ranking ALWAYS runs (no skip for small result sets)
-2. Low-quality images (ancient pottery) are filtered out
-3. Search terms are aesthetic-focused, not literal
-4. Minimum quality threshold prevents irrelevant images from appearing
+The fix ensures your carefully curated 9-image moodboard:
+1. Displays as a proper visual collage (not just one image)
+2. Passes multiple reference images to the AI during generation
+3. Shows all images when you view the moodboard details
 
+This will dramatically improve the quality and consistency of generated images matching your intended mood.
