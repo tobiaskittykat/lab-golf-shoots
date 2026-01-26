@@ -73,6 +73,7 @@ serve(async (req) => {
     // Fetch blocks (images) from top channels
     const results: SearchResult[] = [];
     
+    // Strategy 1: Get images from matching channels
     for (const channel of channels.slice(0, 5)) {
       try {
         const channelUrl = `https://api.are.na/v2/channels/${channel.id}/contents?per=20`;
@@ -103,6 +104,42 @@ serve(async (req) => {
         if (results.length >= limit) break;
       } catch (err) {
         console.error(`Error fetching channel ${channel.id}:`, err);
+      }
+    }
+
+    // Strategy 2: If not enough results, search blocks directly
+    if (results.length < limit) {
+      try {
+        const blocksSearchUrl = `https://api.are.na/v2/search/blocks?q=${encodeURIComponent(query)}&per=${limit}`;
+        const blocksResponse = await fetch(blocksSearchUrl, {
+          headers: { 'Accept': 'application/json' },
+        });
+        
+        if (blocksResponse.ok) {
+          const blocksData = await blocksResponse.json();
+          const blocks: ArenaBlock[] = blocksData.blocks || [];
+          
+          for (const block of blocks) {
+            if (results.length >= limit) break;
+            
+            // Only include blocks with images
+            if (block.image?.display?.url || block.image?.large?.url) {
+              // Avoid duplicates
+              const url = block.image.original?.url || block.image.large?.url || block.image.display?.url || '';
+              if (!results.some(r => r.url === url)) {
+                results.push({
+                  url,
+                  thumbnailUrl: block.image.display?.url || block.image.large?.url || '',
+                  source: 'arena',
+                  title: block.title || 'Untitled',
+                  description: block.description || 'From Are.na',
+                });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error searching blocks directly:', err);
       }
     }
 

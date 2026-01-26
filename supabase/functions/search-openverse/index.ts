@@ -51,7 +51,8 @@ serve(async (req) => {
     const params = new URLSearchParams({
       q: query,
       page_size: String(Math.min(limit, 50)),
-      license_type: 'commercial', // Ensure commercially usable
+      // Use permissive CC licenses instead of strict 'commercial' filter
+      license: 'by,by-sa,by-nd,cc0,pdm',
       mature: 'false',
     });
 

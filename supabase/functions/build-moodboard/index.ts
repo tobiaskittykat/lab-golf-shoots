@@ -42,13 +42,17 @@ async function expandMoodToSearchTerms(mood: string, style: string): Promise<str
         messages: [
           {
             role: 'system',
-            content: `You are an expert at visual moodboard curation. Given a mood description, generate 5-8 specific, evocative search terms that would find ${style === 'editorial' ? 'artistic, editorial, non-commercial' : style === 'commercial' ? 'polished, professional, commercial' : 'diverse, creative'} imagery.
+            content: `You are an expert at visual moodboard curation. Generate 10-12 SHORT search terms (1-3 words MAX) for finding ${style === 'editorial' ? 'artistic, editorial' : style === 'commercial' ? 'polished, professional' : 'diverse, creative'} imagery.
 
-Focus on:
-- Specific visual elements (textures, colors, compositions)
-- Atmospheric qualities (lighting, mood)
-- Subject matter that evokes the feeling
-- Avoid generic terms like "beautiful" or "nice"
+CRITICAL: Terms must be SHORT and SEARCHABLE for image APIs:
+- GOOD: "alpine cabin", "frost texture", "golden hour", "minimalist"
+- BAD: "snow-dusted chalets with alpen glow" (WAY too long - won't match!)
+
+Include a balanced mix:
+- 3-4 specific subjects: "swiss chalet", "frozen lake", "wool sweater"
+- 2-3 textures/materials: "linen fabric", "marble", "rough wood"
+- 2-3 moods/atmospheres: "cozy", "misty morning", "serene"
+- 2 colors: "cream white", "forest green", "terracotta"
 
 Return ONLY a JSON array of strings, no explanation.`
           },
@@ -218,28 +222,37 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 
     // Step 1: Expand mood into search terms
-    const searchTerms = await expandMoodToSearchTerms(mood, style);
+    const aiSearchTerms = await expandMoodToSearchTerms(mood, style);
+    
+    // Step 1b: Extract simple fallback terms from mood directly
+    const fallbackTerms = mood
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 3 && w.length <= 15)
+      .slice(0, 5);
+    
+    // Combine AI terms with fallback terms, deduplicated
+    const searchTerms = [...new Set([...aiSearchTerms, ...fallbackTerms])];
     console.log('Search terms:', searchTerms);
 
-    // Step 2: Query all sources in parallel with different terms
+    // Step 2: Query all sources in parallel with ALL terms for maximum coverage
     const allImages: ImageResult[] = [];
-    
-    // Query each source with different terms for variety
     const sourceQueries = [];
     
-    // Are.na - great for editorial/artistic
-    for (const term of searchTerms.slice(0, 3)) {
-      sourceQueries.push(querySource(supabaseUrl, 'search-arena', term, 10));
+    // Are.na - query up to 5 terms for variety
+    for (const term of searchTerms.slice(0, 5)) {
+      sourceQueries.push(querySource(supabaseUrl, 'search-arena', term, 15));
     }
     
-    // Openverse - great for museum/vintage
-    for (const term of searchTerms.slice(0, 3)) {
-      sourceQueries.push(querySource(supabaseUrl, 'search-openverse', term, 10));
+    // Openverse - query up to 5 terms (great for museum/vintage)
+    for (const term of searchTerms.slice(0, 5)) {
+      sourceQueries.push(querySource(supabaseUrl, 'search-openverse', term, 15));
     }
     
     // Unsplash - professional photography (if configured)
-    for (const term of searchTerms.slice(0, 2)) {
-      sourceQueries.push(querySource(supabaseUrl, 'search-unsplash', term, 10));
+    for (const term of searchTerms.slice(0, 3)) {
+      sourceQueries.push(querySource(supabaseUrl, 'search-unsplash', term, 15));
     }
 
     const results = await Promise.all(sourceQueries);
