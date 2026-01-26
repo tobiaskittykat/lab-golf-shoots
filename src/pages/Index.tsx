@@ -5,9 +5,12 @@ import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
 import { useBrandDrafts } from "@/hooks/useBrandDrafts";
+import { useToast } from "@/hooks/use-toast";
 import BrandSelector from "@/components/BrandSelector";
 import BrandSection from "@/components/brand/BrandSection";
 import { CreativeStudioWizard } from "@/components/creative-studio/CreativeStudioWizard";
+import { MoodboardBuilder } from "@/components/creative-studio/MoodboardBuilder";
+import { MoodboardModal } from "@/components/creative-studio/MoodboardModal";
 import { 
   Image, 
   Megaphone, 
@@ -163,6 +166,19 @@ const Index = () => {
   // Campaign state
   const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Moodboard builder state
+  const [isBuildingMoodboard, setIsBuildingMoodboard] = useState(false);
+  const [showMoodboardModal, setShowMoodboardModal] = useState(false);
+  const [createdMoodboard, setCreatedMoodboard] = useState<{ id: string; name: string } | null>(null);
+  const { toast } = useToast();
+
+  // Handle moodboard creation complete
+  const handleMoodboardComplete = (moodboardId: string) => {
+    setIsBuildingMoodboard(false);
+    setCreatedMoodboard({ id: moodboardId, name: 'AI-Built Moodboard' });
+    toast({ title: 'Moodboard created!', description: 'Your moodboard is ready to use.' });
+  };
 
   // Track scroll position to update active section and back to top button
   const updateActiveSection = useCallback(() => {
@@ -716,37 +732,92 @@ const Index = () => {
 
                 <CollapsibleContent>
                   <div className="space-y-4">
-                    {/* Campaign Concept Card */}
-                    <div className="glass-card p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="font-semibold">Campaign Concept: "Sunlit Steps: Begin Your Yellow Diamond Story"</h3>
-                        <div className="flex items-center gap-2">
-                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground" title="Copy">
-                            <Copy className="w-4 h-4" />
+                    {/* Empty State - Show options to build or browse */}
+                    {!isBuildingMoodboard && !createdMoodboard && (
+                      <div className="glass-card p-8 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-coral/20 to-primary/20 flex items-center justify-center mx-auto mb-4">
+                          <Layers className="w-8 h-8 text-accent" />
+                        </div>
+                        <h3 className="font-semibold text-lg mb-2">Create Your Moodboard</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                          Build an AI-curated moodboard from your mood description, or browse your existing gallery.
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <button 
+                            onClick={() => setIsBuildingMoodboard(true)}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-colors"
+                          >
+                            <Wand2 className="w-4 h-4" />
+                            Build with AI
                           </button>
-                          <button className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground" title="Pin">
-                            <Star className="w-4 h-4" />
+                          <button 
+                            onClick={() => setShowMoodboardModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border bg-secondary/50 text-foreground font-medium hover:bg-secondary transition-colors"
+                          >
+                            <GalleryHorizontal className="w-4 h-4" />
+                            Browse Gallery
                           </button>
                         </div>
                       </div>
-                      <p className="text-muted-foreground mb-4">
-                        A luminous, editorial campaign designed for women in New York ready to begin their own collection of rare, colored diamonds—starting with a princess cut yellow diamond of 1 carat or more. 'Sunlit Steps' shines a light on the modern woman's desire for self-celebration and milestone marking, offering exquisitely cut yellow diamonds as the gateway to personalized luxury. Visuals focus on natural light, authentic urban glamour, and the radiant vibrance of each unique diamond, inviting women to take their first sunlit step into the world of special colored stones.
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {["Radiant", "Empowering", "Editorial", "Modern", "Aspirational"].map((tag) => (
-                          <span key={tag} className="px-3 py-1.5 rounded-full border border-border text-sm text-foreground">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    )}
 
-                    {/* Create Moodboard Button */}
-                    <button className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-colors">
-                      Create Moodboard
-                    </button>
+                    {/* Building State - Show MoodboardBuilder inline */}
+                    {isBuildingMoodboard && (
+                      <div className="glass-card p-6">
+                        <MoodboardBuilder
+                          onComplete={handleMoodboardComplete}
+                          onCancel={() => setIsBuildingMoodboard(false)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Completed State - Show created moodboard */}
+                    {createdMoodboard && !isBuildingMoodboard && (
+                      <div className="glass-card p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                            <Check className="w-5 h-5 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Moodboard Created!</h3>
+                            <p className="text-sm text-muted-foreground">{createdMoodboard.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => {
+                              setCreatedMoodboard(null);
+                              setIsBuildingMoodboard(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-colors"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Create Another
+                          </button>
+                          <button 
+                            onClick={() => setShowMoodboardModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-secondary/50 text-foreground font-medium hover:bg-secondary transition-colors"
+                          >
+                            <GalleryHorizontal className="w-4 h-4" />
+                            Browse Gallery
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CollapsibleContent>
+
+                {/* Moodboard Modal */}
+                <MoodboardModal
+                  isOpen={showMoodboardModal}
+                  onClose={() => setShowMoodboardModal(false)}
+                  selectedMoodboard={selectedMoodboard}
+                  onSelect={(moodboardId, _fromGallery) => {
+                    setSelectedMoodboard(moodboardId);
+                    setShowMoodboardModal(false);
+                    toast({ title: 'Moodboard selected', description: 'Ready to use in your campaign.' });
+                  }}
+                />
               </Collapsible>
             </div>
           </section>
