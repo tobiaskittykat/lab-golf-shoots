@@ -140,6 +140,7 @@ export interface GeneratedImage {
   prompt: string;
   refinedPrompt?: string;
   conceptTitle?: string;
+  conceptId?: string;
   error?: string;
   index: number;
   // Reference images used for generation
@@ -149,6 +150,9 @@ export interface GeneratedImage {
   productReferenceUrls?: string[]; // Support multiple product references
   contextReferenceUrl?: string;
   contextReferenceUrls?: string[]; // Support multiple context references
+  // Discovery mode fields
+  liked?: boolean | null; // null = not rated, true = liked, false = disliked
+  shotType?: string; // ID of shot type used (for preference learning)
   // Generation settings
   settings?: {
     aiModel?: string;
@@ -159,6 +163,15 @@ export interface GeneratedImage {
     aspectRatio?: string;
     [key: string]: unknown;
   };
+}
+
+// User preference from Discovery Mode
+export interface UserPreference {
+  conceptId: string;
+  conceptTitle: string;
+  moodboardId: string;
+  shotType: string;
+  liked: boolean;
 }
 
 export interface CreativeStudioState {
@@ -217,6 +230,12 @@ export interface CreativeStudioState {
   
   // Logo placement settings
   logoPlacement: LogoPlacement;
+  
+  // Discovery Mode
+  discoveryMode: boolean;
+  discoveryImages: GeneratedImage[];
+  userPreferences: UserPreference[];
+  isDiscoveryGenerating: boolean;
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -271,6 +290,12 @@ export const initialCreativeStudioState: CreativeStudioState = {
   
   // Logo placement defaults (OFF by default)
   logoPlacement: defaultLogoPlacement,
+  
+  // Discovery Mode defaults
+  discoveryMode: false,
+  discoveryImages: [],
+  userPreferences: [],
+  isDiscoveryGenerating: false,
 };
 
 export const typeCards = [

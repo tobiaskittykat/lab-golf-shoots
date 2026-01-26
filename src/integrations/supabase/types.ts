@@ -198,12 +198,14 @@ export type Database = {
           folder: string | null
           id: string
           image_url: string
+          liked: boolean | null
           moodboard_id: string | null
           negative_prompt: string | null
           product_reference_url: string | null
           prompt: string
           refined_prompt: string | null
           settings: Json | null
+          shot_type: string | null
           status: string | null
           thumbnail_url: string | null
           user_id: string
@@ -218,12 +220,14 @@ export type Database = {
           folder?: string | null
           id?: string
           image_url: string
+          liked?: boolean | null
           moodboard_id?: string | null
           negative_prompt?: string | null
           product_reference_url?: string | null
           prompt: string
           refined_prompt?: string | null
           settings?: Json | null
+          shot_type?: string | null
           status?: string | null
           thumbnail_url?: string | null
           user_id: string
@@ -238,12 +242,14 @@ export type Database = {
           folder?: string | null
           id?: string
           image_url?: string
+          liked?: boolean | null
           moodboard_id?: string | null
           negative_prompt?: string | null
           product_reference_url?: string | null
           prompt?: string
           refined_prompt?: string | null
           settings?: Json | null
+          shot_type?: string | null
           status?: string | null
           thumbnail_url?: string | null
           user_id?: string

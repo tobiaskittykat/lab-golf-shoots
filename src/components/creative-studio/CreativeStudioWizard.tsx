@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef, useLayoutEffect, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Image, ChevronDown, ChevronRight, ArrowLeft, Sparkles } from "lucide-react";
+import { Image, ChevronDown, ChevronRight, ArrowLeft, Sparkles, Compass } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { CreativeStudioHeader } from "./CreativeStudioHeader";
 import { StepOnePrompt } from "./StepOnePrompt";
 import { StepTwoCustomize } from "./StepTwoCustomize";
 import { UnifiedWorkspace } from "./UnifiedWorkspace";
 import { SelectionIndicators } from "./SelectionIndicators";
-import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept } from "./types";
+import { DiscoveryModeGallery } from "./DiscoveryModeGallery";
+import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept, UserPreference } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
 import { useBrandImages } from "@/hooks/useBrandImages";
@@ -31,13 +33,20 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   const { 
     isGeneratingConcepts, 
     isGeneratingImages, 
+    isGeneratingDiscovery,
     conceptsProgress,
     generateConcepts, 
     generateImages,
     generateVariations,
     deleteImage,
-    editImage
+    editImage,
+    generateDiscoveryBatch,
+    updateImageLike,
+    generateFromPreferences,
   } = useImageGeneration();
+  
+  // Discovery mode state
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
   
   // Get brand logo URL
   const brandLogo = brandImages.find(img => img.category === 'logo');
@@ -354,6 +363,166 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }
   }, [state, handleUpdate, generateImages, editImage, generateVariations]);
 
+  // ========== DISCOVERY MODE HANDLERS ==========
+  
+  // Start discovery mode batch generation
+  const handleStartDiscovery = useCallback(async () => {
+    if (state.concepts.length === 0) {
+      toast({ title: 'No concepts', description: 'Generate concepts first', variant: 'destructive' });
+      return;
+    }
+    
+    handleUpdate({ 
+      discoveryMode: true, 
+      isDiscoveryGenerating: true,
+      discoveryImages: [],
+      userPreferences: [],
+    });
+    
+    // For each concept, run smart-match to get best moodboard
+    const moodboards: { conceptId: string; moodboardId: string; moodboardUrl: string }[] = [];
+    
+    for (const concept of state.concepts) {
+      try {
+        const { data, error } = await supabase.functions.invoke('smart-match', {
+          body: {
+            conceptId: concept.id,
+            conceptTitle: concept.title,
+            conceptDescription: concept.description,
+            visualWorld: concept.visualWorld,
+            tonality: concept.tonality,
+          },
+        });
+        
+        if (!error && data?.moodboards?.length > 0) {
+          const bestMoodboard = data.moodboards[0];
+          moodboards.push({
+            conceptId: concept.id,
+            moodboardId: bestMoodboard.id,
+            moodboardUrl: bestMoodboard.thumbnailUrl || bestMoodboard.thumbnail,
+          });
+        }
+      } catch (err) {
+        console.error('Smart-match error for concept:', concept.id, err);
+      }
+    }
+    
+    // Generate discovery batch
+    const images = await generateDiscoveryBatch(state, state.concepts, moodboards, logoUrl);
+    
+    handleUpdate({ 
+      isDiscoveryGenerating: false,
+      discoveryImages: images,
+    });
+    
+    // Scroll to discovery gallery
+    setTimeout(() => {
+      smoothScrollTo('discovery-gallery', 100, 600);
+    }, 100);
+  }, [state, handleUpdate, generateDiscoveryBatch, logoUrl, toast]);
+
+  // Toggle like on discovery image
+  const handleToggleLike = useCallback(async (imageId: string, liked: boolean) => {
+    // Find the image
+    const image = state.discoveryImages.find(img => img.id === imageId);
+    if (!image) return;
+    
+    // Toggle: if already set to this value, set to null (unrate)
+    const newLiked = image.liked === liked ? null : liked;
+    
+    // Update local state
+    handleUpdate({
+      discoveryImages: state.discoveryImages.map(img => 
+        img.id === imageId ? { ...img, liked: newLiked } : img
+      ),
+    });
+    
+    // Persist to database
+    await updateImageLike(imageId, newLiked);
+    
+    // Update preferences
+    if (newLiked === true && image.conceptId && image.moodboardId && image.shotType) {
+      const concept = state.concepts.find(c => c.id === image.conceptId);
+      if (concept) {
+        handleUpdate({
+          userPreferences: [
+            ...state.userPreferences.filter(p => 
+              !(p.conceptId === image.conceptId && p.shotType === image.shotType)
+            ),
+            {
+              conceptId: image.conceptId,
+              conceptTitle: concept.title,
+              moodboardId: image.moodboardId,
+              shotType: image.shotType,
+              liked: true,
+            },
+          ],
+        });
+      }
+    } else if (newLiked !== true && image.conceptId && image.shotType) {
+      // Remove from preferences if unliked
+      handleUpdate({
+        userPreferences: state.userPreferences.filter(p => 
+          !(p.conceptId === image.conceptId && p.shotType === image.shotType)
+        ),
+      });
+    }
+  }, [state, handleUpdate, updateImageLike]);
+
+  // Generate more images from liked preferences
+  const handleGenerateMoreLikeThat = useCallback(async () => {
+    const likedImages = state.discoveryImages.filter(img => img.liked === true);
+    if (likedImages.length === 0) {
+      toast({ title: 'No images selected', description: 'Like some images first', variant: 'destructive' });
+      return;
+    }
+    
+    // Build preferences from liked images
+    const preferences: UserPreference[] = likedImages
+      .filter(img => img.conceptId && img.moodboardId && img.shotType)
+      .map(img => {
+        const concept = state.concepts.find(c => c.id === img.conceptId);
+        return {
+          conceptId: img.conceptId!,
+          conceptTitle: concept?.title || 'Unknown',
+          moodboardId: img.moodboardId!,
+          shotType: img.shotType!,
+          liked: true,
+        };
+      });
+    
+    setIsGeneratingMore(true);
+    
+    const newImages = await generateFromPreferences(state, preferences, logoUrl, 2);
+    
+    // Add to regular generated images (not discovery)
+    handleUpdate({
+      generatedImages: [...state.generatedImages, ...newImages],
+    });
+    
+    setIsGeneratingMore(false);
+    
+    // Scroll to gallery
+    setTimeout(() => {
+      smoothScrollTo('unified-workspace', 100, 600);
+    }, 100);
+  }, [state, handleUpdate, generateFromPreferences, logoUrl, toast]);
+
+  // Toggle discovery mode
+  const handleToggleDiscoveryMode = useCallback((enabled: boolean) => {
+    handleUpdate({ discoveryMode: enabled });
+    if (!enabled) {
+      // Clear discovery state when disabled
+      handleUpdate({
+        discoveryImages: [],
+        userPreferences: [],
+        isDiscoveryGenerating: false,
+      });
+    }
+  }, [handleUpdate]);
+
+  // ========== END DISCOVERY MODE HANDLERS ==========
+
   // Track card position for floating footer
   useLayoutEffect(() => {
     const updateFloating = () => {
@@ -499,19 +668,35 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           </CollapsibleContent>
         </Collapsible>
         
+        {/* Discovery Mode Gallery */}
+        {state.discoveryMode && (state.discoveryImages.length > 0 || state.isDiscoveryGenerating) && (
+          <div id="discovery-gallery" className="glass-card p-6">
+            <DiscoveryModeGallery
+              images={state.discoveryImages}
+              concepts={state.concepts}
+              onToggleLike={handleToggleLike}
+              onGenerateMore={handleGenerateMoreLikeThat}
+              isGenerating={state.isDiscoveryGenerating}
+              isGeneratingMore={isGeneratingMore}
+            />
+          </div>
+        )}
+        
         {/* Unified Workspace - Combines Quick Edit Bar + Gallery */}
-        <UnifiedWorkspace
-          state={state}
-          onUpdate={handleUpdate}
-          images={allImages}
-          isGenerating={isGeneratingImages && state.generatedImages.length === 0}
-          onEdit={handleAdvancedEdit}
-          onVariation={handleVariation}
-          onEditImage={handleEdit}
-          onDelete={handleDelete}
-          onRegenerate={state.step === 2 ? handleGenerate : undefined}
-          isEditing={isGeneratingImages}
-        />
+        <div id="unified-workspace">
+          <UnifiedWorkspace
+            state={state}
+            onUpdate={handleUpdate}
+            images={allImages}
+            isGenerating={isGeneratingImages && state.generatedImages.length === 0}
+            onEdit={handleAdvancedEdit}
+            onVariation={handleVariation}
+            onEditImage={handleEdit}
+            onDelete={handleDelete}
+            onRegenerate={state.step === 2 ? handleGenerate : undefined}
+            isEditing={isGeneratingImages}
+          />
+        </div>
         
         {/* Floating Footer for Step 2 */}
         {floating.active && state.step === 2 && (
@@ -534,12 +719,22 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
               
               <SelectionIndicators state={state} />
               
+              {/* Discovery Mode Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/80 border border-border">
+                <Compass className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Discovery</span>
+                <Switch
+                  checked={state.discoveryMode}
+                  onCheckedChange={handleToggleDiscoveryMode}
+                />
+              </div>
+              
               <button
-                onClick={handleGenerate}
-                disabled={isGeneratingImages || isAgentMatching || isGeneratingConcepts || state.isLoadingConcepts}
+                onClick={state.discoveryMode ? handleStartDiscovery : handleGenerate}
+                disabled={isGeneratingImages || isAgentMatching || isGeneratingConcepts || state.isLoadingConcepts || state.isDiscoveryGenerating}
                 className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg"
                 style={{
-                  boxShadow: !isGeneratingImages && !isAgentMatching && !isGeneratingConcepts && !state.isLoadingConcepts 
+                  boxShadow: !isGeneratingImages && !isAgentMatching && !isGeneratingConcepts && !state.isLoadingConcepts && !state.isDiscoveryGenerating
                     ? '0 8px 32px rgba(107, 124, 255, 0.25)' 
                     : undefined
                 }}
@@ -549,9 +744,13 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                   ? 'Creating concepts...' 
                   : isAgentMatching 
                     ? 'Matching...' 
-                    : isGeneratingImages 
-                      ? 'Generating...' 
-                      : `Generate (${state.imageCount} images)`}
+                    : state.isDiscoveryGenerating
+                      ? 'Discovering...'
+                      : isGeneratingImages 
+                        ? 'Generating...' 
+                        : state.discoveryMode
+                          ? 'Start Discovery (12 images)'
+                          : `Generate (${state.imageCount} images)`}
               </button>
             </div>
           </div>

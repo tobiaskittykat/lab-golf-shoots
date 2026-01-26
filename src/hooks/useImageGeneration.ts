@@ -4,6 +4,8 @@ import {
   CreativeStudioState, 
   GeneratedImage, 
   Concept,
+  Moodboard,
+  UserPreference,
   sampleMoodboards,
   sampleProductReferences,
   sampleContextReferences
@@ -11,9 +13,11 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
+
 export function useImageGeneration() {
   const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [isGeneratingDiscovery, setIsGeneratingDiscovery] = useState(false);
   const [conceptsProgress, setConceptsProgress] = useState(0); // 0-3 concepts loaded
   const { toast } = useToast();
   const { user } = useAuth();
@@ -516,14 +520,320 @@ export function useImageGeneration() {
     }
   }, [toast, auditLog]);
 
+  // Generate discovery batch (12 images: 3 concepts × 4 shot types)
+  const generateDiscoveryBatch = useCallback(async (
+    state: CreativeStudioState,
+    concepts: Concept[],
+    moodboards: { conceptId: string; moodboardId: string; moodboardUrl: string }[],
+    logoUrl?: string,
+    onImageReady?: (image: GeneratedImage) => void
+  ): Promise<GeneratedImage[]> => {
+    setIsGeneratingDiscovery(true);
+    
+    const allImages: GeneratedImage[] = [];
+    const shotTypes = sampleContextReferences; // 4 shots
+    
+    console.log('=== DISCOVERY BATCH GENERATION ===');
+    console.log(`Generating ${concepts.length} concepts × ${shotTypes.length} shots = ${concepts.length * shotTypes.length} images`);
+    
+    // Generate images for each concept in parallel batches
+    const batchPromises = concepts.map(async (concept, conceptIdx) => {
+      const moodboardInfo = moodboards.find(m => m.conceptId === concept.id);
+      const conceptImages: GeneratedImage[] = [];
+      
+      // Generate all 4 shots for this concept in parallel
+      const shotPromises = shotTypes.map(async (shot) => {
+        try {
+          // Create a minimal state for this single image
+          const singleState: CreativeStudioState = {
+            ...state,
+            selectedConcept: concept.id,
+            concepts: [concept],
+            moodboard: moodboardInfo?.moodboardId || null,
+            contextReference: shot.id,
+            resolution: '512', // Fast generation
+            imageCount: 1,
+          };
+          
+          // Resolve product references
+          const productReferenceUrls: string[] = [];
+          const productNames: string[] = [];
+          for (const productRef of state.productReferences) {
+            if (productRef.startsWith('scraped-')) {
+              const dbId = productRef.replace('scraped-', '');
+              const { data: scrapedRow } = await supabase
+                .from('scraped_products')
+                .select('full_url, thumbnail_url, name')
+                .eq('id', dbId)
+                .maybeSingle();
+              if (scrapedRow) {
+                const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+                if (url) productReferenceUrls.push(url);
+                if (scrapedRow.name) productNames.push(scrapedRow.name);
+              }
+            } else {
+              const ref = sampleProductReferences.find(r => r.id === productRef);
+              if (ref?.url) productReferenceUrls.push(ref.url);
+              if (ref?.name) productNames.push(ref.name);
+            }
+          }
+          
+          const { data, error } = await supabase.functions.invoke('generate-image', {
+            body: {
+              prompt: concept.description || concept.coreIdea || concept.title,
+              conceptTitle: concept.title,
+              conceptDescription: concept.description,
+              coreIdea: concept.coreIdea,
+              tonality: concept.tonality,
+              visualWorld: concept.visualWorld,
+              contentPillars: concept.contentPillars,
+              targetAudience: concept.targetAudience,
+              consumerInsight: concept.consumerInsight,
+              productFocus: concept.productFocus,
+              taglines: concept.taglines,
+              moodboardId: moodboardInfo?.moodboardId,
+              moodboardUrl: moodboardInfo?.moodboardUrl,
+              productReferenceUrls,
+              productNames,
+              shotTypePrompt: shot.shotPrompt,
+              artisticStyle: state.artisticStyle,
+              lightingStyle: state.lightingStyle,
+              cameraAngle: state.cameraAngle,
+              extraKeywords: state.extraKeywords,
+              negativePrompt: state.negativePrompt,
+              imageCount: 1,
+              resolution: '512',
+              aspectRatio: state.aspectRatio,
+              aiModel: state.aiModel,
+              logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
+                enabled: true,
+                position: state.logoPlacement.position,
+                sizePercent: state.logoPlacement.sizePercent,
+                opacity: state.logoPlacement.opacity,
+                paddingPx: state.logoPlacement.paddingPx,
+                logoUrl,
+              } : null,
+            },
+          });
+          
+          if (error) {
+            console.error(`Error generating ${concept.title} - ${shot.name}:`, error);
+            return null;
+          }
+          
+          const images = data.images || [];
+          if (images.length > 0) {
+            const img = images[0];
+            const generatedImage: GeneratedImage = {
+              id: img.id || `discovery-${concept.id}-${shot.id}`,
+              imageUrl: img.imageUrl || '',
+              status: img.status || 'failed',
+              prompt: concept.description || '',
+              refinedPrompt: img.refinedPrompt,
+              conceptTitle: concept.title,
+              conceptId: concept.id,
+              index: conceptIdx * shotTypes.length + shotTypes.indexOf(shot),
+              moodboardId: moodboardInfo?.moodboardId,
+              moodboardUrl: moodboardInfo?.moodboardUrl,
+              productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+              shotType: shot.id,
+              liked: null, // Not rated yet
+            };
+            
+            if (onImageReady) {
+              onImageReady(generatedImage);
+            }
+            
+            return generatedImage;
+          }
+          return null;
+        } catch (err) {
+          console.error(`Error generating ${concept.title} - ${shot.name}:`, err);
+          return null;
+        }
+      });
+      
+      const shotResults = await Promise.all(shotPromises);
+      return shotResults.filter((img): img is GeneratedImage => img !== null);
+    });
+    
+    try {
+      const batchResults = await Promise.all(batchPromises);
+      batchResults.forEach(conceptImages => {
+        allImages.push(...conceptImages);
+      });
+      
+      const successCount = allImages.filter(img => img.status === 'completed').length;
+      toast({
+        title: 'Discovery batch complete',
+        description: `Generated ${successCount} of ${concepts.length * shotTypes.length} images`,
+      });
+    } catch (err) {
+      console.error('Discovery batch error:', err);
+      toast({
+        title: 'Discovery generation failed',
+        description: 'Some images could not be generated',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingDiscovery(false);
+    }
+    
+    return allImages;
+  }, [toast]);
+
+  // Update image like status
+  const updateImageLike = useCallback(async (imageId: string, liked: boolean | null): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('generated_images')
+        .update({ liked })
+        .eq('id', imageId);
+      
+      if (error) {
+        console.error('Error updating like status:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error updating like status:', err);
+      return false;
+    }
+  }, []);
+
+  // Generate more images from user preferences
+  const generateFromPreferences = useCallback(async (
+    state: CreativeStudioState,
+    preferences: UserPreference[],
+    logoUrl?: string,
+    imagesPerCombo: number = 2
+  ): Promise<GeneratedImage[]> => {
+    setIsGeneratingImages(true);
+    
+    const allImages: GeneratedImage[] = [];
+    const likedPrefs = preferences.filter(p => p.liked);
+    
+    console.log('=== GENERATING FROM PREFERENCES ===');
+    console.log(`Generating ${imagesPerCombo} images for each of ${likedPrefs.length} liked combinations`);
+    
+    for (const pref of likedPrefs) {
+      const concept = state.concepts.find(c => c.id === pref.conceptId);
+      if (!concept) continue;
+      
+      // Fetch moodboard URL
+      let moodboardUrl: string | undefined;
+      if (pref.moodboardId) {
+        const moodboardDbId = pref.moodboardId.startsWith('custom-')
+          ? pref.moodboardId.replace('custom-', '')
+          : pref.moodboardId;
+        const { data: moodboard } = await supabase
+          .from('custom_moodboards')
+          .select('thumbnail_url')
+          .eq('id', moodboardDbId)
+          .maybeSingle();
+        moodboardUrl = moodboard?.thumbnail_url;
+      }
+      
+      const shotType = sampleContextReferences.find(s => s.id === pref.shotType);
+      
+      // Resolve product references
+      const productReferenceUrls: string[] = [];
+      for (const productRef of state.productReferences) {
+        if (productRef.startsWith('scraped-')) {
+          const dbId = productRef.replace('scraped-', '');
+          const { data: scrapedRow } = await supabase
+            .from('scraped_products')
+            .select('full_url, thumbnail_url')
+            .eq('id', dbId)
+            .maybeSingle();
+          if (scrapedRow) {
+            const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+            if (url) productReferenceUrls.push(url);
+          }
+        } else {
+          const ref = sampleProductReferences.find(r => r.id === productRef);
+          if (ref?.url) productReferenceUrls.push(ref.url);
+        }
+      }
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-image', {
+          body: {
+            prompt: concept.description || concept.coreIdea || concept.title,
+            conceptTitle: concept.title,
+            conceptDescription: concept.description,
+            coreIdea: concept.coreIdea,
+            tonality: concept.tonality,
+            visualWorld: concept.visualWorld,
+            moodboardId: pref.moodboardId,
+            moodboardUrl,
+            productReferenceUrls,
+            shotTypePrompt: shotType?.shotPrompt,
+            artisticStyle: state.artisticStyle,
+            lightingStyle: state.lightingStyle,
+            cameraAngle: state.cameraAngle,
+            extraKeywords: state.extraKeywords,
+            negativePrompt: state.negativePrompt,
+            imageCount: imagesPerCombo,
+            resolution: '1024', // Higher res for final output
+            aspectRatio: state.aspectRatio,
+            aiModel: state.aiModel,
+            logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
+              enabled: true,
+              position: state.logoPlacement.position,
+              sizePercent: state.logoPlacement.sizePercent,
+              opacity: state.logoPlacement.opacity,
+              paddingPx: state.logoPlacement.paddingPx,
+              logoUrl,
+            } : null,
+          },
+        });
+        
+        if (!error && data.images) {
+          const images: GeneratedImage[] = data.images.map((img: any, idx: number) => ({
+            id: img.id || `pref-${pref.conceptId}-${pref.shotType}-${idx}`,
+            imageUrl: img.imageUrl || '',
+            status: img.status || 'failed',
+            prompt: concept.description || '',
+            refinedPrompt: img.refinedPrompt,
+            conceptTitle: concept.title,
+            conceptId: concept.id,
+            index: allImages.length + idx,
+            moodboardId: pref.moodboardId,
+            moodboardUrl,
+            shotType: pref.shotType,
+            liked: null,
+          }));
+          allImages.push(...images);
+        }
+      } catch (err) {
+        console.error(`Error generating from preference ${pref.conceptId}-${pref.shotType}:`, err);
+      }
+    }
+    
+    setIsGeneratingImages(false);
+    
+    const successCount = allImages.filter(img => img.status === 'completed').length;
+    toast({
+      title: 'Generation complete',
+      description: `Generated ${successCount} images from your preferences`,
+    });
+    
+    return allImages;
+  }, [toast]);
+
   return {
     isGeneratingConcepts,
     isGeneratingImages,
+    isGeneratingDiscovery,
     conceptsProgress,
     generateConcepts,
     generateImages,
     generateVariations,
     editImage,
     deleteImage,
+    generateDiscoveryBatch,
+    updateImageLike,
+    generateFromPreferences,
   };
 }
