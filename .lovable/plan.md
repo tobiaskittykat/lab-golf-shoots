@@ -1,141 +1,83 @@
 
+# Fix: "Create Moodboard" Button Not Working on Homepage
 
-# Integrate Moodboard Builder into Homepage
+## Problem Analysis
 
-## Overview
+Looking at the screenshot, the user sees:
+1. The **Moodboard Section** with the header "Sunlit Steps: Begin Your Yellow Diamond Story"
+2. A **"Campaign Concept" card** with description text about diamonds
+3. Tags: "Radiant", "Empowering", "Editorial", "Modern", "Aspirational"  
+4. A coral **"Create Moodboard"** button at the bottom
 
-The homepage has a dedicated **Moodboard Section** (lines 673-750 in `Index.tsx`) that currently shows a static "Create Moodboard" button and placeholder content. We'll integrate the `MoodboardBuilder` component here so users can build AI-curated moodboards directly from the homepage.
+However, this content **does not exist in the current codebase**. The current `Index.tsx` shows:
+- Lines 689-731: Moodboard section header (static title)
+- Lines 733-808: `CollapsibleContent` with the new MoodboardBuilder integration
 
----
+The new integration shows either:
+- **Empty state**: "Build with AI" / "Browse Gallery" buttons
+- **Building state**: Inline `MoodboardBuilder` component
+- **Completed state**: Success message with options
 
-## Current State
+## Root Cause
 
-The homepage moodboard section contains:
-- A collapsible header with the title "Sunlit Steps: Begin Your Yellow Diamond Story"
-- A static "Campaign Concept" card with placeholder text
-- A "Create Moodboard" button that does nothing
+The "Campaign Concept" card with "Create Moodboard" button that the user sees must be **OLD static content** that either:
+1. Was not properly removed during the integration
+2. Exists elsewhere in the file and is being rendered OUTSIDE the `CollapsibleContent`
+3. The preview has cached content that hasn't refreshed
 
----
+After reviewing lines 689-820 of `Index.tsx`, I confirmed:
+- There is NO "Campaign Concept" card in the current code
+- The `CollapsibleContent` correctly contains the new dynamic states
+- The old static content appears to have been removed
 
 ## Solution
 
-### 1. Add MoodboardBuilder Integration
+The issue is that the static "Campaign Concept" card shown in the screenshot was never actually replaced. The previous integration added the new content INSIDE `CollapsibleContent` but did NOT remove the old static content that was likely OUTSIDE or BEFORE the `CollapsibleContent`.
 
-Replace the static placeholder content with an interactive experience:
+### Changes Required
 
-**Option A: Inline Builder (Recommended)**
-- Show the MoodboardBuilder directly in the section when user clicks "Create Moodboard"
-- More seamless experience - no modal popup
-- User stays on homepage while building
+**File: `src/pages/Index.tsx`**
 
-**Option B: Modal Trigger**  
-- Open the existing MoodboardModal with "Build Your Own" tab pre-selected
-- Reuses existing code
+1. **Remove old static "Campaign Concept" card** - Find and remove any remaining static content between the header (line ~731) and the `CollapsibleContent` (line 733) or anywhere else in the moodboard section
 
-I'll implement **Option A** for a better inline experience, with the ability to also open the full modal for browsing.
+2. **Wire the "+" button in header** - The Plus button at line 727-729 should trigger `setIsBuildingMoodboard(true)` or `setShowMoodboardModal(true)`:
+   ```typescript
+   <button 
+     onClick={() => setIsBuildingMoodboard(true)}
+     className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors"
+   >
+     <Plus className="w-5 h-5 text-muted-foreground" />
+   </button>
+   ```
 
----
+3. **Ensure section is expanded by default** - Verify `isMoodboardOpen` is initialized to `true` (it currently is at line 163)
 
-## Implementation Plan
+4. **Look for old "Create Moodboard" button** - Search the file for any remaining static "Create Moodboard" button text and remove/replace it
 
-### File: `src/pages/Index.tsx`
+### What the User Should See
 
-#### Step 1: Add State and Imports
+After the fix, when the Moodboard section is expanded, users will see:
+- A centered "Create Your Moodboard" card with an icon
+- Description text about building AI-curated moodboards
+- Two buttons: **"Build with AI"** and **"Browse Gallery"**
 
-```typescript
-// Add to imports (around line 10)
-import { MoodboardBuilder } from "@/components/creative-studio/MoodboardBuilder";
-import { MoodboardModal } from "@/components/creative-studio/MoodboardModal";
-
-// Add new state variables (around line 164)
-const [isBuilding, setIsBuilding] = useState(false);
-const [showMoodboardModal, setShowMoodboardModal] = useState(false);
-const [createdMoodboard, setCreatedMoodboard] = useState<{ id: string; name: string } | null>(null);
-```
-
-#### Step 2: Add Handlers
-
-```typescript
-// Handle moodboard creation complete
-const handleMoodboardComplete = (moodboardId: string) => {
-  setIsBuilding(false);
-  setCreatedMoodboard({ id: moodboardId, name: 'AI-Built Moodboard' });
-  toast({ title: 'Moodboard created!', description: 'Your moodboard is ready to use.' });
-};
-```
-
-#### Step 3: Update Moodboard Section UI (lines 673-750)
-
-Replace the static content with a dynamic experience:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Moodboard Section                                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  IF not building AND no createdMoodboard:                       │
-│    ┌──────────────────────────────────────────────────────┐     │
-│    │  Empty state with two options:                        │     │
-│    │  [🪄 Build with AI]    [📁 Browse Gallery]            │     │
-│    └──────────────────────────────────────────────────────┘     │
-│                                                                 │
-│  IF isBuilding:                                                 │
-│    ┌──────────────────────────────────────────────────────┐     │
-│    │  <MoodboardBuilder                                    │     │
-│    │     onComplete={handleMoodboardComplete}              │     │
-│    │     onCancel={() => setIsBuilding(false)}             │     │
-│    │  />                                                   │     │
-│    └──────────────────────────────────────────────────────┘     │
-│                                                                 │
-│  IF createdMoodboard:                                           │
-│    ┌──────────────────────────────────────────────────────┐     │
-│    │  ✓ Moodboard: [name]                                  │     │
-│    │  [View] [Create Another] [Browse Gallery]             │     │
-│    └──────────────────────────────────────────────────────┘     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## UI Details
-
-### Empty State (No Moodboard)
-Show two action buttons:
-- **Build with AI** - Expands the MoodboardBuilder inline
-- **Browse Gallery** - Opens MoodboardModal to browse/upload existing
-
-### Building State
-Shows the full `MoodboardBuilder` component inline with:
-- Mood input
-- Style preference buttons
+Clicking "Build with AI" will reveal the inline `MoodboardBuilder` component with:
+- Mood description input
+- Style preference buttons (Editorial/Mixed/Commercial)
 - Temperature slider
-- Generated image grid
-- Save/Cancel buttons
+- Image grid after generation
+- Save/Cancel actions
 
-### Completed State
-Shows success message with:
-- Moodboard name/preview
-- Option to create another
-- Option to browse gallery
+## Technical Details
 
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/Index.tsx` | Import MoodboardBuilder & MoodboardModal, add state, update moodboard section JSX |
-
----
+Lines to modify in `src/pages/Index.tsx`:
+- **Line 727-729**: Add `onClick={() => setIsBuildingMoodboard(true)}` to the Plus button
+- **Search for any old static content** between header and CollapsibleContent that may not have been removed
+- The file currently has 934 lines; the moodboard section spans lines 689-822
 
 ## Summary
 
-This integration allows users to:
-1. Build AI-curated moodboards directly from the homepage
-2. Browse existing moodboards via modal
-3. See their created moodboard inline after completion
-4. Start a new moodboard or switch to gallery browsing
-
-The experience feels native to the homepage rather than requiring navigation to a separate flow.
-
+The MoodboardBuilder component exists and is correctly integrated inside the CollapsibleContent, but the user is seeing old static content (the "Campaign Concept" card with "Create Moodboard" button) that was never removed. The fix is to:
+1. Remove any remaining old static content
+2. Wire the header "+" button to trigger the moodboard builder
+3. Ensure the CollapsibleContent is visible and showing the new dynamic UI
