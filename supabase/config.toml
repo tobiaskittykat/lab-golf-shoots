@@ -1,1 +1,13 @@
 project_id = "hqjfjrwoyvtlhqcupceu"
+
+[functions.search-arena]
+verify_jwt = false
+
+[functions.search-openverse]
+verify_jwt = false
+
+[functions.search-unsplash]
+verify_jwt = false
+
+[functions.build-moodboard]
+verify_jwt = false

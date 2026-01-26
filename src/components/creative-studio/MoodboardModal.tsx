@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Grid3X3, Wand2, Check, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { Moodboard } from "./types";
 import { MoodboardThumbnail } from "./MoodboardThumbnail";
+import { MoodboardBuilder } from "./MoodboardBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -314,16 +315,14 @@ export const MoodboardModal = ({
             </div>
           </TabsContent>
 
-          <TabsContent value="build" className="flex-1 mt-4">
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
-                <Wand2 className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h4 className="font-semibold text-foreground mb-2">Build Your Own Moodboard</h4>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Coming soon! You'll be able to combine colors, textures, and reference images to create a custom moodboard.
-              </p>
-            </div>
+          <TabsContent value="build" className="flex-1 mt-4 overflow-y-auto">
+            <MoodboardBuilder
+              onComplete={(moodboardId) => {
+                onSelect(moodboardId, true);
+                onClose();
+              }}
+              onCancel={() => setActiveTab("browse")}
+            />
           </TabsContent>
 
           <TabsContent value="upload" className="flex-1 mt-4 overflow-y-auto">
