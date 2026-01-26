@@ -9,7 +9,9 @@ import { StepTwoCustomize } from "./StepTwoCustomize";
 import { UnifiedWorkspace } from "./UnifiedWorkspace";
 import { SelectionIndicators } from "./SelectionIndicators";
 import { DiscoveryModeGallery } from "./DiscoveryModeGallery";
-import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept, UserPreference } from "./types";
+import { DiscoverySwipeView } from "./DiscoverySwipeView";
+import { CampaignStyleSummary } from "./CampaignStyleSummary";
+import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept, UserPreference, CampaignStyle } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
 import { useBrandImages } from "@/hooks/useBrandImages";
@@ -47,6 +49,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   
   // Discovery mode state
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+  const [discoveryView, setDiscoveryView] = useState<'grid' | 'swipe' | 'summary'>('grid');
+  const [campaignStyle, setCampaignStyle] = useState<CampaignStyle | null>(null);
   
   // Get brand logo URL
   const brandLogo = brandImages.find(img => img.category === 'logo');
@@ -372,6 +376,11 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       return;
     }
     
+    if (!user?.id) {
+      toast({ title: 'Not logged in', variant: 'destructive' });
+      return;
+    }
+    
     handleUpdate({ 
       discoveryMode: true, 
       isDiscoveryGenerating: true,
@@ -379,36 +388,102 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       userPreferences: [],
     });
     
-    // For each concept, run smart-match to get best moodboard
-    const moodboards: { conceptId: string; moodboardId: string; moodboardUrl: string }[] = [];
+    // Fetch user's moodboards from database
+    const { data: customMoodboards } = await supabase
+      .from('custom_moodboards')
+      .select('id, name, description, thumbnail_url, visual_analysis')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    // Fetch user's products from database  
+    const { data: scrapedProducts } = await supabase
+      .from('scraped_products')
+      .select('id, name, category, thumbnail_url, description')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    console.log('=== DISCOVERY MODE START ===');
+    console.log('Moodboards available:', customMoodboards?.length || 0);
+    console.log('Products available:', scrapedProducts?.length || 0);
+    
+    // For each concept, run smart-match with FULL data
+    const moodboardMatches: { conceptId: string; moodboardId: string; moodboardUrl: string; productIds: string[] }[] = [];
     
     for (const concept of state.concepts) {
       try {
         const { data, error } = await supabase.functions.invoke('smart-match', {
           body: {
-            conceptId: concept.id,
-            conceptTitle: concept.title,
-            conceptDescription: concept.description,
-            visualWorld: concept.visualWorld,
-            tonality: concept.tonality,
+            concept: {
+              title: concept.title,
+              coreIdea: concept.coreIdea,
+              visualWorld: concept.visualWorld,
+              productFocus: concept.productFocus,
+              targetAudience: concept.targetAudience,
+              tonality: concept.tonality,
+              consumerInsight: concept.consumerInsight,
+            },
+            moodboards: (customMoodboards || []).map(m => ({
+              id: m.id,
+              name: m.name,
+              description: m.description,
+              visualAnalysis: m.visual_analysis,
+            })),
+            products: (scrapedProducts || []).map(p => ({
+              id: p.id,
+              name: p.name,
+              category: p.category,
+              description: p.description,
+            })),
           },
         });
         
-        if (!error && data?.moodboards?.length > 0) {
-          const bestMoodboard = data.moodboards[0];
-          moodboards.push({
-            conceptId: concept.id,
-            moodboardId: bestMoodboard.id,
-            moodboardUrl: bestMoodboard.thumbnailUrl || bestMoodboard.thumbnail,
-          });
+        console.log(`Smart-match for "${concept.title}":`, data);
+        
+        if (!error && data) {
+          const bestMoodboardId = data.rankedMoodboards?.[0];
+          const bestProductIds = data.rankedProducts?.slice(0, 3) || [];
+          
+          if (bestMoodboardId) {
+            const moodboard = customMoodboards?.find(m => m.id === bestMoodboardId);
+            moodboardMatches.push({
+              conceptId: concept.id,
+              moodboardId: bestMoodboardId,
+              moodboardUrl: moodboard?.thumbnail_url || '',
+              productIds: bestProductIds,
+            });
+          } else {
+            // Fallback: use first available moodboard if no match
+            const firstMoodboard = customMoodboards?.[0];
+            moodboardMatches.push({
+              conceptId: concept.id,
+              moodboardId: firstMoodboard?.id || '',
+              moodboardUrl: firstMoodboard?.thumbnail_url || '',
+              productIds: bestProductIds.length > 0 ? bestProductIds : (scrapedProducts?.slice(0, 3).map(p => p.id) || []),
+            });
+          }
         }
       } catch (err) {
         console.error('Smart-match error for concept:', concept.id, err);
+        // Fallback on error
+        const firstMoodboard = customMoodboards?.[0];
+        moodboardMatches.push({
+          conceptId: concept.id,
+          moodboardId: firstMoodboard?.id || '',
+          moodboardUrl: firstMoodboard?.thumbnail_url || '',
+          productIds: scrapedProducts?.slice(0, 3).map(p => p.id) || [],
+        });
       }
     }
     
-    // Generate discovery batch
-    const images = await generateDiscoveryBatch(state, state.concepts, moodboards, logoUrl);
+    console.log('Moodboard matches:', moodboardMatches);
+    
+    // Generate discovery batch with matched moodboards and products
+    const images = await generateDiscoveryBatch(
+      { ...state, productReferences: moodboardMatches.flatMap(m => m.productIds.map(id => `scraped-${id}`)) },
+      state.concepts, 
+      moodboardMatches, 
+      logoUrl
+    );
     
     handleUpdate({ 
       isDiscoveryGenerating: false,
@@ -419,7 +494,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     setTimeout(() => {
       smoothScrollTo('discovery-gallery', 100, 600);
     }, 100);
-  }, [state, handleUpdate, generateDiscoveryBatch, logoUrl, toast]);
+  }, [state, handleUpdate, generateDiscoveryBatch, logoUrl, toast, user?.id]);
 
   // Toggle like on discovery image
   const handleToggleLike = useCallback(async (imageId: string, liked: boolean) => {
@@ -469,31 +544,36 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }
   }, [state, handleUpdate, updateImageLike]);
 
-  // Generate more images from liked preferences
-  const handleGenerateMoreLikeThat = useCallback(async () => {
+  // Generate more images from liked preferences (supports missing moodboardId)
+  const handleGenerateMoreLikeThat = useCallback(async (batchCount: number = 2) => {
     const likedImages = state.discoveryImages.filter(img => img.liked === true);
     if (likedImages.length === 0) {
       toast({ title: 'No images selected', description: 'Like some images first', variant: 'destructive' });
       return;
     }
     
-    // Build preferences from liked images
+    // Build preferences from liked images - moodboardId is now OPTIONAL
     const preferences: UserPreference[] = likedImages
-      .filter(img => img.conceptId && img.moodboardId && img.shotType)
+      .filter(img => img.conceptId && img.shotType) // Only require conceptId + shotType
       .map(img => {
         const concept = state.concepts.find(c => c.id === img.conceptId);
         return {
           conceptId: img.conceptId!,
           conceptTitle: concept?.title || 'Unknown',
-          moodboardId: img.moodboardId!,
+          moodboardId: img.moodboardId || '', // Empty string if missing
           shotType: img.shotType!,
           liked: true,
         };
       });
     
+    if (preferences.length === 0) {
+      toast({ title: 'No valid images', description: 'Liked images are missing required data', variant: 'destructive' });
+      return;
+    }
+    
     setIsGeneratingMore(true);
     
-    const newImages = await generateFromPreferences(state, preferences, logoUrl, 2);
+    const newImages = await generateFromPreferences(state, preferences, logoUrl, batchCount);
     
     // Add to regular generated images (not discovery)
     handleUpdate({
@@ -668,17 +748,39 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Discovery Mode Gallery */}
+        {/* Discovery Mode Section */}
         {state.discoveryMode && (state.discoveryImages.length > 0 || state.isDiscoveryGenerating) && (
           <div id="discovery-gallery" className="glass-card p-6">
-            <DiscoveryModeGallery
-              images={state.discoveryImages}
-              concepts={state.concepts}
-              onToggleLike={handleToggleLike}
-              onGenerateMore={handleGenerateMoreLikeThat}
-              isGenerating={state.isDiscoveryGenerating}
-              isGeneratingMore={isGeneratingMore}
-            />
+            {discoveryView === 'swipe' ? (
+              <DiscoverySwipeView
+                images={state.discoveryImages}
+                concepts={state.concepts}
+                onToggleLike={handleToggleLike}
+                onComplete={(style) => {
+                  setCampaignStyle(style);
+                  setDiscoveryView('summary');
+                }}
+                onBack={() => setDiscoveryView('grid')}
+                isGenerating={state.isDiscoveryGenerating}
+              />
+            ) : discoveryView === 'summary' && campaignStyle ? (
+              <CampaignStyleSummary
+                style={campaignStyle}
+                onGenerateMore={(count) => handleGenerateMoreLikeThat(count)}
+                onBack={() => setDiscoveryView('swipe')}
+                isGenerating={isGeneratingMore}
+              />
+            ) : (
+              <DiscoveryModeGallery
+                images={state.discoveryImages}
+                concepts={state.concepts}
+                onToggleLike={handleToggleLike}
+                onGenerateMore={() => handleGenerateMoreLikeThat(2)}
+                onSwitchToSwipe={() => setDiscoveryView('swipe')}
+                isGenerating={state.isDiscoveryGenerating}
+                isGeneratingMore={isGeneratingMore}
+              />
+            )}
           </div>
         )}
         

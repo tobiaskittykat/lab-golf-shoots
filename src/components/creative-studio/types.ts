@@ -169,9 +169,18 @@ export interface GeneratedImage {
 export interface UserPreference {
   conceptId: string;
   conceptTitle: string;
-  moodboardId: string;
+  moodboardId: string; // Can be empty string if not matched
   shotType: string;
   liked: boolean;
+}
+
+// Campaign Style - aggregated preferences after swiping
+export interface CampaignStyle {
+  likedConcepts: { conceptId: string; conceptTitle: string; count: number }[];
+  likedShotTypes: { shotType: string; shotName: string; count: number }[];
+  likedMoodboards: string[];
+  totalLiked: number;
+  totalReviewed: number;
 }
 
 export interface CreativeStudioState {

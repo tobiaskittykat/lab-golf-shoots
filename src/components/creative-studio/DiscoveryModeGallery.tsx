@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, X, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Heart, X, Sparkles, Loader2, RefreshCw, Smartphone } from 'lucide-react';
 import { GeneratedImage, Concept, sampleContextReferences } from './types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ interface DiscoveryModeGalleryProps {
   concepts: Concept[];
   onToggleLike: (imageId: string, liked: boolean) => void;
   onGenerateMore: () => void;
+  onSwitchToSwipe: () => void;
   isGenerating: boolean;
   isGeneratingMore: boolean;
 }
@@ -108,6 +109,7 @@ export const DiscoveryModeGallery = ({
   concepts,
   onToggleLike,
   onGenerateMore,
+  onSwitchToSwipe,
   isGenerating,
   isGeneratingMore,
 }: DiscoveryModeGalleryProps) => {
@@ -153,6 +155,15 @@ export const DiscoveryModeGallery = ({
           )}
           
           <Button
+            variant="outline"
+            onClick={onSwitchToSwipe}
+            className="gap-2"
+          >
+            <Smartphone className="w-4 h-4" />
+            Swipe Mode
+          </Button>
+          
+          <Button
             onClick={onGenerateMore}
             disabled={likedCount === 0 || isGeneratingMore}
             className="gap-2"
@@ -165,7 +176,7 @@ export const DiscoveryModeGallery = ({
             ) : (
               <>
                 <RefreshCw className="w-4 h-4" />
-                Generate More Like Selected ({likedCount})
+                Generate More ({likedCount})
               </>
             )}
           </Button>

@@ -720,9 +720,9 @@ export function useImageGeneration() {
       const concept = state.concepts.find(c => c.id === pref.conceptId);
       if (!concept) continue;
       
-      // Fetch moodboard URL
+      // Fetch moodboard URL only if moodboardId exists and is not empty
       let moodboardUrl: string | undefined;
-      if (pref.moodboardId) {
+      if (pref.moodboardId && pref.moodboardId.length > 0) {
         const moodboardDbId = pref.moodboardId.startsWith('custom-')
           ? pref.moodboardId.replace('custom-', '')
           : pref.moodboardId;
