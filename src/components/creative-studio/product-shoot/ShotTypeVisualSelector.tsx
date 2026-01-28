@@ -5,7 +5,7 @@ import { ProductShotType } from './types';
 // Import example images
 import productFocusImg from '@/assets/shot-references/product-focus.jpg';
 import productOnModelImg from '@/assets/shot-references/product-on-model.jpg';
-import productInHandImg from '@/assets/shot-references/product-in-hand.jpg';
+import onFootShoeImg from '@/assets/shot-references/on-foot-shoe-focus.jpg';
 
 export interface VisualShotType {
   id: ProductShotType;
@@ -13,6 +13,7 @@ export interface VisualShotType {
   description: string;
   exampleImage: string | null;
   promptHint: string;
+  hasExtraConfig?: boolean; // Indicates shot type has additional options
 }
 
 export const visualShotTypes: VisualShotType[] = [
@@ -21,14 +22,16 @@ export const visualShotTypes: VisualShotType[] = [
     name: 'Product Focus',
     description: 'Close-up, no model',
     exampleImage: productFocusImg,
-    promptHint: 'product only, detailed close-up, no model, studio lighting',
+    promptHint: 'product only, detailed close-up, no model, studio lighting, clean background',
   },
   {
     id: 'on-foot',
     name: 'On Foot - Shoe Focus',
-    description: 'Model wearing shoes, camera on product',
-    exampleImage: null, // Placeholder needed
-    promptHint: 'shoes on model feet, product as focal point, cropped view, lifestyle',
+    description: 'Leg-down, product as hero',
+    exampleImage: onFootShoeImg,
+    // This is a simplified hint - the full prompt is built by buildOnFootPrompt()
+    promptHint: 'leg-down product shot, mid-calf to floor framing, both feet fully visible and grounded, three-quarter side view, eye-level to slightly low camera, premium footwear e-commerce photography, ultra-sharp focus on footwear, clean diffused studio light, soft contact shadows',
+    hasExtraConfig: true,
   },
   {
     id: 'lifestyle',

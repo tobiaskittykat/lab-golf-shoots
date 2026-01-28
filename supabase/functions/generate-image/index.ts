@@ -159,6 +159,12 @@ interface GenerateImageRequest {
       clothing?: string;
       useOnBrandDefaults?: boolean;
     };
+    // On-foot shot type specific config
+    onFootConfig?: {
+      poseVariation?: string;
+      legStyling?: string;
+      trouserColor?: string;
+    };
   };
 }
 

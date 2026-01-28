@@ -7,10 +7,12 @@ import { ModelConfigurator } from "./ModelConfigurator";
 import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
 import { CreateSKUModal } from "./CreateSKUModal";
 import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
+import { OnFootConfigurator } from "./OnFootConfigurator";
 import { 
   ProductShootState, 
   ProductShotType,
   initialProductShootState,
+  initialOnFootConfig,
 } from "./types";
 import { aspectRatios, resolutions } from "../types";
 
@@ -208,6 +210,16 @@ export const ProductShootStep2 = ({
                 selectedType={state.productShotType}
                 onSelect={(type) => onStateChange({ productShotType: type })}
               />
+              
+              {/* Shot-type-specific options */}
+              {state.productShotType === 'on-foot' && (
+                <OnFootConfigurator
+                  config={state.onFootConfig || initialOnFootConfig}
+                  onConfigChange={(updates) => onStateChange({
+                    onFootConfig: { ...(state.onFootConfig || initialOnFootConfig), ...updates }
+                  })}
+                />
+              )}
             </div>
           </CollapsibleContent>
         </div>

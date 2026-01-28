@@ -35,6 +35,17 @@ export interface ModelConfig {
   useOnBrandDefaults: boolean;
 }
 
+// Re-export shot type configs
+export { 
+  type OnFootShotConfig,
+  type PoseVariation,
+  type LegStyling,
+  type TrouserColor,
+  initialOnFootConfig,
+  buildOnFootPrompt,
+  shotTypeHasConfig,
+} from './shotTypeConfigs';
+
 // Product SKU for multi-angle grouping
 export interface ProductSKUData {
   id: string;
@@ -48,6 +59,9 @@ export interface ProductSKUData {
     angle: string | null;
   }>;
 }
+
+// Import OnFootShotConfig type for the state
+import type { OnFootShotConfig } from './shotTypeConfigs';
 
 // Product Shoot State - extends creative studio state
 export interface ProductShootState {
@@ -76,6 +90,9 @@ export interface ProductShootState {
   
   // Shot type (product-specific)
   productShotType: ProductShotType;
+  
+  // Shot-type-specific configs
+  onFootConfig?: OnFootShotConfig;
   
   // Post-generation integrity check
   integrityResults?: Record<string, ProductIntegrityResult>;
@@ -112,6 +129,12 @@ export const initialProductShootState: ProductShootState = {
     useOnBrandDefaults: true,
   },
   productShotType: 'lifestyle',
+  // On-foot specific config (imported from shotTypeConfigs)
+  onFootConfig: {
+    poseVariation: 'auto',
+    legStyling: 'auto',
+    trouserColor: 'auto',
+  },
 };
 
 // LEGACY: Old shot types with emojis (kept for reference)

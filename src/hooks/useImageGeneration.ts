@@ -11,6 +11,7 @@ import {
   sampleContextReferences
 } from '@/components/creative-studio/types';
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
+import { buildOnFootPrompt, initialOnFootConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -272,13 +273,22 @@ export function useImageGeneration() {
 
       // Extract single shot type prompt (text guidance, not image URL)
       // For product shoot flow, use the visual shot type's promptHint
+      // For on-foot, we build the full structured prompt with pose/leg/trouser configs
       let shotTypePrompt: string | null = null;
       
       if (state.useCase === 'product' && state.productShoot?.productShotType) {
-        // Product Shoot flow - get promptHint from the visual shot type
-        const selectedShotType = visualShotTypes.find(s => s.id === state.productShoot!.productShotType);
-        if (selectedShotType) {
-          shotTypePrompt = selectedShotType.promptHint;
+        const shotType = state.productShoot.productShotType;
+        
+        if (shotType === 'on-foot') {
+          // Build full structured on-foot prompt with all static/dynamic elements
+          const onFootConfig = state.productShoot.onFootConfig || initialOnFootConfig;
+          shotTypePrompt = buildOnFootPrompt(onFootConfig);
+        } else {
+          // Other product shot types - use the simple promptHint
+          const selectedShotType = visualShotTypes.find(s => s.id === shotType);
+          if (selectedShotType) {
+            shotTypePrompt = selectedShotType.promptHint;
+          }
         }
       } else if (state.contextReference) {
         // Lifestyle flow - use context reference's shot prompt
@@ -384,6 +394,9 @@ export function useImageGeneration() {
             backgroundId: state.productShoot.backgroundId,
             customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
             modelConfig: state.productShoot.modelConfig,
+            onFootConfig: state.productShoot.productShotType === 'on-foot' 
+              ? (state.productShoot.onFootConfig || initialOnFootConfig) 
+              : undefined,
           } : undefined,
         },
       });
