@@ -1,76 +1,145 @@
 
-# Add Explicit Birkenstock Mention to Shot Type Prompts
 
-## Current State
+# Product Focus Shot Type Configuration
 
-Both prompts reference Birkenstock in the framing/composition context:
-- **On-Foot**: "Similar to standard Birkenstock/premium footwear product-on-model photography"
-- **Lifestyle**: "Similar to classic Birkenstock lookbook imagery"
+## Overview
 
-But the **PRODUCT INTEGRITY** sections don't explicitly state that the product IS a Birkenstock shoe - they just say "the footwear must match the reference".
+Developing a complete prompt builder for the "Product Focus" shot type - product-only photography without models, matching your Birkenstock Boston Shearling product gallery angles.
 
-## Problem
+## Product Gallery Reference
 
-The AI image generation model doesn't know it's generating **Birkenstock footwear** specifically. Adding this context will help the model understand the brand aesthetic and product characteristics.
+Your current Birkenstock Boston product has these 5 angles:
+- **Top** - Bird's eye view showing footbed
+- **Detail** - Close-up on buckle/hardware/shearling
+- **Sole** - Underside showing tread pattern
+- **Side** - Profile view showing silhouette
+- **3/4** - Three-quarter angle showing depth
 
-## Solution
+## Configuration Options
 
-Update both prompt builders to explicitly mention "Birkenstock" in the PRODUCT INTEGRITY section.
+### 1. Camera Angle (5 variations)
 
-## File to Modify
+| Angle | Description | Prompt Direction |
+|-------|-------------|------------------|
+| Auto | AI chooses best angle | Natural variation |
+| Side Profile | Classic lateral view | "pure side profile view, product centered, showing full silhouette" |
+| Three-Quarter | Angled hero shot | "three-quarter view at 45-degree angle, showing depth and dimension" |
+| Top Down | Bird's eye view | "overhead top-down view, footbed and upper visible" |
+| Detail Close-up | Macro on hardware | "extreme close-up on buckle, hardware, and material textures" |
+| Sole View | Underside | "sole facing camera, showing tread pattern and construction" |
 
-`src/components/creative-studio/product-shoot/shotTypeConfigs.ts`
+### 2. Lighting Type
 
-## Changes
+| Lighting | Description | Prompt Direction |
+|----------|-------------|------------------|
+| Auto | AI chooses based on background | Adapts to studio/outdoor |
+| Studio | Controlled softbox lighting | "professional studio lighting, softbox diffusion, controlled shadows" |
+| Natural | Daylight / window light | "soft natural daylight, gentle ambient shadows, organic feel" |
 
-### 1. buildOnFootPrompt (lines 156-162)
+### 3. Background Integration
 
-**Before:**
-```typescript
-sections.push("PRODUCT INTEGRITY (CRITICAL):");
-sections.push("- The footwear must match the reference EXACTLY in shape, materials, proportions");
-sections.push("- Preserve exact buckle placement, sole thickness, hardware finish");
-sections.push("- No reinterpretation, no added elements, no modifications");
-sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
+- Uses existing BackgroundSelector (studio/outdoor presets)
+- **Default**: White studio cyclorama
+- When "Studio" lighting selected, prioritizes studio backgrounds
+- When "Natural" lighting selected, enables outdoor settings
+
+## Technical Implementation
+
+### New Files to Create
+
+1. **ProductFocusConfigurator.tsx** - UI component for configuration options
+
+### Files to Modify
+
+1. **shotTypeConfigs.ts**
+   - Add `ProductFocusShotConfig` interface
+   - Add `ProductFocusAngle` and `ProductFocusLighting` types
+   - Add option arrays for dropdowns
+   - Add `buildProductFocusPrompt()` function
+   - Add `initialProductFocusConfig`
+   - Update `shotTypeHasConfig()` to include 'product-focus'
+
+2. **types.ts**
+   - Add `productFocusConfig` to `ProductShootState`
+   - Re-export new types
+   - Update `initialProductShootState`
+
+3. **ProductShootStep2.tsx**
+   - Import and render `ProductFocusConfigurator` when shot type is 'product-focus'
+
+4. **ShotTypeVisualSelector.tsx**
+   - Update `hasExtraConfig: true` for product-focus
+
+5. **useImageGeneration.ts**
+   - Add case for 'product-focus' to call `buildProductFocusPrompt()`
+
+## Prompt Architecture
+
+The prompt follows the same static/dynamic pattern as On Foot and Lifestyle:
+
+```text
+=== PRODUCT FOCUS SHOT ===
+
+FRAMING & COMPOSITION (MANDATORY):
+- Single, high-resolution e-commerce product image (one frame only, no collage)
+- Product only - NO hands, NO models, NO body parts
+- Product centered in frame with balanced negative space
+- [DYNAMIC: Camera angle direction]
+
+PRODUCT INTEGRITY (CRITICAL):
+- This is Birkenstock footwear - match the reference EXACTLY
+- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish
+- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap
+- Capture visible texture: suede nap, leather grain, cork texture, sole grooves
+- NO reinterpretation, NO modifications, NO creative liberties
+
+CAMERA ANGLE:
+[DYNAMIC: Based on selected angle option]
+
+LIGHTING:
+[DYNAMIC: Studio or Natural based on selection]
+- Accurately reveal material textures and finishes
+- Soft shadows that ground the product
+- Neutral color balance
+
+QUALITY STANDARDS:
+- Premium footwear e-commerce photography
+- Ultra-sharp focus on product details
+- Clean, professional composition
 ```
 
-**After:**
-```typescript
-sections.push("PRODUCT INTEGRITY (CRITICAL):");
-sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
-sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
-sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
-sections.push("- No reinterpretation, no added elements, no modifications");
-sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
+## UI Preview
+
+The configurator will appear when "Product Focus" is selected:
+
+```
+┌─────────────────────────────────────────┐
+│  Product Focus Options                   │
+├─────────────────────────────────────────┤
+│  Camera Angle                           │
+│  ┌─────────────────────────────────┐    │
+│  │ Auto (AI chooses)           ▼   │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  Lighting                               │
+│  ┌─────────────────────────────────┐    │
+│  │ Auto (match background)     ▼   │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  ┌─────────────────────────────────────┐│
+│  │ Always Enforced                     ││
+│  │ • Product only, no model            ││
+│  │ • Birkenstock integrity preserved   ││
+│  │ • Ultra-sharp focus on product      ││
+│  │ • Professional e-commerce quality   ││
+│  └─────────────────────────────────────┘│
+└─────────────────────────────────────────┘
 ```
 
-### 2. buildLifestylePrompt (lines 387-394)
+## Background + Lighting Logic
 
-**Before:**
-```typescript
-sections.push("PRODUCT INTEGRITY (CRITICAL - LOCKED):");
-sections.push("- The footwear must match the reference EXACTLY in shape, materials, proportions");
-sections.push("- Preserve exact buckle placement, sole thickness, hardware finish");
-sections.push("- Natural cork-latex footbed, EVA outsole visible");
-sections.push("- No shearling, no lining, no extra padding, no reinterpretation");
-sections.push("- The shoe must remain IDENTICAL across all generated images");
-```
+- If background is "Auto" and lighting is "Auto": AI decides everything
+- If background is "Studio" preset and lighting is "Auto": Uses studio lighting
+- If background is "Outdoor" preset and lighting is "Auto": Uses natural lighting
+- User can override lighting regardless of background selection
 
-**After:**
-```typescript
-sections.push("PRODUCT INTEGRITY (CRITICAL - LOCKED):");
-sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
-sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
-sections.push("- Maintain signature Birkenstock details: natural cork-latex footbed, contoured sole, EVA outsole");
-sections.push("- No shearling, no lining, no extra padding, no reinterpretation");
-sections.push("- The Birkenstock shoe must remain IDENTICAL across all generated images");
-```
-
-## Result
-
-Both prompts will now explicitly tell the AI:
-1. The product is **Birkenstock footwear**
-2. It should preserve **signature Birkenstock details**
-3. The **Birkenstock shoe** must remain identical
-
-This gives the AI model better context about the brand and its distinctive design language.
