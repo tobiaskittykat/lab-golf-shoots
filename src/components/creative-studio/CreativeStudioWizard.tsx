@@ -733,6 +733,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                       onUpdate={handleUpdate}
                       onRegenerate={() => {}}
                       showRegenerate={false}
+                      hideBriefInput={true}
                     />
                     
                     <ProductShootSubtypeSelector

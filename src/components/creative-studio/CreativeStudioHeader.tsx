@@ -23,13 +23,15 @@ interface CreativeStudioHeaderProps {
   onUpdate: (updates: Partial<CreativeStudioState>) => void;
   onRegenerate?: () => void;
   showRegenerate?: boolean;
+  hideBriefInput?: boolean;
 }
 
 export const CreativeStudioHeader = ({ 
   state, 
   onUpdate, 
   onRegenerate,
-  showRegenerate = false 
+  showRegenerate = false,
+  hideBriefInput = false,
 }: CreativeStudioHeaderProps) => {
 
   const handleTypeChipClick = (chipId: string) => {
@@ -116,16 +118,18 @@ export const CreativeStudioHeader = ({
         })}
       </div>
 
-      {/* Brief Input */}
-      <div className="w-full">
-        <input
-          type="text"
-          value={state.prompt}
-          onChange={(e) => onUpdate({ prompt: e.target.value })}
-          placeholder="Enter your creative brief..."
-          className="command-input"
-        />
-      </div>
+      {/* Brief Input - hidden for product shots */}
+      {!hideBriefInput && (
+        <div className="w-full">
+          <input
+            type="text"
+            value={state.prompt}
+            onChange={(e) => onUpdate({ prompt: e.target.value })}
+            placeholder="Enter your creative brief..."
+            className="command-input"
+          />
+        </div>
+      )}
 
       {/* Regenerate button when showing */}
       {showRegenerate && (
