@@ -722,44 +722,75 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           </div>
 
           <CollapsibleContent>
-            {/* PRODUCT SHOT FLOW - Completely different experience */}
+            {/* PRODUCT SHOT FLOW - Step 1: New vs Remix, Step 2: Configuration */}
             {state.useCase === 'product' ? (
-              <div ref={step2CardRef} className="glass-card p-6">
-                <CreativeStudioHeader
-                  state={state}
-                  onUpdate={handleUpdate}
-                  onRegenerate={() => handleProductShootUpdate({ shootMode: undefined as any })}
-                  showRegenerate={!!state.productShoot.shootMode}
-                />
-                
-                <div style={{ paddingBottom: footerHeight + 24 }}>
-                  {/* Show subtype selector if shoot mode not yet chosen */}
-                  {!state.productShoot.shootMode ? (
+              <>
+                {/* PRODUCT SHOT STEP 1: Choose New vs Remix */}
+                {state.step === 1 ? (
+                  <div className="glass-card p-6">
+                    <CreativeStudioHeader
+                      state={state}
+                      onUpdate={handleUpdate}
+                      onRegenerate={() => {}}
+                      showRegenerate={false}
+                    />
+                    
                     <ProductShootSubtypeSelector
+                      selectedMode={state.productShoot.shootMode}
                       onSelectMode={(mode) => handleProductShootUpdate({ shootMode: mode })}
                     />
-                  ) : (
-                    <ProductShootStep2
-                      state={state.productShoot}
-                      onStateChange={handleProductShootUpdate}
-                      selectedProduct={
-                        state.productReferences.length > 0
-                          ? {
-                              id: state.productReferences[0],
-                              name: 'Selected Product',
-                              thumbnailUrl: state.displayedProductIds.length > 0 
-                                ? state.displayedProductIds[0] 
-                                : '',
-                            }
-                          : undefined
-                      }
-                      onProductSelect={() => {
-                        // Will integrate with product picker modal
-                      }}
+                    
+                    {/* Step 1 Footer for Product Shot */}
+                    <div className="mt-8 pt-6 border-t border-border flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        {state.productShoot.shootMode ? '✨ Ready to configure your shoot' : 'Choose a shoot type to continue'}
+                      </div>
+                      <button
+                        onClick={() => handleUpdate({ step: 2 })}
+                        disabled={!state.productShoot.shootMode}
+                        className="flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-coral to-primary text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg group"
+                        style={{
+                          boxShadow: state.productShoot.shootMode ? '0 8px 32px rgba(107, 124, 255, 0.25)' : undefined
+                        }}
+                      >
+                        <Sparkles className="w-5 h-5" />
+                        Continue
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* PRODUCT SHOT STEP 2: Configuration */
+                  <div ref={step2CardRef} className="glass-card p-6">
+                    <CreativeStudioHeader
+                      state={state}
+                      onUpdate={handleUpdate}
+                      onRegenerate={() => handleUpdate({ step: 1 })}
+                      showRegenerate={true}
                     />
-                  )}
-                </div>
-              </div>
+                    
+                    <div style={{ paddingBottom: footerHeight + 24 }}>
+                      <ProductShootStep2
+                        state={state.productShoot}
+                        onStateChange={handleProductShootUpdate}
+                        selectedProduct={
+                          state.productReferences.length > 0
+                            ? {
+                                id: state.productReferences[0],
+                                name: 'Selected Product',
+                                thumbnailUrl: state.displayedProductIds.length > 0 
+                                  ? state.displayedProductIds[0] 
+                                  : '',
+                              }
+                            : undefined
+                        }
+                        onProductSelect={() => {
+                          // Will integrate with product picker modal
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               /* LIFESTYLE/OTHER FLOWS - Keep existing step 1 → step 2 */
               <>
@@ -875,8 +906,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           />
         </div>
         
-        {/* Floating Footer - Show for Product Shot flow OR Step 2 of other flows */}
-        {floating.active && (state.useCase === 'product' ? state.productShoot.shootMode : state.step === 2) && (
+        {/* Floating Footer - Show for Step 2 (both Product Shot and Lifestyle) */}
+        {floating.active && state.step === 2 && (
           <div
             ref={footerRef}
             className="fixed bottom-4 z-50 bg-card/95 backdrop-blur-sm border border-border rounded-2xl shadow-xl px-6 py-4"
@@ -887,14 +918,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
           >
             <div className="flex items-center justify-between">
               <button
-                onClick={() => {
-                  if (state.useCase === 'product') {
-                    // Go back to subtype selector
-                    handleProductShootUpdate({ shootMode: undefined as any });
-                  } else {
-                    handleBack();
-                  }
-                }}
+                onClick={() => handleUpdate({ step: 1 })}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
               >
                 <ArrowLeft className="w-4 h-4" />
