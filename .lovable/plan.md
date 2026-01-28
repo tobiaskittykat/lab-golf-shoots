@@ -1,119 +1,168 @@
 
-# Fix Product Reference Images Not Attaching in Product Shoot Flow
+
+# Fix Background and Shot Type Selection for Product Shoot
 
 ## Problem Identified
 
-When using the Product Shoot workflow, selected product images are not being sent to the image generation endpoint. The edge function logs confirm this:
+The Product Shoot workflow sends `productShootConfig` to the edge function, but:
+1. The edge function **does not have the interface defined** for this config
+2. The edge function **completely ignores** the `productShootConfig` data
+3. No `shotTypePrompt` is being built from the selected shot type
+4. Background presets have detailed prompts that are never used
 
+**Evidence from logs:**
+```json
+"productShootConfig": {
+  "shotType": "lifestyle",         // Has a promptHint - not used!
+  "settingType": "auto",
+  "backgroundId": "studio-white",  // Has a prompt - not used!
+  "modelConfig": {...}
+}
+"shotTypePrompt": null  // Never populated from productShootConfig
 ```
-"productReferenceUrls": [],
-```
-
-This happens because the Product Shoot flow stores the selected product URL in a different state path than what the generation logic reads from.
 
 ## Root Cause
 
-**Two different state paths exist:**
-
-1. **Lifestyle flow** uses `state.productReferences` (array of IDs like `"scraped-abc123"`)
-2. **Product Shoot flow** uses `state.productShoot.selectedProductId` and `state.productShoot.recoloredProductUrl`
-
-The `generateImages` function in `useImageGeneration.ts` only reads from the lifestyle flow's `state.productReferences`, ignoring the Product Shoot state entirely.
+Two disconnects:
+1. **Client-side**: `useImageGeneration.ts` sends `productShootConfig` but does NOT build `shotTypePrompt` from the shot type's `promptHint`
+2. **Server-side**: Edge function reads `shotTypePrompt` and ignores `productShootConfig` entirely (no background prompt, no model config)
 
 ## Solution
 
-Update the `generateImages` function to merge product references from both sources:
-1. The existing `state.productReferences` array (for lifestyle flow)
-2. The `state.productShoot` object (for product shoot flow)
+### Part 1: Client-side - Build shotTypePrompt
 
-Additionally, for Product Shoot, we should also pass the shot type and background configuration.
+Update `useImageGeneration.ts` to generate `shotTypePrompt` from the product shoot configuration using the `visualShotTypes` prompt hints.
+
+### Part 2: Server-side - Read productShootConfig
+
+Update the edge function to:
+1. Add `productShootConfig` to the `GenerateImageRequest` interface
+2. Build a background direction section from the selected background preset
+3. Build a model direction section from the model config
+4. Incorporate these into the creative brief
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useImageGeneration.ts` | Add logic to extract product URL from `state.productShoot` when `state.useCase === 'product'` |
+| `src/hooks/useImageGeneration.ts` | Build `shotTypePrompt` from `productShoot.productShotType` using the shot type's promptHint |
+| `supabase/functions/generate-image/index.ts` | Add `productShootConfig` interface, add logic to incorporate background and model config into the prompt brief |
 
 ## Implementation Details
 
-### In `useImageGeneration.ts` (generateImages function)
+### 1. Client-side Changes (useImageGeneration.ts)
 
-After the existing product reference resolution (around line 169), add logic to check the Product Shoot state:
+Import the shot type data and build the shotTypePrompt:
 
 ```typescript
-// Existing code resolves from state.productReferences...
+// Import shot type definitions
+import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
 
-// NEW: Also check Product Shoot state for product reference
-if (state.productShoot?.recoloredProductUrl) {
-  // Add the product shoot URL if not already present
-  const shootUrl = state.productShoot.recoloredProductUrl;
-  if (!productReferenceUrls.includes(shootUrl)) {
-    productReferenceUrls.unshift(shootUrl); // Add at beginning for priority
+// In generateImages function, after resolving product references:
+let shotTypePromptValue: string | null = state.shotType;
+
+// For product shoot flow, get promptHint from the visual shot type
+if (state.useCase === 'product' && state.productShoot?.productShotType) {
+  const shotType = visualShotTypes.find(s => s.id === state.productShoot.productShotType);
+  if (shotType) {
+    shotTypePromptValue = shotType.promptHint;
   }
 }
 
-// If we have a selectedProductId (SKU), fetch all angles for that SKU
-if (state.productShoot?.selectedProductId && state.useCase === 'product') {
-  // Fetch SKU composite or all angles
-  const { data: sku } = await supabase
-    .from('product_skus')
-    .select('composite_image_url, name')
-    .eq('id', state.productShoot.selectedProductId)
-    .maybeSingle();
+// Then use shotTypePromptValue in the request body
+shotTypePrompt: shotTypePromptValue,
+```
+
+### 2. Server-side Changes (generate-image/index.ts)
+
+#### Add ProductShootConfig interface:
+
+```typescript
+interface ProductShootConfig {
+  shotType?: string;
+  settingType?: 'studio' | 'outdoor' | 'auto';
+  backgroundId?: string;
+  customBackgroundPrompt?: string;
+  modelConfig?: {
+    gender?: string;
+    ethnicity?: string;
+    clothing?: string;
+    useOnBrandDefaults?: boolean;
+  };
+}
+
+interface GenerateImageRequest {
+  // ... existing fields
+  productShootConfig?: ProductShootConfig;
+}
+```
+
+#### Add background presets lookup (inline):
+
+```typescript
+const backgroundPresets: Record<string, string> = {
+  'studio-white': 'clean white studio cyclorama background, professional product photography lighting, seamless white backdrop',
+  'studio-black': 'deep black studio background, dramatic rim lighting, high contrast product photography',
+  'studio-concrete': 'polished concrete floor studio, industrial chic, soft window light',
+  'studio-marble': 'white marble surface with grey veining, luxury product photography',
+  // ... add all from presets.ts
+  'outdoor-beach': 'soft sandy beach background, golden hour sunlight, ocean in distance',
+  'outdoor-urban': 'urban city street background, modern architecture, stylish metropolitan setting',
+  // ... add all outdoor presets
+};
+```
+
+#### Add section in craftPromptWithAgent:
+
+```typescript
+// === PRODUCT SHOOT CONFIGURATION ===
+if (request.productShootConfig) {
+  const config = request.productShootConfig;
   
-  if (sku?.composite_image_url && !productReferenceUrls.includes(sku.composite_image_url)) {
-    productReferenceUrls.unshift(sku.composite_image_url);
+  // Background direction
+  if (config.customBackgroundPrompt) {
+    sections.push("=== BACKGROUND/SETTING ===");
+    sections.push(config.customBackgroundPrompt);
+    sections.push("");
+  } else if (config.backgroundId && backgroundPresets[config.backgroundId]) {
+    sections.push("=== BACKGROUND/SETTING ===");
+    sections.push(backgroundPresets[config.backgroundId]);
+    sections.push("");
   }
-  if (sku?.name) {
-    productNames.unshift(sku.name);
-  }
   
-  // Also fetch individual angles for additional references
-  const { data: angles } = await supabase
-    .from('scraped_products')
-    .select('thumbnail_url, full_url, name')
-    .eq('sku_id', state.productShoot.selectedProductId)
-    .limit(4);
-  
-  if (angles) {
-    for (const angle of angles) {
-      const url = angle.full_url || angle.thumbnail_url;
-      if (url && !productReferenceUrls.includes(url)) {
-        productReferenceUrls.push(url);
-      }
+  // Model direction (if not product-focus)
+  if (config.shotType !== 'product-focus' && config.modelConfig) {
+    const modelParts: string[] = [];
+    if (config.modelConfig.gender && config.modelConfig.gender !== 'auto') {
+      modelParts.push(`${config.modelConfig.gender} model`);
+    }
+    if (config.modelConfig.ethnicity && config.modelConfig.ethnicity !== 'auto') {
+      modelParts.push(config.modelConfig.ethnicity);
+    }
+    if (config.modelConfig.clothing && config.modelConfig.clothing !== 'auto') {
+      modelParts.push(`${config.modelConfig.clothing} outfit`);
+    }
+    if (modelParts.length > 0) {
+      sections.push("=== MODEL DIRECTION ===");
+      sections.push(`Feature a ${modelParts.join(', ')}`);
+      sections.push("");
     }
   }
 }
 ```
 
-### Also Pass Product Shoot Configuration
-
-When `state.useCase === 'product'`, include the product shoot configuration in the API request:
-
-```typescript
-// In the request body
-productShootConfig: state.useCase === 'product' ? {
-  shotType: state.productShoot?.productShotType,
-  settingType: state.productShoot?.settingType,
-  backgroundId: state.productShoot?.backgroundId,
-  customBackgroundPrompt: state.productShoot?.customBackgroundPrompt,
-  modelConfig: state.productShoot?.modelConfig,
-} : undefined,
-```
-
 ## Expected Outcome
 
 After this fix:
-1. When a user selects a product SKU in the Product Shoot flow, the image URL(s) will be included in `productReferenceUrls`
-2. The edge function will receive the product images for AI reference
-3. Generated images will maintain product fidelity by using the reference images
+1. Shot type selection will generate the correct `shotTypePrompt` (e.g., "product only, detailed close-up, no model, studio lighting")
+2. Background selection will add the background prompt to the creative brief
+3. Model configuration will influence the model in the generated image
+4. The edge function logs will show these sections in the creative brief
 
 ## Testing
 
-1. Go to Creative Studio and select "Product" use case
-2. Choose "New Shoot" and proceed to Step 2
-3. Select a product SKU from the picker
-4. Configure shot type, background, etc.
-5. Click Generate
-6. Check edge function logs to confirm `productReferenceUrls` is populated
-7. Verify generated image includes the product accurately
+1. Select "Product Focus" shot type - verify log shows "product only, detailed close-up, no model"
+2. Select "White Cyclorama" background - verify log shows the studio background prompt
+3. Select a different background like "Beach" - verify log shows outdoor beach prompt
+4. Configure model with specific gender/clothing - verify model direction appears in brief
+
