@@ -1,168 +1,174 @@
 
 
-# Fix Background and Shot Type Selection for Product Shoot
+# Merge Model Options into Shot Type Configurators
 
-## Problem Identified
+## Overview
 
-The Product Shoot workflow sends `productShootConfig` to the edge function, but:
-1. The edge function **does not have the interface defined** for this config
-2. The edge function **completely ignores** the `productShootConfig` data
-3. No `shotTypePrompt` is being built from the selected shot type
-4. Background presets have detailed prompts that are never used
+Consolidate the model configuration (gender, ethnicity) directly into each shot type's configurator, removing the separate "Model" section. This creates a more cohesive UX where all shot-specific options live together.
 
-**Evidence from logs:**
-```json
-"productShootConfig": {
-  "shotType": "lifestyle",         // Has a promptHint - not used!
-  "settingType": "auto",
-  "backgroundId": "studio-white",  // Has a prompt - not used!
-  "modelConfig": {...}
-}
-"shotTypePrompt": null  // Never populated from productShootConfig
+## Current Structure
+
+```text
+┌─────────────────────────────────┐
+│ Shot Type Section               │
+│  ├─ Visual Selector (3 options) │
+│  └─ On-Foot Shot Options        │
+│       ├─ Pose Variation         │
+│       ├─ Leg Styling            │
+│       └─ Trouser Color          │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ Model Section  ← REMOVE THIS    │
+│  ├─ Use on-brand defaults       │
+│  ├─ Gender                      │
+│  ├─ Ethnicity                   │
+│  └─ Clothing Style ← redundant  │
+└─────────────────────────────────┘
 ```
 
-## Root Cause
+## New Structure
 
-Two disconnects:
-1. **Client-side**: `useImageGeneration.ts` sends `productShootConfig` but does NOT build `shotTypePrompt` from the shot type's `promptHint`
-2. **Server-side**: Edge function reads `shotTypePrompt` and ignores `productShootConfig` entirely (no background prompt, no model config)
+```text
+┌─────────────────────────────────────┐
+│ Shot Type Section                   │
+│  ├─ Visual Selector (3 options)     │
+│  └─ On-Foot Shot Options            │
+│       ├─ Gender         ← NEW       │
+│       ├─ Ethnicity      ← NEW       │
+│       ├─ Pose Variation             │
+│       ├─ Leg Styling                │
+│       └─ Trouser Color              │
+│       └─ [Static rules reminder]    │
+└─────────────────────────────────────┘
+```
 
-## Solution
-
-### Part 1: Client-side - Build shotTypePrompt
-
-Update `useImageGeneration.ts` to generate `shotTypePrompt` from the product shoot configuration using the `visualShotTypes` prompt hints.
-
-### Part 2: Server-side - Read productShootConfig
-
-Update the edge function to:
-1. Add `productShootConfig` to the `GenerateImageRequest` interface
-2. Build a background direction section from the selected background preset
-3. Build a model direction section from the model config
-4. Incorporate these into the creative brief
+No separate Model section - each shot type configurator includes the relevant model options.
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useImageGeneration.ts` | Build `shotTypePrompt` from `productShoot.productShotType` using the shot type's promptHint |
-| `supabase/functions/generate-image/index.ts` | Add `productShootConfig` interface, add logic to incorporate background and model config into the prompt brief |
+| `shotTypeConfigs.ts` | Extend `OnFootShotConfig` to include `gender` and `ethnicity`. Update `buildOnFootPrompt` to incorporate model direction. |
+| `OnFootConfigurator.tsx` | Add Gender and Ethnicity dropdowns at the top of the configurator |
+| `ProductShootStep2.tsx` | Remove the Model section entirely (lines 252-273). Remove `model` from `openSections` state. |
+| `types.ts` | Keep `ModelConfig` for backward compatibility but mark it as legacy. Update `initialProductShootState` to include model fields in `onFootConfig`. |
 
 ## Implementation Details
 
-### 1. Client-side Changes (useImageGeneration.ts)
+### 1. Extend OnFootShotConfig (shotTypeConfigs.ts)
 
-Import the shot type data and build the shotTypePrompt:
-
-```typescript
-// Import shot type definitions
-import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
-
-// In generateImages function, after resolving product references:
-let shotTypePromptValue: string | null = state.shotType;
-
-// For product shoot flow, get promptHint from the visual shot type
-if (state.useCase === 'product' && state.productShoot?.productShotType) {
-  const shotType = visualShotTypes.find(s => s.id === state.productShoot.productShotType);
-  if (shotType) {
-    shotTypePromptValue = shotType.promptHint;
-  }
-}
-
-// Then use shotTypePromptValue in the request body
-shotTypePrompt: shotTypePromptValue,
-```
-
-### 2. Server-side Changes (generate-image/index.ts)
-
-#### Add ProductShootConfig interface:
+Add gender and ethnicity fields:
 
 ```typescript
-interface ProductShootConfig {
-  shotType?: string;
-  settingType?: 'studio' | 'outdoor' | 'auto';
-  backgroundId?: string;
-  customBackgroundPrompt?: string;
-  modelConfig?: {
-    gender?: string;
-    ethnicity?: string;
-    clothing?: string;
-    useOnBrandDefaults?: boolean;
-  };
-}
+export type ModelGender = 'auto' | 'female' | 'male' | 'nonbinary';
 
-interface GenerateImageRequest {
-  // ... existing fields
-  productShootConfig?: ProductShootConfig;
+export const genderOptions = [
+  { value: 'auto' as ModelGender, label: 'Auto (AI chooses)' },
+  { value: 'female' as ModelGender, label: 'Female' },
+  { value: 'male' as ModelGender, label: 'Male' },
+  { value: 'nonbinary' as ModelGender, label: 'Non-binary' },
+];
+
+export interface OnFootShotConfig {
+  // Model appearance
+  gender: ModelGender;
+  ethnicity: string;
+  // Pose & styling
+  poseVariation: PoseVariation;
+  legStyling: LegStyling;
+  trouserColor: TrouserColor;
 }
 ```
 
-#### Add background presets lookup (inline):
+### 2. Update buildOnFootPrompt
+
+Add a MODEL DIRECTION section when gender/ethnicity are specified:
 
 ```typescript
-const backgroundPresets: Record<string, string> = {
-  'studio-white': 'clean white studio cyclorama background, professional product photography lighting, seamless white backdrop',
-  'studio-black': 'deep black studio background, dramatic rim lighting, high contrast product photography',
-  'studio-concrete': 'polished concrete floor studio, industrial chic, soft window light',
-  'studio-marble': 'white marble surface with grey veining, luxury product photography',
-  // ... add all from presets.ts
-  'outdoor-beach': 'soft sandy beach background, golden hour sunlight, ocean in distance',
-  'outdoor-urban': 'urban city street background, modern architecture, stylish metropolitan setting',
-  // ... add all outdoor presets
+// After LEG STYLING section...
+// === MODEL DIRECTION (DYNAMIC) ===
+const modelParts: string[] = [];
+if (config.gender && config.gender !== 'auto') {
+  modelParts.push(`${config.gender} model`);
+}
+if (config.ethnicity && config.ethnicity !== 'auto') {
+  modelParts.push(config.ethnicity);
+}
+if (modelParts.length > 0) {
+  sections.push("MODEL:");
+  sections.push(`- ${modelParts.join(', ')}`);
+  sections.push("");
+}
+```
+
+### 3. Update OnFootConfigurator.tsx
+
+Add Gender and Ethnicity dropdowns at the top:
+
+```typescript
+import { ethnicityOptions } from './types';
+import { genderOptions, ModelGender } from './shotTypeConfigs';
+
+// In the component JSX (before Pose Variation):
+
+{/* Model Gender */}
+<div className="space-y-2">
+  <label>Gender</label>
+  <Select value={config.gender} onValueChange={...}>
+    {genderOptions.map(...)}
+  </Select>
+</div>
+
+{/* Model Ethnicity */}
+<div className="space-y-2">
+  <label>Ethnicity / Diversity</label>
+  <Select value={config.ethnicity} onValueChange={...}>
+    {ethnicityOptions.map(...)}
+  </Select>
+</div>
+
+<Separator />  {/* Visual break between model and pose options */}
+```
+
+### 4. Update ProductShootStep2.tsx
+
+Remove these sections:
+- Remove `model: true` from `openSections` state
+- Remove the entire Model section JSX (lines ~252-273)
+- Remove the `needsModel` variable (no longer needed)
+- Keep the import of `ModelConfigurator` for potential use in other shot types later, or remove if unused
+
+### 5. Update Initial State
+
+```typescript
+export const initialOnFootConfig: OnFootShotConfig = {
+  gender: 'auto',
+  ethnicity: 'auto',
+  poseVariation: 'auto',
+  legStyling: 'auto',
+  trouserColor: 'auto',
 };
 ```
 
-#### Add section in craftPromptWithAgent:
+## Future Shot Types
 
-```typescript
-// === PRODUCT SHOOT CONFIGURATION ===
-if (request.productShootConfig) {
-  const config = request.productShootConfig;
-  
-  // Background direction
-  if (config.customBackgroundPrompt) {
-    sections.push("=== BACKGROUND/SETTING ===");
-    sections.push(config.customBackgroundPrompt);
-    sections.push("");
-  } else if (config.backgroundId && backgroundPresets[config.backgroundId]) {
-    sections.push("=== BACKGROUND/SETTING ===");
-    sections.push(backgroundPresets[config.backgroundId]);
-    sections.push("");
-  }
-  
-  // Model direction (if not product-focus)
-  if (config.shotType !== 'product-focus' && config.modelConfig) {
-    const modelParts: string[] = [];
-    if (config.modelConfig.gender && config.modelConfig.gender !== 'auto') {
-      modelParts.push(`${config.modelConfig.gender} model`);
-    }
-    if (config.modelConfig.ethnicity && config.modelConfig.ethnicity !== 'auto') {
-      modelParts.push(config.modelConfig.ethnicity);
-    }
-    if (config.modelConfig.clothing && config.modelConfig.clothing !== 'auto') {
-      modelParts.push(`${config.modelConfig.clothing} outfit`);
-    }
-    if (modelParts.length > 0) {
-      sections.push("=== MODEL DIRECTION ===");
-      sections.push(`Feature a ${modelParts.join(', ')}`);
-      sections.push("");
-    }
-  }
-}
-```
+When adding other shot types (lifestyle, product-focus), each will have its own configurator with the model options it needs:
 
-## Expected Outcome
+- **Product Focus**: No model options (no model in shot)
+- **Lifestyle (Full Body)**: Will have gender, ethnicity, plus full outfit/pose options
+- **On-Foot**: Has gender, ethnicity, leg styling (no full clothing since legs only)
 
-After this fix:
-1. Shot type selection will generate the correct `shotTypePrompt` (e.g., "product only, detailed close-up, no model, studio lighting")
-2. Background selection will add the background prompt to the creative brief
-3. Model configuration will influence the model in the generated image
-4. The edge function logs will show these sections in the creative brief
+This pattern keeps model configuration contextual to each shot type rather than a generic global section.
 
-## Testing
+## Section Order in OnFootConfigurator
 
-1. Select "Product Focus" shot type - verify log shows "product only, detailed close-up, no model"
-2. Select "White Cyclorama" background - verify log shows the studio background prompt
-3. Select a different background like "Beach" - verify log shows outdoor beach prompt
-4. Configure model with specific gender/clothing - verify model direction appears in brief
+Final order of fields:
+1. **Gender** (who is the model)
+2. **Ethnicity** (model diversity)
+3. *Visual separator*
+4. **Pose Variation** (how they stand)
+5. **Leg Styling** (what they wear)
+6. **Trouser Color** (color of pants)
+7. **Static Rules Reminder** (always enforced elements)
 
