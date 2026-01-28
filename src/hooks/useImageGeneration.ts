@@ -167,6 +167,50 @@ export function useImageGeneration() {
           if (ref?.name) productNames.push(ref.name);
         }
       }
+
+      // === PRODUCT SHOOT FLOW: Check state.productShoot for product references ===
+      // This handles the Product Shoot workflow which uses a different state path
+      if (state.productShoot?.recoloredProductUrl) {
+        const shootUrl = state.productShoot.recoloredProductUrl;
+        if (!productReferenceUrls.includes(shootUrl)) {
+          productReferenceUrls.unshift(shootUrl); // Priority placement
+        }
+      }
+
+      // If we have a selectedProductId (SKU), fetch composite and individual angles
+      if (state.productShoot?.selectedProductId && state.useCase === 'product') {
+        const skuId = state.productShoot.selectedProductId;
+        
+        // Fetch SKU composite image and name
+        const { data: sku } = await supabase
+          .from('product_skus')
+          .select('composite_image_url, name')
+          .eq('id', skuId)
+          .maybeSingle();
+        
+        if (sku?.composite_image_url && !productReferenceUrls.includes(sku.composite_image_url)) {
+          productReferenceUrls.unshift(sku.composite_image_url);
+        }
+        if (sku?.name && !productNames.includes(sku.name)) {
+          productNames.unshift(sku.name);
+        }
+        
+        // Also fetch individual angles for additional references
+        const { data: angles } = await supabase
+          .from('scraped_products')
+          .select('thumbnail_url, full_url, name')
+          .eq('sku_id', skuId)
+          .limit(4);
+        
+        if (angles) {
+          for (const angle of angles) {
+            const url = angle.full_url || angle.thumbnail_url;
+            if (url && !productReferenceUrls.includes(url)) {
+              productReferenceUrls.push(url);
+            }
+          }
+        }
+      }
       
       // Fetch brand context, custom AI prompts, and Brand Brain
       let brandContext: Record<string, unknown> | undefined;
@@ -320,6 +364,15 @@ export function useImageGeneration() {
             paddingPx: state.logoPlacement.paddingPx,
             logoUrl: logoUrl,
           } : null,
+          
+          // Product Shoot configuration (for product use case)
+          productShootConfig: state.useCase === 'product' && state.productShoot ? {
+            shotType: state.productShoot.productShotType,
+            settingType: state.productShoot.settingType,
+            backgroundId: state.productShoot.backgroundId,
+            customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
+            modelConfig: state.productShoot.modelConfig,
+          } : undefined,
         },
       });
 
