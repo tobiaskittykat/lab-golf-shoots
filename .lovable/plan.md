@@ -1,82 +1,119 @@
 
-# Add Output Settings to Product Shoot Workflow
+# Fix Product Reference Images Not Attaching in Product Shoot Flow
 
-## Overview
+## Problem Identified
 
-Add the same "Output Settings" section from the lifestyle shoot flow to the Product Shoot Step 2 configuration. This will allow users to configure:
-- Number of images to generate (1, 2, 4, 8)
-- Resolution (512px, 1024px, 2048px)
-- Aspect Ratio (1:1, 4:5, 16:9, 9:16, 4:3, 3:4)
+When using the Product Shoot workflow, selected product images are not being sent to the image generation endpoint. The edge function logs confirm this:
 
-## Current State
+```
+"productReferenceUrls": [],
+```
 
-The lifestyle flow (`StepTwoCustomize.tsx`) has a dedicated "Output" section with three dropdown selects for image count, resolution, and aspect ratio. The product shoot flow (`ProductShootStep2.tsx`) currently lacks this - it only has sections for Product, Shot Type, Background, and Model.
+This happens because the Product Shoot flow stores the selected product URL in a different state path than what the generation logic reads from.
 
-## Implementation Approach
+## Root Cause
 
-Since the Product Shoot workflow shares the parent `CreativeStudioState` (which already has `imageCount`, `resolution`, and `aspectRatio` fields), we just need to:
+**Two different state paths exist:**
 
-1. Add UI controls in `ProductShootStep2.tsx` that update the parent state
-2. Pass the necessary props from `CreativeStudioWizard.tsx` to `ProductShootStep2`
+1. **Lifestyle flow** uses `state.productReferences` (array of IDs like `"scraped-abc123"`)
+2. **Product Shoot flow** uses `state.productShoot.selectedProductId` and `state.productShoot.recoloredProductUrl`
 
-This approach reuses existing state management and type definitions rather than duplicating them.
+The `generateImages` function in `useImageGeneration.ts` only reads from the lifestyle flow's `state.productReferences`, ignoring the Product Shoot state entirely.
+
+## Solution
+
+Update the `generateImages` function to merge product references from both sources:
+1. The existing `state.productReferences` array (for lifestyle flow)
+2. The `state.productShoot` object (for product shoot flow)
+
+Additionally, for Product Shoot, we should also pass the shot type and background configuration.
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Add "Output Settings" collapsible section with dropdowns for image count, resolution, and aspect ratio |
-| `src/components/creative-studio/CreativeStudioWizard.tsx` | Pass output settings props to ProductShootStep2 component |
+| `src/hooks/useImageGeneration.ts` | Add logic to extract product URL from `state.productShoot` when `state.useCase === 'product'` |
 
-## UI Changes
+## Implementation Details
 
-Add a new collapsible section to ProductShootStep2 after the Model section:
+### In `useImageGeneration.ts` (generateImages function)
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  ⚙️ Output Settings                                 │
-│  ┌───────────┬───────────┬───────────┐              │
-│  │  Images   │Resolution │   AR      │              │
-│  │  [4x  ▼]  │[1024px ▼] │ [1:1  ▼]  │              │
-│  └───────────┴───────────┴───────────┘              │
-└─────────────────────────────────────────────────────┘
-```
-
-## Technical Details
-
-### Props to Add to ProductShootStep2
+After the existing product reference resolution (around line 169), add logic to check the Product Shoot state:
 
 ```typescript
-interface ProductShootStep2Props {
-  // ... existing props
+// Existing code resolves from state.productReferences...
+
+// NEW: Also check Product Shoot state for product reference
+if (state.productShoot?.recoloredProductUrl) {
+  // Add the product shoot URL if not already present
+  const shootUrl = state.productShoot.recoloredProductUrl;
+  if (!productReferenceUrls.includes(shootUrl)) {
+    productReferenceUrls.unshift(shootUrl); // Add at beginning for priority
+  }
+}
+
+// If we have a selectedProductId (SKU), fetch all angles for that SKU
+if (state.productShoot?.selectedProductId && state.useCase === 'product') {
+  // Fetch SKU composite or all angles
+  const { data: sku } = await supabase
+    .from('product_skus')
+    .select('composite_image_url, name')
+    .eq('id', state.productShoot.selectedProductId)
+    .maybeSingle();
   
-  // Output settings (from parent CreativeStudioState)
-  imageCount: number;
-  resolution: string;
-  aspectRatio: string;
-  onOutputSettingsChange: (updates: { 
-    imageCount?: number; 
-    resolution?: string; 
-    aspectRatio?: string; 
-  }) => void;
+  if (sku?.composite_image_url && !productReferenceUrls.includes(sku.composite_image_url)) {
+    productReferenceUrls.unshift(sku.composite_image_url);
+  }
+  if (sku?.name) {
+    productNames.unshift(sku.name);
+  }
+  
+  // Also fetch individual angles for additional references
+  const { data: angles } = await supabase
+    .from('scraped_products')
+    .select('thumbnail_url, full_url, name')
+    .eq('sku_id', state.productShoot.selectedProductId)
+    .limit(4);
+  
+  if (angles) {
+    for (const angle of angles) {
+      const url = angle.full_url || angle.thumbnail_url;
+      if (url && !productReferenceUrls.includes(url)) {
+        productReferenceUrls.push(url);
+      }
+    }
+  }
 }
 ```
 
-### Section Implementation
+### Also Pass Product Shoot Configuration
 
-The Output Settings section will use:
-- `Select` component from `@/components/ui/select`
-- Same styling as other collapsible sections in ProductShootStep2
-- Import `aspectRatios` and `resolutions` from `../types.ts`
-- Settings2 icon from lucide-react for the section header
+When `state.useCase === 'product'`, include the product shoot configuration in the API request:
 
-### Section Order
+```typescript
+// In the request body
+productShootConfig: state.useCase === 'product' ? {
+  shotType: state.productShoot?.productShotType,
+  settingType: state.productShoot?.settingType,
+  backgroundId: state.productShoot?.backgroundId,
+  customBackgroundPrompt: state.productShoot?.customBackgroundPrompt,
+  modelConfig: state.productShoot?.modelConfig,
+} : undefined,
+```
 
-The sections will be ordered as:
-1. Product
-2. Shot Type  
-3. Background
-4. Model
-5. **Output Settings** (new)
+## Expected Outcome
 
-This places output configuration at the end, following the same pattern as the lifestyle flow where "Output" comes after the creative configuration sections.
+After this fix:
+1. When a user selects a product SKU in the Product Shoot flow, the image URL(s) will be included in `productReferenceUrls`
+2. The edge function will receive the product images for AI reference
+3. Generated images will maintain product fidelity by using the reference images
+
+## Testing
+
+1. Go to Creative Studio and select "Product" use case
+2. Choose "New Shoot" and proceed to Step 2
+3. Select a product SKU from the picker
+4. Configure shot type, background, etc.
+5. Click Generate
+6. Check edge function logs to confirm `productReferenceUrls` is populated
+7. Verify generated image includes the product accurately
