@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
 import { 
   CreativeStudioState, 
   Concept,
@@ -90,6 +91,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const { currentBrand } = useBrands();
   const { log: auditLog } = useAuditLog();
 
   const proxyImageUrl = (raw?: string | null) => {
@@ -102,14 +104,21 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   // Fetch scraped products from database
   // Since products are now mirrored to our storage, we use direct URLs (no proxy needed)
   const { data: scrapedProducts = [], isLoading: loadingScrapedProducts, refetch: refetchScrapedProducts } = useQuery({
-    queryKey: ['scraped-products', user?.id],
+    queryKey: ['scraped-products', user?.id, currentBrand?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('scraped_products')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      
+      // Filter by brand (include brand-specific AND unassigned for backward compatibility)
+      if (currentBrand?.id) {
+        query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return (data || []).map(p => ({
@@ -199,6 +208,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         // This preserves products from previous syncs that may not be in current scrape
         const productsToInsert = data.products.map((p: any) => ({
           user_id: user.id,
+          brand_id: currentBrand?.id || null,
           external_id: p.externalId || p.storagePath || p.id,
           name: p.name,
           thumbnail_url: p.thumbnail,
@@ -368,6 +378,7 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
         .from('scraped_products')
         .insert({
           user_id: user.id,
+          brand_id: currentBrand?.id || null,
           external_id: `custom-${Date.now()}-${Math.random().toString(36).substring(7)}`,
           name: productName,
           thumbnail_url: publicUrl,
@@ -703,14 +714,21 @@ export const StepTwoCustomize = ({ state, onUpdate, onMatchingStateChange }: Ste
   // Fetch moodboards from database (including visual_analysis)
   // IMPORTANT: Use same query key as MoodboardModal so invalidation works across both
   const { data: customMoodboards = [], isLoading: loadingMoodboards } = useQuery({
-    queryKey: ['custom-moodboards', user?.id],
+    queryKey: ['custom-moodboards', user?.id, currentBrand?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('custom_moodboards')
         .select('*, visual_analysis')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      
+      // Filter by brand (include brand-specific AND unassigned for backward compatibility)
+      if (currentBrand?.id) {
+        query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return (data || []).map(m => ({

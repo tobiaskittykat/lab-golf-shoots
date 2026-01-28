@@ -12,6 +12,7 @@ import { MoodboardThumbnail } from "./MoodboardThumbnail";
 import { MoodboardBuilder } from "./MoodboardBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
 import { useToast } from "@/hooks/use-toast";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -59,20 +60,28 @@ export const MoodboardModal = ({
   const [showRepairConfirm, setShowRepairConfirm] = useState(false);
   
   const { user } = useAuth();
+  const { currentBrand } = useBrands();
   const { toast } = useToast();
   const { log: auditLog } = useAuditLog();
   const queryClient = useQueryClient();
 
   // Fetch custom moodboards - transform to Moodboard shape for cache consistency with StepTwoCustomize
   const { data: customMoodboards = [], isLoading: loadingCustom } = useQuery<Moodboard[]>({
-    queryKey: ['custom-moodboards', user?.id],
+    queryKey: ['custom-moodboards', user?.id, currentBrand?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
+      let query = supabase
         .from('custom_moodboards')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+      
+      // Filter by brand (include brand-specific AND unassigned for backward compatibility)
+      if (currentBrand?.id) {
+        query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -134,6 +143,7 @@ export const MoodboardModal = ({
           .from('custom_moodboards')
           .insert({
             user_id: user.id,
+            brand_id: currentBrand?.id || null,
             name: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
             file_path: fileName,
             thumbnail_url: urlData.publicUrl,

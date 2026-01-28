@@ -7,6 +7,7 @@ import { Loader2, Wand2, RefreshCw, Check, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuditLog } from "@/hooks/useAuditLog";
 
@@ -36,6 +37,7 @@ export const MoodboardBuilder = ({ onComplete, onCancel }: MoodboardBuilderProps
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const { currentBrand } = useBrands();
   const queryClient = useQueryClient();
   const { log: auditLog } = useAuditLog();
 
@@ -134,6 +136,7 @@ export const MoodboardBuilder = ({ onComplete, onCancel }: MoodboardBuilderProps
         .from('custom_moodboards')
         .insert({
           user_id: user.id,
+          brand_id: currentBrand?.id || null,
           name: moodboardName,
           description: `AI-built moodboard: ${mood}`,
           thumbnail_url: thumbnailUrl,

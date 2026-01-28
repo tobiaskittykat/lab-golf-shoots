@@ -74,6 +74,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       .from('generated_images')
       .select('*')
       .eq('user_id', user.id)
+      .eq('brand_id', currentBrand?.id || '')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -125,12 +126,19 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     const fetchSavedConcepts = async () => {
       if (!user?.id) return;
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('saved_concepts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
+      
+      // Filter by brand if available
+      if (currentBrand?.id) {
+        query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+      }
+      
+      const { data, error } = await query;
       
       if (data && !error) {
         const concepts: SavedConcept[] = data.map(row => ({
@@ -291,8 +299,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }));
     handleUpdate({ generatedImages: placeholders });
     
-    // Call real AI to generate images (pass logoUrl for server-side compositing)
-    const images = await generateImages(state, logoUrl);
+    // Call real AI to generate images (pass logoUrl for server-side compositing, and brandId)
+    const images = await generateImages(state, logoUrl, currentBrand?.id);
     
     handleUpdate({ 
       isGenerating: false, 
@@ -388,19 +396,31 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
       userPreferences: [],
     });
     
-    // Fetch user's moodboards from database
-    const { data: customMoodboards } = await supabase
+    // Fetch user's moodboards from database (filtered by brand)
+    let moodboardQuery = supabase
       .from('custom_moodboards')
       .select('id, name, description, thumbnail_url, visual_analysis')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     
-    // Fetch user's products from database  
-    const { data: scrapedProducts } = await supabase
+    if (currentBrand?.id) {
+      moodboardQuery = moodboardQuery.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+    }
+    
+    const { data: customMoodboards } = await moodboardQuery;
+    
+    // Fetch user's products from database (filtered by brand)
+    let productQuery = supabase
       .from('scraped_products')
       .select('id, name, category, thumbnail_url, description')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+    
+    if (currentBrand?.id) {
+      productQuery = productQuery.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+    }
+    
+    const { data: scrapedProducts } = await productQuery;
     
     console.log('=== DISCOVERY MODE START ===');
     console.log('Moodboards available:', customMoodboards?.length || 0);

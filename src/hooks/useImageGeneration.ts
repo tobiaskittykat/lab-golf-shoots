@@ -92,7 +92,8 @@ export function useImageGeneration() {
   // Generate images from state
   const generateImages = useCallback(async (
     state: CreativeStudioState,
-    logoUrl?: string // Logo URL for compositing
+    logoUrl?: string, // Logo URL for compositing
+    brandId?: string  // Brand ID to associate images with
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -174,7 +175,32 @@ export function useImageGeneration() {
       let customPromptAgentSystemPrompt: string | undefined;
       let brandBrain: Record<string, unknown> | undefined;
       
-      if (user?.id) {
+      if (brandId) {
+        // Use specific brand if passed
+        const { data: brand } = await supabase
+          .from('brands')
+          .select('name, personality, brand_context')
+          .eq('id', brandId)
+          .maybeSingle();
+        
+        if (brand) {
+          brandName = brand.name;
+          brandPersonality = brand.personality || undefined;
+          brandContext = brand.brand_context as Record<string, unknown> | undefined;
+          
+          // Extract custom prompt agent system prompt if set
+          const aiPrompts = (brandContext as any)?.aiPrompts;
+          if (aiPrompts?.promptAgent) {
+            customPromptAgentSystemPrompt = aiPrompts.promptAgent;
+          }
+          
+          // Extract Brand Brain if set
+          if ((brandContext as any)?.brandBrain) {
+            brandBrain = (brandContext as any).brandBrain;
+          }
+        }
+      } else if (user?.id) {
+        // Fallback to first user brand for backward compatibility
         const { data: brand } = await supabase
           .from('brands')
           .select('name, personality, brand_context')
@@ -261,6 +287,9 @@ export function useImageGeneration() {
           brandName,
           brandPersonality,
           brandContext,
+          
+          // Brand ID for storage association
+          brandId: brandId || null,
           
           // Brand Brain (synthesized visual identity)
           brandBrain,
