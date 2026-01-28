@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, User, Camera, Package, Settings2 } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackgroundSelector } from "./BackgroundSelector";
-import { ModelConfigurator } from "./ModelConfigurator";
 import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
 import { CreateSKUModal } from "./CreateSKUModal";
 import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
 import { OnFootConfigurator } from "./OnFootConfigurator";
 import { 
   ProductShootState, 
-  ProductShotType,
   initialProductShootState,
   initialOnFootConfig,
 } from "./types";
@@ -50,7 +48,6 @@ export const ProductShootStep2 = ({
   const [openSections, setOpenSections] = useState({
     product: true,
     background: true,
-    model: true,
     shotType: true,
     output: true,
   });
@@ -243,29 +240,6 @@ export const ProductShootStep2 = ({
                 onSettingTypeChange={(type) => onStateChange({ settingType: type })}
                 onBackgroundSelect={(id) => onStateChange({ backgroundId: id })}
                 onCustomPromptChange={(prompt) => onStateChange({ customBackgroundPrompt: prompt })}
-              />
-            </div>
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
-
-      {/* Model Configuration */}
-      <Collapsible open={openSections.model}>
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <SectionHeader 
-            icon={User} 
-            title="Model" 
-            section="model"
-            badge={!needsModel ? 'Not needed' : state.modelConfig.useOnBrandDefaults ? 'Auto' : 'Custom'}
-          />
-          <CollapsibleContent>
-            <div className="px-4 pb-4">
-              <ModelConfigurator
-                config={state.modelConfig}
-                onConfigChange={(updates) => onStateChange({ 
-                  modelConfig: { ...state.modelConfig, ...updates } 
-                })}
-                showModelOptions={needsModel}
               />
             </div>
           </CollapsibleContent>
