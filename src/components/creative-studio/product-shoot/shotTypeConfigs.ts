@@ -256,7 +256,152 @@ export function getShotTypePromptHint(shotType: ProductShotType): string {
  * Check if a shot type has additional configuration options
  */
 export function shotTypeHasConfig(shotType: ProductShotType): boolean {
-  return shotType === 'on-foot' || shotType === 'lifestyle';
+  return shotType === 'on-foot' || shotType === 'lifestyle' || shotType === 'product-focus';
+}
+
+// ===== PRODUCT FOCUS SHOT TYPE =====
+
+// Camera Angle options (5 variations from product gallery)
+export type ProductFocusAngle = 
+  | 'auto'
+  | 'side-profile'
+  | 'three-quarter'
+  | 'top-down'
+  | 'detail-closeup'
+  | 'sole-view';
+
+export const productFocusAngleOptions = [
+  { 
+    value: 'auto' as ProductFocusAngle, 
+    label: 'Auto (AI chooses)', 
+    prompt: null 
+  },
+  { 
+    value: 'side-profile' as ProductFocusAngle, 
+    label: 'Side Profile', 
+    prompt: 'pure side profile view, product centered, showing full silhouette from lateral angle' 
+  },
+  { 
+    value: 'three-quarter' as ProductFocusAngle, 
+    label: 'Three-Quarter', 
+    prompt: 'three-quarter view at 45-degree angle, showing depth and dimension of the product' 
+  },
+  { 
+    value: 'top-down' as ProductFocusAngle, 
+    label: 'Top Down', 
+    prompt: 'overhead top-down view, footbed and upper fully visible from above' 
+  },
+  { 
+    value: 'detail-closeup' as ProductFocusAngle, 
+    label: 'Detail Close-up', 
+    prompt: 'extreme close-up on buckle, hardware, stitching, and material textures' 
+  },
+  { 
+    value: 'sole-view' as ProductFocusAngle, 
+    label: 'Sole View', 
+    prompt: 'sole facing camera, showing tread pattern, construction, and outsole details' 
+  },
+];
+
+// Lighting Type options
+export type ProductFocusLighting = 'auto' | 'studio' | 'natural';
+
+export const productFocusLightingOptions = [
+  { 
+    value: 'auto' as ProductFocusLighting, 
+    label: 'Auto (match background)', 
+    prompt: null 
+  },
+  { 
+    value: 'studio' as ProductFocusLighting, 
+    label: 'Studio Lighting', 
+    prompt: 'professional studio lighting, softbox diffusion, controlled even illumination, minimal shadows' 
+  },
+  { 
+    value: 'natural' as ProductFocusLighting, 
+    label: 'Natural Light', 
+    prompt: 'soft natural daylight, gentle ambient shadows, organic and warm feel' 
+  },
+];
+
+// Product Focus Shot Configuration Interface
+export interface ProductFocusShotConfig {
+  cameraAngle: ProductFocusAngle;
+  lighting: ProductFocusLighting;
+}
+
+export const initialProductFocusConfig: ProductFocusShotConfig = {
+  cameraAngle: 'auto',
+  lighting: 'auto',
+};
+
+/**
+ * Build the complete prompt for "Product Focus" shot type.
+ * Product-only photography without models.
+ */
+export function buildProductFocusPrompt(config: ProductFocusShotConfig): string {
+  const sections: string[] = [];
+  
+  // === STATIC: Always included ===
+  sections.push("=== PRODUCT FOCUS SHOT ===");
+  sections.push("");
+  
+  // Frame & Composition (STATIC)
+  sections.push("FRAMING & COMPOSITION (MANDATORY):");
+  sections.push("- Single, high-resolution e-commerce product image (one frame only, no collage)");
+  sections.push("- Product only - NO hands, NO models, NO body parts, NO feet");
+  sections.push("- Product centered in frame with balanced negative space");
+  sections.push("- Clean, professional product photography composition");
+  sections.push("");
+  
+  // Product Integrity (STATIC - CRITICAL)
+  sections.push("PRODUCT INTEGRITY (CRITICAL):");
+  sections.push("- This is Birkenstock footwear - match the reference EXACTLY");
+  sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
+  sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
+  sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
+  sections.push("- NO reinterpretation, NO modifications, NO creative liberties with the product");
+  sections.push("");
+  
+  // Camera Angle (DYNAMIC)
+  sections.push("CAMERA ANGLE:");
+  if (config.cameraAngle === 'auto') {
+    sections.push("- AI selects optimal angle to showcase product");
+    sections.push("- May use: side profile, three-quarter view, top-down, detail close-up, or sole view");
+  } else {
+    const angleOpt = productFocusAngleOptions.find(a => a.value === config.cameraAngle);
+    if (angleOpt?.prompt) {
+      sections.push(`- ${angleOpt.prompt}`);
+    }
+  }
+  sections.push("");
+  
+  // Lighting (DYNAMIC)
+  sections.push("LIGHTING:");
+  if (config.lighting === 'auto') {
+    sections.push("- Lighting matched to background setting");
+    sections.push("- Studio backgrounds: controlled softbox lighting with minimal shadows");
+    sections.push("- Outdoor settings: soft natural daylight with gentle ambient shadows");
+  } else {
+    const lightOpt = productFocusLightingOptions.find(l => l.value === config.lighting);
+    if (lightOpt?.prompt) {
+      sections.push(`- ${lightOpt.prompt}`);
+    }
+  }
+  sections.push("- Accurately reveal material textures and finishes");
+  sections.push("- Soft shadows that ground the product");
+  sections.push("- Neutral color balance, no color cast");
+  sections.push("");
+  
+  // Quality Standards (STATIC)
+  sections.push("QUALITY STANDARDS:");
+  sections.push("- Premium footwear e-commerce photography");
+  sections.push("- Ultra-sharp focus on product details");
+  sections.push("- Clean, professional composition");
+  sections.push("- True to retail product photography standards");
+  sections.push("");
+  
+  return sections.join("\n");
 }
 
 // ===== LIFESTYLE SHOT TYPE (Full Body on Model) =====
