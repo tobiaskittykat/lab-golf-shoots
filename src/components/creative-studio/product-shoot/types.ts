@@ -46,10 +46,15 @@ export {
   type LifestyleTrouserStyle,
   type LifestyleTopStyle,
   type LifestyleOutfitColor,
+  type ProductFocusShotConfig,
+  type ProductFocusAngle,
+  type ProductFocusLighting,
   initialOnFootConfig,
   initialLifestyleConfig,
+  initialProductFocusConfig,
   buildOnFootPrompt,
   buildLifestylePrompt,
+  buildProductFocusPrompt,
   shotTypeHasConfig,
   genderOptions,
 } from './shotTypeConfigs';
@@ -69,7 +74,7 @@ export interface ProductSKUData {
 }
 
 // Import config types for the state
-import type { OnFootShotConfig, LifestyleShotConfig } from './shotTypeConfigs';
+import type { OnFootShotConfig, LifestyleShotConfig, ProductFocusShotConfig } from './shotTypeConfigs';
 
 // Product Shoot State - extends creative studio state
 export interface ProductShootState {
@@ -102,6 +107,7 @@ export interface ProductShootState {
   // Shot-type-specific configs
   onFootConfig?: OnFootShotConfig;
   lifestyleConfig?: LifestyleShotConfig;
+  productFocusConfig?: ProductFocusShotConfig;
   
   // Post-generation integrity check
   integrityResults?: Record<string, ProductIntegrityResult>;
@@ -154,6 +160,11 @@ export const initialProductShootState: ProductShootState = {
     trouserStyle: 'auto',
     topStyle: 'auto',
     outfitColor: 'auto',
+  },
+  // Product focus specific config
+  productFocusConfig: {
+    cameraAngle: 'auto',
+    lighting: 'auto',
   },
 };
 

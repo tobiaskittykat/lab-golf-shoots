@@ -11,7 +11,7 @@ import {
   sampleContextReferences
 } from '@/components/creative-studio/types';
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
-import { buildOnFootPrompt, buildLifestylePrompt, initialOnFootConfig, initialLifestyleConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
+import { buildOnFootPrompt, buildLifestylePrompt, buildProductFocusPrompt, initialOnFootConfig, initialLifestyleConfig, initialProductFocusConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -287,6 +287,10 @@ export function useImageGeneration() {
           // Build full structured lifestyle (full body) prompt
           const lifestyleConfig = state.productShoot.lifestyleConfig || initialLifestyleConfig;
           shotTypePrompt = buildLifestylePrompt(lifestyleConfig);
+        } else if (shotType === 'product-focus') {
+          // Build full structured product focus prompt
+          const productFocusConfig = state.productShoot.productFocusConfig || initialProductFocusConfig;
+          shotTypePrompt = buildProductFocusPrompt(productFocusConfig);
         } else {
           // Other product shot types - use the simple promptHint
           const selectedShotType = visualShotTypes.find(s => s.id === shotType);
@@ -403,6 +407,9 @@ export function useImageGeneration() {
               : undefined,
             lifestyleConfig: state.productShoot.productShotType === 'lifestyle'
               ? (state.productShoot.lifestyleConfig || initialLifestyleConfig)
+              : undefined,
+            productFocusConfig: state.productShoot.productShotType === 'product-focus'
+              ? (state.productShoot.productFocusConfig || initialProductFocusConfig)
               : undefined,
           } : undefined,
         },

@@ -23,6 +23,7 @@ export const visualShotTypes: VisualShotType[] = [
     description: 'Close-up, no model',
     exampleImage: productFocusImg,
     promptHint: 'product only, detailed close-up, no model, studio lighting, clean background',
+    hasExtraConfig: true, // Has ProductFocusConfigurator
   },
   {
     id: 'on-foot',
