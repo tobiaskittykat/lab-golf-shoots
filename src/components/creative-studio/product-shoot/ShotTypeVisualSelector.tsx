@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { ProductShotType } from './types';
+import { ProductShotType } from './shotTypeConfigs';
 
 // Import example images
 import productFocusImg from '@/assets/shot-references/product-focus.jpg';
@@ -39,6 +39,7 @@ export const visualShotTypes: VisualShotType[] = [
     description: 'Full outfit with product',
     exampleImage: productOnModelImg,
     promptHint: 'full body fashion shot, lifestyle, product visible, editorial style',
+    hasExtraConfig: true, // Has LifestyleConfigurator
   },
 ];
 

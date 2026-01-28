@@ -11,7 +11,7 @@ import {
   sampleContextReferences
 } from '@/components/creative-studio/types';
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
-import { buildOnFootPrompt, initialOnFootConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
+import { buildOnFootPrompt, buildLifestylePrompt, initialOnFootConfig, initialLifestyleConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -283,6 +283,10 @@ export function useImageGeneration() {
           // Build full structured on-foot prompt with all static/dynamic elements
           const onFootConfig = state.productShoot.onFootConfig || initialOnFootConfig;
           shotTypePrompt = buildOnFootPrompt(onFootConfig);
+        } else if (shotType === 'lifestyle') {
+          // Build full structured lifestyle (full body) prompt
+          const lifestyleConfig = state.productShoot.lifestyleConfig || initialLifestyleConfig;
+          shotTypePrompt = buildLifestylePrompt(lifestyleConfig);
         } else {
           // Other product shot types - use the simple promptHint
           const selectedShotType = visualShotTypes.find(s => s.id === shotType);
@@ -396,6 +400,9 @@ export function useImageGeneration() {
             modelConfig: state.productShoot.modelConfig,
             onFootConfig: state.productShoot.productShotType === 'on-foot' 
               ? (state.productShoot.onFootConfig || initialOnFootConfig) 
+              : undefined,
+            lifestyleConfig: state.productShoot.productShotType === 'lifestyle'
+              ? (state.productShoot.lifestyleConfig || initialLifestyleConfig)
               : undefined,
           } : undefined,
         },

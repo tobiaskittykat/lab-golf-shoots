@@ -7,10 +7,12 @@ import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
 import { CreateSKUModal } from "./CreateSKUModal";
 import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
 import { OnFootConfigurator } from "./OnFootConfigurator";
+import { LifestyleConfigurator } from "./LifestyleConfigurator";
 import { 
   ProductShootState, 
   initialProductShootState,
   initialOnFootConfig,
+  initialLifestyleConfig,
 } from "./types";
 import { aspectRatios, resolutions } from "../types";
 
@@ -214,6 +216,15 @@ export const ProductShootStep2 = ({
                   config={state.onFootConfig || initialOnFootConfig}
                   onConfigChange={(updates) => onStateChange({
                     onFootConfig: { ...(state.onFootConfig || initialOnFootConfig), ...updates }
+                  })}
+                />
+              )}
+              
+              {state.productShotType === 'lifestyle' && (
+                <LifestyleConfigurator
+                  config={state.lifestyleConfig || initialLifestyleConfig}
+                  onConfigChange={(updates) => onStateChange({
+                    lifestyleConfig: { ...(state.lifestyleConfig || initialLifestyleConfig), ...updates }
                   })}
                 />
               )}
