@@ -126,6 +126,8 @@ const BrandSetup = () => {
     tagline: string;
     socialLinks: Record<string, string>;
   }) => {
+    // Prevent any late onStateChange from re-saving/updating the draft
+    isCancelledRef.current = true;
     setIsSaving(true);
 
     // Convert social links to connections format
@@ -151,6 +153,7 @@ const BrandSetup = () => {
 
     if (error) {
       toast.error("Failed to create brand: " + error.message);
+      isCancelledRef.current = false; // Reset on error so user can retry
       return;
     }
 
@@ -158,6 +161,7 @@ const BrandSetup = () => {
     if (draftId) {
       deleteDraft(draftId);
     }
+    setDraftId(null);
 
     toast.success("Brand created successfully!");
     navigate("/");
