@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, User, Camera, Package } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, User, Camera, Package, Settings2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BackgroundSelector } from "./BackgroundSelector";
 import { ModelConfigurator } from "./ModelConfigurator";
 import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
@@ -11,6 +12,7 @@ import {
   ProductShotType,
   initialProductShootState,
 } from "./types";
+import { aspectRatios, resolutions } from "../types";
 
 interface ProductShootStep2Props {
   state: ProductShootState;
@@ -22,6 +24,15 @@ interface ProductShootStep2Props {
     thumbnailUrl: string;
   };
   onProductSelect?: () => void;
+  // Output settings from parent CreativeStudioState
+  imageCount: number;
+  resolution: string;
+  aspectRatio: string;
+  onOutputSettingsChange: (updates: { 
+    imageCount?: number; 
+    resolution?: string; 
+    aspectRatio?: string; 
+  }) => void;
 }
 
 export const ProductShootStep2 = ({
@@ -29,12 +40,17 @@ export const ProductShootStep2 = ({
   onStateChange,
   selectedProduct,
   onProductSelect,
+  imageCount,
+  resolution,
+  aspectRatio,
+  onOutputSettingsChange,
 }: ProductShootStep2Props) => {
   const [openSections, setOpenSections] = useState({
     product: true,
     background: true,
     model: true,
     shotType: true,
+    output: true,
   });
   
   const [showCreateSKUModal, setShowCreateSKUModal] = useState(false);
@@ -239,6 +255,76 @@ export const ProductShootStep2 = ({
                 })}
                 showModelOptions={needsModel}
               />
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+
+      {/* Output Settings */}
+      <Collapsible open={openSections.output}>
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <SectionHeader 
+            icon={Settings2} 
+            title="Output Settings" 
+            section="output"
+          />
+          <CollapsibleContent>
+            <div className="px-4 pb-4">
+              <div className="grid grid-cols-3 gap-3">
+                {/* Image Count */}
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Images</label>
+                  <Select 
+                    value={String(imageCount)} 
+                    onValueChange={(v) => onOutputSettingsChange({ imageCount: Number(v) })}
+                  >
+                    <SelectTrigger className="bg-muted/50 border-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 4, 8].map(n => (
+                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Resolution */}
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Resolution</label>
+                  <Select 
+                    value={resolution} 
+                    onValueChange={(v) => onOutputSettingsChange({ resolution: v })}
+                  >
+                    <SelectTrigger className="bg-muted/50 border-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resolutions.map(r => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Aspect Ratio */}
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">Aspect Ratio</label>
+                  <Select 
+                    value={aspectRatio} 
+                    onValueChange={(v) => onOutputSettingsChange({ aspectRatio: v })}
+                  >
+                    <SelectTrigger className="bg-muted/50 border-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aspectRatios.map(ar => (
+                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </CollapsibleContent>
         </div>

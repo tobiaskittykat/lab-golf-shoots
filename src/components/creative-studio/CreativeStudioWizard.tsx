@@ -786,6 +786,10 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                         onProductSelect={() => {
                           // Will integrate with product picker modal
                         }}
+                        imageCount={state.imageCount}
+                        resolution={state.resolution}
+                        aspectRatio={state.aspectRatio}
+                        onOutputSettingsChange={(updates) => handleUpdate(updates)}
                       />
                     </div>
                   </div>
