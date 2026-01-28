@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useBrands } from '@/hooks/useBrands';
 import { useToast } from '@/hooks/use-toast';
 import { GeneratedImageCard, GeneratedImageCardSkeleton } from '@/components/creative-studio/GeneratedImageCard';
 import { ImageDetailModal } from '@/components/creative-studio/ImageDetailModal';
 import { GeneratedImage } from '@/components/creative-studio/types';
 import { Button } from '@/components/ui/button';
+import BrandSelector from '@/components/BrandSelector';
 import kittykatLogo from '@/assets/kittykat-logo-transparent.png';
 
 const PAGE_SIZE = 50;
@@ -15,6 +17,7 @@ const PAGE_SIZE = 50;
 const Gallery = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentBrand } = useBrands();
   const { toast } = useToast();
   
   const [images, setImages] = useState<GeneratedImage[]>([]);
@@ -31,15 +34,22 @@ const Gallery = () => {
   const fetchTotalCount = useCallback(async () => {
     if (!user) return;
     
-    const { count, error } = await supabase
+    let query = supabase
       .from('generated_images')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
     
+    // Filter by brand (include brand-specific AND unassigned for backward compatibility)
+    if (currentBrand?.id) {
+      query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+    }
+    
+    const { count, error } = await query;
+    
     if (!error && count !== null) {
       setTotalCount(count);
     }
-  }, [user]);
+  }, [user, currentBrand?.id]);
 
   // Fetch images with pagination
   const fetchImages = useCallback(async (pageNum: number, append = false) => {
@@ -48,12 +58,19 @@ const Gallery = () => {
     const start = pageNum * PAGE_SIZE;
     const end = start + PAGE_SIZE - 1;
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('generated_images')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(start, end);
+    
+    // Filter by brand (include brand-specific AND unassigned for backward compatibility)
+    if (currentBrand?.id) {
+      query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error fetching images:', error);
@@ -90,17 +107,19 @@ const Gallery = () => {
     }
     
     setHasMore(mappedImages.length === PAGE_SIZE);
-  }, [user, toast]);
+  }, [user, currentBrand?.id, toast]);
 
-  // Initial load
+  // Initial load and refetch when brand changes
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
+      setPage(0);
+      setImages([]);
       await Promise.all([fetchTotalCount(), fetchImages(0)]);
       setIsLoading(false);
     };
     init();
-  }, [fetchTotalCount, fetchImages]);
+  }, [fetchTotalCount, fetchImages, currentBrand?.id]);
 
   // Load more handler
   const handleLoadMore = async () => {
@@ -171,7 +190,10 @@ const Gallery = () => {
             <img src={kittykatLogo} alt="KittyKat" className="h-12" />
           </div>
           
-          <h1 className="text-xl font-semibold">Gallery</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-semibold">Gallery</h1>
+            <BrandSelector />
+          </div>
           
           <div className="text-sm text-muted-foreground">
             {isLoading ? (
