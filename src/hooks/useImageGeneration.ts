@@ -202,7 +202,7 @@ export function useImageGeneration() {
           .from('scraped_products')
           .select('thumbnail_url, full_url, name')
           .eq('sku_id', skuId)
-          .limit(4);
+          .limit(10); // Allow up to 10 angles per SKU
         
         if (angles) {
           for (const angle of angles) {

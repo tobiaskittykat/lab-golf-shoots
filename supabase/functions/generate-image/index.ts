@@ -822,12 +822,14 @@ Deno.serve(async (req) => {
           console.log("⚠️ NO MOODBOARD URL TO ATTACH - moodboardUrl was:", moodboardUrl);
         }
         
-        // Add product references as visual inputs (up to 3, skip GIFs which aren't supported)
+        // Add product references as visual inputs (up to 6, skip GIFs which aren't supported)
         const productUrls = (body.productReferenceUrls || [])
           .filter(url => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
         
         if (productUrls.length > 0) {
-          for (let i = 0; i < Math.min(productUrls.length, 3); i++) {
+          // Attach up to 6 product reference images for better fidelity
+          const attachCount = Math.min(productUrls.length, 6);
+          for (let i = 0; i < attachCount; i++) {
             const url = productUrls[i];
             messageContent.push({
               type: "image_url",
@@ -836,7 +838,7 @@ Deno.serve(async (req) => {
           }
           messageContent.push({
             type: "text",
-            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${productUrls.length} image(s) are PRODUCT REFERENCES.
+            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
 
 MANDATORY REQUIREMENTS:
 - Preserve EXACT visual details: materials, textures, colors, hardware finishes

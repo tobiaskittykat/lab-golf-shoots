@@ -259,14 +259,19 @@ export const ImageDetailModal = ({
                       </div>
                     )}
                     
-                    {/* Product References (up to 3) */}
+                    {/* Product References (all available) */}
                     {productUrls.length > 0 && (
                       <div className="space-y-1.5">
                         <p className="text-xs text-muted-foreground">
                           Product{productUrls.length > 1 ? 's' : ''} ({productUrls.length})
                         </p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {productUrls.slice(0, 3).map((url, idx) => (
+                        <div className={cn(
+                          "grid gap-2",
+                          productUrls.length <= 3 ? "grid-cols-3" : 
+                          productUrls.length <= 4 ? "grid-cols-4" :
+                          "grid-cols-5"
+                        )}>
+                          {productUrls.map((url, idx) => (
                             <div 
                               key={idx} 
                               className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative group cursor-pointer"
