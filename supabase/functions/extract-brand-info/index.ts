@@ -84,6 +84,17 @@ Deno.serve(async (req) => {
         );
       }
       
+      // Handle blocked/inaccessible websites
+      if (scrapeData.code === 'SCRAPE_ALL_ENGINES_FAILED' || scrapeData.error?.includes('scraping engines failed')) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'This website blocks automated access. Please enter your brand details manually instead.' 
+          }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ success: false, error: scrapeData.error || 'Failed to scrape website' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
