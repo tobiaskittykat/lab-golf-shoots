@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Package, ChevronDown, ChevronRight, Check, Image as ImageIcon } from 'lucide-react';
+import { Plus, Package, ChevronDown, ChevronRight, Check, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SmartUploadModal } from './SmartUploadModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +32,7 @@ export function ProductSKUPicker({ selectedSkuId, onSelectSku, onCreateNew }: Pr
   const { user } = useAuth();
   const { currentBrand } = useBrands();
   const [expandedSkus, setExpandedSkus] = useState<Set<string>>(new Set());
+  const [smartUploadOpen, setSmartUploadOpen] = useState(false);
 
   // Fetch SKUs with their linked product angles
   const { data: skus = [], isLoading } = useQuery({
@@ -108,6 +110,16 @@ export function ProductSKUPicker({ selectedSkuId, onSelectSku, onCreateNew }: Pr
 
   return (
     <div className="space-y-3">
+      {/* Smart Upload Button */}
+      <Button
+        variant="default"
+        className="w-full justify-center gap-2"
+        onClick={() => setSmartUploadOpen(true)}
+      >
+        <Sparkles className="w-4 h-4" />
+        Smart Upload
+      </Button>
+
       {/* Create New SKU Button */}
       <Button
         variant="outline"
@@ -117,6 +129,9 @@ export function ProductSKUPicker({ selectedSkuId, onSelectSku, onCreateNew }: Pr
         <Plus className="w-4 h-4" />
         Create New Product SKU
       </Button>
+
+      {/* Smart Upload Modal */}
+      <SmartUploadModal open={smartUploadOpen} onOpenChange={setSmartUploadOpen} />
 
       {/* SKU List */}
       {skus.length === 0 ? (
