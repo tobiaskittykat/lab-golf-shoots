@@ -10,7 +10,7 @@ interface StepOnePromptProps {
   onDeleteSavedConcept?: (conceptId: string) => void;
 }
 
-// Marketing-style briefs for Bandolier - organized by type
+// Marketing-style briefs - organized by type
 const exampleBriefsByType: Record<string, string[]> = {
   lifestyle: [
     // Summer/Travel campaigns
@@ -43,7 +43,31 @@ const exampleBriefsByType: Record<string, string[]> = {
     "Power accessories editorial - strong silhouettes, confident energy",
     "Fall fashion campaign - rich tones, texture-forward styling",
   ],
-  product: [],
+  product: [
+    // Footwear-focused campaigns (Birkenstock style)
+    "Classic sandal hero shot - iconic silhouette, clean white background, timeless comfort",
+    "Boston clog studio series - textured suede detail, warm wood props, cozy vibes",
+    "Summer sandal flat lay - beach textures, natural materials, vacation ready",
+    
+    // On-foot lifestyle
+    "Street style on-foot content - urban walkabout, authentic city energy",
+    "Café terrace moment - European leisure, coffee and comfort",
+    "Park stroll editorial - dappled sunlight, relaxed weekend mood",
+    
+    // Studio product shots
+    "Material close-up series - leather grain, cork footbed, quality craftsmanship",
+    "New colorway launch - hero product, gradient backdrop, fresh palette",
+    "Paired with denim editorial - casual styling, everyday versatility",
+    
+    // Seasonal campaigns
+    "Fall transition campaign - wool socks with sandals, cozy layering",
+    "Resort collection shoot - poolside elegance, vacation sophistication",
+    "Back to campus content - comfortable classics, all-day wear",
+    
+    // Brand story
+    "Heritage collection - craft and tradition, timeless design",
+    "Sustainability story - natural materials, conscious comfort",
+  ],
   localization: [],
   ugc: [],
 };

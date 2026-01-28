@@ -12,7 +12,7 @@ import BrandSelector from "@/components/BrandSelector";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const typeChips = [
-  { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500', comingSoon: true },
+  { id: 'product', label: 'Product Shot', icon: Package, colorClass: 'bg-pink-100 text-pink-500', comingSoon: false },
   { id: 'lifestyle', label: 'Lifestyle', icon: Users, colorClass: 'bg-purple-100 text-purple-500', comingSoon: false },
   { id: 'localization', label: 'Media Localization', icon: Globe, colorClass: 'bg-blue-100 text-blue-500', comingSoon: true },
   { id: 'ugc', label: 'UGC Content', icon: Camera, colorClass: 'bg-orange-100 text-orange-500', comingSoon: true },

@@ -3,6 +3,22 @@
 import { LogoPlacement, defaultLogoPlacement } from '@/lib/imageCompositing';
 export type { LogoPlacement } from '@/lib/imageCompositing';
 
+// Re-export Product Shoot types for convenience
+export type { 
+  ProductShootState,
+  ShootMode,
+  RecolorOption,
+  SettingType,
+  ModelGender,
+  ModelClothing,
+  ProductShotType,
+  RemixChanges,
+  ModelConfig,
+  BackgroundPreset,
+  ProductIntegrityResult,
+} from './product-shoot/types';
+export { initialProductShootState } from './product-shoot/types';
+
 // Product Focus - high-level product category (exact product chosen via reference image)
 export interface ProductFocus {
   productCategory: string;    // "Nike basketball sneaker" or "luxury crossbody bag"
@@ -185,6 +201,9 @@ export interface CampaignStyle {
   totalReviewed: number;
 }
 
+// Import ProductShootState type
+import { ProductShootState, initialProductShootState as defaultProductShootState } from './product-shoot/types';
+
 export interface CreativeStudioState {
   // Step 1
   step: 1 | 2 | 3;
@@ -247,6 +266,9 @@ export interface CreativeStudioState {
   discoveryImages: GeneratedImage[];
   userPreferences: UserPreference[];
   isDiscoveryGenerating: boolean;
+  
+  // Product Shoot specific state
+  productShoot: ProductShootState;
 }
 
 export const initialCreativeStudioState: CreativeStudioState = {
@@ -307,6 +329,9 @@ export const initialCreativeStudioState: CreativeStudioState = {
   discoveryImages: [],
   userPreferences: [],
   isDiscoveryGenerating: false,
+  
+  // Product Shoot defaults
+  productShoot: defaultProductShootState,
 };
 
 export const typeCards = [
