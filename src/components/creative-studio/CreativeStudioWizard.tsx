@@ -765,8 +765,8 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                     <CreativeStudioHeader
                       state={state}
                       onUpdate={handleUpdate}
-                      onRegenerate={() => handleUpdate({ step: 1 })}
-                      showRegenerate={true}
+                      showRegenerate={false}
+                      hideBriefInput={true}
                     />
                     
                     <div style={{ paddingBottom: footerHeight + 24 }}>
