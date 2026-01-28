@@ -1,216 +1,82 @@
 
-# Smart Product Upload with AI-Powered Auto-Grouping
+# Add Output Settings to Product Shoot Workflow
 
 ## Overview
 
-Transform the product upload experience from manual SKU creation to an intelligent **"dump and sort"** workflow where users upload multiple product images and AI automatically:
-1. Analyzes each image to identify the product
-2. Suggests product names based on visual analysis
-3. Groups images of the same product together into SKUs
-4. Detects angles/views automatically (front, side, back, etc.)
-5. Allows manual editing/corrections after AI processing
+Add the same "Output Settings" section from the lifestyle shoot flow to the Product Shoot Step 2 configuration. This will allow users to configure:
+- Number of images to generate (1, 2, 4, 8)
+- Resolution (512px, 1024px, 2048px)
+- Aspect Ratio (1:1, 4:5, 16:9, 9:16, 4:3, 3:4)
 
-## User Experience Flow
+## Current State
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│  STEP 1: BULK UPLOAD                                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  📂 Drag & drop your product photos here                 │  │
-│  │     or click to browse (supports 20+ images)             │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-│  Uploaded: 12 images                        [Start AI Sorting] │
-└────────────────────────────────────────────────────────────────┘
+The lifestyle flow (`StepTwoCustomize.tsx`) has a dedicated "Output" section with three dropdown selects for image count, resolution, and aspect ratio. The product shoot flow (`ProductShootStep2.tsx`) currently lacks this - it only has sections for Product, Shot Type, Background, and Model.
 
-                          ↓ AI Processing...
+## Implementation Approach
 
-┌────────────────────────────────────────────────────────────────┐
-│  STEP 2: REVIEW & EDIT                                         │
-│                                                                │
-│  AI found 3 products:                                          │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │  📦 Boston Brown Oiled Leather Clog                      │  │
-│  │  Suggested SKU: BIRK-BOSTON-BRN    [Edit Name] [Edit SKU]│  │
-│  │  ┌─────┬─────┬─────┬─────┐                               │  │
-│  │  │Front│Side │Back │3/4  │  4 angles detected            │  │
-│  │  │ ✓   │ ✓   │ ✓   │ ✓   │  [+ Add] [Regroup]           │  │
-│  │  └─────┴─────┴─────┴─────┘                               │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │  📦 Arizona Sandal White Leather                         │  │
-│  │  Suggested SKU: BIRK-ARIZ-WHT      [Edit Name] [Edit SKU]│  │
-│  │  ┌─────┬─────┬─────┐                                     │  │
-│  │  │Front│Top  │Side │  3 angles detected                  │  │
-│  │  │ ✓   │ ✓   │ ✓   │  [+ Add] [Regroup]                 │  │
-│  │  └─────┴─────┴─────┘                                     │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                                │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │  📦 Ungrouped Images (5)                                 │  │
-│  │  ┌───┬───┬───┬───┬───┐                                   │  │
-│  │  │ ? │ ? │ ? │ ? │ ? │  [Group as new SKU] [Add to above]│  │
-│  │  └───┴───┴───┴───┴───┘                                   │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                                │
-│                              [Confirm & Save All SKUs]         │
-└────────────────────────────────────────────────────────────────┘
-```
+Since the Product Shoot workflow shares the parent `CreativeStudioState` (which already has `imageCount`, `resolution`, and `aspectRatio` fields), we just need to:
 
-## Technical Architecture
+1. Add UI controls in `ProductShootStep2.tsx` that update the parent state
+2. Pass the necessary props from `CreativeStudioWizard.tsx` to `ProductShootStep2`
 
-### New Edge Function: `analyze-bulk-products`
-
-Processes multiple images in a single call with smart grouping:
-
-```typescript
-// Input
-{
-  images: Array<{
-    id: string;           // Client-generated temp ID
-    url: string;          // Uploaded image URL or base64
-  }>;
-}
-
-// Output
-{
-  groups: Array<{
-    suggestedName: string;       // "Boston Brown Oiled Leather Clog"
-    suggestedSku: string;        // "BIRK-BOSTON-BRN"
-    confidence: number;          // 0-100 grouping confidence
-    images: Array<{
-      id: string;
-      detectedAngle: string;     // "front", "side", "back", etc.
-      angleConfidence: number;
-    }>;
-    productAnalysis: {           // Full product description
-      summary: string;
-      product_type: string;
-      colors: string[];
-      materials: string[];
-      style_keywords: string[];
-    };
-  }>;
-  ungrouped: Array<{
-    id: string;
-    reason: string;              // Why it couldn't be grouped
-  }>;
-}
-```
-
-### AI Grouping Logic
-
-The AI will:
-1. **Visual Similarity**: Compare visual features across images
-2. **Product Recognition**: Identify if images show the same product
-3. **Angle Detection**: Determine viewing angle from composition
-4. **Name Generation**: Create descriptive names from visual analysis
-5. **SKU Suggestion**: Generate SKU codes from product type + color + model
-
-### New Components
-
-| Component | Purpose |
-|-----------|---------|
-| `SmartUploadModal.tsx` | Full-screen modal for bulk upload workflow |
-| `UploadProgressView.tsx` | Shows upload + AI analysis progress |
-| `GroupReviewCard.tsx` | Editable card for each detected product group |
-| `UngroupedImagesSection.tsx` | Handle images AI couldn't confidently group |
-| `DragToRegroup.tsx` | Drag & drop interface to move images between groups |
-
-### Database Changes
-
-No schema changes needed - uses existing:
-- `product_skus` table for grouped products
-- `scraped_products` table for individual angle images
-
-### UI Features for Post-AI Editing
-
-1. **Edit Names**: Click to rename suggested product names
-2. **Edit SKU Codes**: Modify auto-generated SKU codes
-3. **Drag to Regroup**: Move images between groups via drag & drop
-4. **Split Group**: Break a group into separate SKUs
-5. **Merge Groups**: Combine multiple groups into one SKU
-6. **Adjust Angles**: Override AI-detected angle labels
-7. **Add More Images**: Upload additional angles to existing groups
-8. **Delete Images**: Remove incorrectly included images
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/creative-studio/product-shoot/SmartUploadModal.tsx` | Main smart upload interface |
-| `src/components/creative-studio/product-shoot/UploadProgressView.tsx` | Upload & analysis progress UI |
-| `src/components/creative-studio/product-shoot/GroupReviewCard.tsx` | Editable product group card |
-| `src/components/creative-studio/product-shoot/UngroupedSection.tsx` | Ungrouped images handler |
-| `supabase/functions/analyze-bulk-products/index.ts` | AI bulk analysis & grouping |
+This approach reuses existing state management and type definitions rather than duplicating them.
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/creative-studio/product-shoot/ProductSKUPicker.tsx` | Add "Smart Upload" button |
-| `src/components/creative-studio/product-shoot/CreateSKUModal.tsx` | Add link to smart upload |
-| `supabase/config.toml` | Register new edge function |
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Add "Output Settings" collapsible section with dropdowns for image count, resolution, and aspect ratio |
+| `src/components/creative-studio/CreativeStudioWizard.tsx` | Pass output settings props to ProductShootStep2 component |
 
-## Implementation Phases
+## UI Changes
 
-**Phase 1: Core Smart Upload**
-- Create `SmartUploadModal` with bulk drag & drop
-- Build `analyze-bulk-products` edge function
-- Implement basic grouping review UI
-
-**Phase 2: Editing Features**
-- Add drag-to-regroup functionality
-- Implement name/SKU editing
-- Add split/merge group actions
-
-**Phase 3: Polish**
-- Improve AI grouping accuracy with visual embeddings
-- Add confidence indicators
-- Implement undo/redo for edits
-
-## Edge Function Implementation Details
-
-The `analyze-bulk-products` function will:
-
-1. **Upload all images** to temporary storage
-2. **Analyze each image** individually using vision AI (reuse `analyze-product` logic)
-3. **Compare visual features** across images to find matches:
-   - Color palette similarity
-   - Product type matching
-   - Material consistency
-   - Hardware/details matching
-4. **Group by visual similarity** with confidence scores
-5. **Detect angles** by analyzing camera position, shadows, and composition
-6. **Generate names** from the most confident analysis in each group
-7. **Suggest SKU codes** using pattern: `{BRAND}-{MODEL}-{COLOR}` abbreviation
-
-## Smart Grouping Algorithm
+Add a new collapsible section to ProductShootStep2 after the Model section:
 
 ```text
-For each image pair (A, B):
-  1. Compare product_type → must match
-  2. Compare colors[] → 80%+ overlap
-  3. Compare materials[] → 70%+ overlap  
-  4. Compare style_keywords[] → 50%+ overlap
-  5. If all pass → same product, group together
-
-For angle detection:
-  - "front": product facing camera directly
-  - "side": product rotated 90°
-  - "back": rear view visible
-  - "3/4": angled view (most common)
-  - "top": overhead shot
-  - "detail": close-up of specific feature
-  - "sole": bottom of shoe visible
+┌─────────────────────────────────────────────────────┐
+│  ⚙️ Output Settings                                 │
+│  ┌───────────┬───────────┬───────────┐              │
+│  │  Images   │Resolution │   AR      │              │
+│  │  [4x  ▼]  │[1024px ▼] │ [1:1  ▼]  │              │
+│  └───────────┴───────────┴───────────┘              │
+└─────────────────────────────────────────────────────┘
 ```
 
-## Entry Point Integration
+## Technical Details
 
-The "Smart Upload" button will appear in two places:
-1. **ProductSKUPicker** - "✨ Smart Upload" button at top
-2. **CreateSKUModal** - "Or try Smart Upload →" link at bottom
+### Props to Add to ProductShootStep2
 
-Both open the `SmartUploadModal` for the full intelligent upload experience.
+```typescript
+interface ProductShootStep2Props {
+  // ... existing props
+  
+  // Output settings (from parent CreativeStudioState)
+  imageCount: number;
+  resolution: string;
+  aspectRatio: string;
+  onOutputSettingsChange: (updates: { 
+    imageCount?: number; 
+    resolution?: string; 
+    aspectRatio?: string; 
+  }) => void;
+}
+```
+
+### Section Implementation
+
+The Output Settings section will use:
+- `Select` component from `@/components/ui/select`
+- Same styling as other collapsible sections in ProductShootStep2
+- Import `aspectRatios` and `resolutions` from `../types.ts`
+- Settings2 icon from lucide-react for the section header
+
+### Section Order
+
+The sections will be ordered as:
+1. Product
+2. Shot Type  
+3. Background
+4. Model
+5. **Output Settings** (new)
+
+This places output configuration at the end, following the same pattern as the lifestyle flow where "Output" comes after the creative configuration sections.
