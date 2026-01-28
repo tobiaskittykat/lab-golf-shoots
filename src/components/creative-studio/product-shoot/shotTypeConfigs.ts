@@ -1,7 +1,8 @@
 // ============= SHOT TYPE CONFIGURATIONS =============
 // Each shot type has static (always used) and dynamic (configurable) elements
 
-import { ProductShotType } from './types';
+// Note: ProductShotType is used by other files, avoid circular imports
+export type ProductShotType = 'product-focus' | 'on-foot' | 'lifestyle';
 
 // ===== POSE VARIATIONS =====
 export type PoseVariation = 
@@ -254,5 +255,225 @@ export function getShotTypePromptHint(shotType: ProductShotType): string {
  * Check if a shot type has additional configuration options
  */
 export function shotTypeHasConfig(shotType: ProductShotType): boolean {
-  return shotType === 'on-foot';
+  return shotType === 'on-foot' || shotType === 'lifestyle';
+}
+
+// ===== LIFESTYLE SHOT TYPE (Full Body on Model) =====
+
+// Lifestyle Pose Variations
+export type LifestylePose = 
+  | 'auto'
+  | 'front-relaxed'
+  | 'three-quarter'
+  | 'side-profile'
+  | 'walking-pause'
+  | 'heel-lift'
+  | 'weight-shift';
+
+export const lifestylePoseOptions = [
+  { value: 'auto' as LifestylePose, label: 'Auto (AI chooses)', prompt: null },
+  { value: 'front-relaxed' as LifestylePose, label: 'Front-Facing Relaxed', prompt: 'relaxed front-facing stance, arms hanging naturally' },
+  { value: 'three-quarter' as LifestylePose, label: 'Three-Quarter Stance', prompt: 'three-quarter body angle, natural pose' },
+  { value: 'side-profile' as LifestylePose, label: 'Side Profile', prompt: 'full side profile view, clean silhouette' },
+  { value: 'walking-pause' as LifestylePose, label: 'Walking Pause', prompt: 'subtle walking pause with one foot forward' },
+  { value: 'heel-lift' as LifestylePose, label: 'Gentle Heel Lift', prompt: 'gentle heel lift with toes grounded' },
+  { value: 'weight-shift' as LifestylePose, label: 'Weight Shift', prompt: 'soft weight shift through hips and knees' },
+];
+
+// Trouser Styles (Full Body)
+export type LifestyleTrouserStyle = 
+  | 'auto'
+  | 'tailored'
+  | 'slim'
+  | 'straight'
+  | 'chinos'
+  | 'joggers';
+
+export const lifestyleTrouserStyleOptions = [
+  { value: 'auto' as LifestyleTrouserStyle, label: 'Auto (AI chooses)', prompt: null },
+  { value: 'tailored' as LifestyleTrouserStyle, label: 'Tailored Trousers', prompt: 'tailored trousers with clean lines' },
+  { value: 'slim' as LifestyleTrouserStyle, label: 'Slim Pants', prompt: 'slim-fit pants, modern and understated' },
+  { value: 'straight' as LifestyleTrouserStyle, label: 'Straight-Leg Pants', prompt: 'straight-leg pants, classic silhouette' },
+  { value: 'chinos' as LifestyleTrouserStyle, label: 'Relaxed Chinos', prompt: 'relaxed chinos, casual and comfortable' },
+  { value: 'joggers' as LifestyleTrouserStyle, label: 'Minimal Joggers', prompt: 'minimal joggers, clean athleisure look' },
+];
+
+// Top Styles
+export type LifestyleTopStyle = 
+  | 'auto'
+  | 'button-up'
+  | 'knitwear'
+  | 'jacket'
+  | 'tee';
+
+export const lifestyleTopStyleOptions = [
+  { value: 'auto' as LifestyleTopStyle, label: 'Auto (AI chooses)', prompt: null },
+  { value: 'button-up' as LifestyleTopStyle, label: 'Button-Up Shirt', prompt: 'simple button-up shirt, clean and minimal' },
+  { value: 'knitwear' as LifestyleTopStyle, label: 'Knitwear / Sweater', prompt: 'soft knitwear or sweater, understated texture' },
+  { value: 'jacket' as LifestyleTopStyle, label: 'Lightweight Jacket', prompt: 'lightweight jacket, relaxed layering' },
+  { value: 'tee' as LifestyleTopStyle, label: 'Simple Tee', prompt: 'simple crew-neck tee, minimal and clean' },
+];
+
+// Outfit Color Schemes
+export type LifestyleOutfitColor = 
+  | 'auto'
+  | 'monochrome-black'
+  | 'monochrome-white'
+  | 'monochrome-grey'
+  | 'contrast-neutral'
+  | 'navy-cream'
+  | 'charcoal-white';
+
+export const lifestyleOutfitColorOptions = [
+  { value: 'auto' as LifestyleOutfitColor, label: 'Auto (AI chooses)', prompt: null },
+  { value: 'monochrome-black' as LifestyleOutfitColor, label: 'Monochrome Black', prompt: 'all-black outfit, matte fabrics' },
+  { value: 'monochrome-white' as LifestyleOutfitColor, label: 'Monochrome White/Cream', prompt: 'all-white or cream outfit, clean and fresh' },
+  { value: 'monochrome-grey' as LifestyleOutfitColor, label: 'Monochrome Grey', prompt: 'tonal grey outfit from charcoal to light grey' },
+  { value: 'contrast-neutral' as LifestyleOutfitColor, label: 'Contrast Neutrals', prompt: 'contrasting neutral tones (black/white, navy/cream)' },
+  { value: 'navy-cream' as LifestyleOutfitColor, label: 'Navy + Cream', prompt: 'navy and cream color combination, classic palette' },
+  { value: 'charcoal-white' as LifestyleOutfitColor, label: 'Charcoal + White', prompt: 'charcoal and white color pairing, understated' },
+];
+
+// Lifestyle Shot Configuration Interface
+export interface LifestyleShotConfig {
+  // Model appearance
+  gender: ModelGender;
+  ethnicity: string;
+  // Pose
+  pose: LifestylePose;
+  // Clothing
+  trouserStyle: LifestyleTrouserStyle;
+  topStyle: LifestyleTopStyle;
+  outfitColor: LifestyleOutfitColor;
+}
+
+export const initialLifestyleConfig: LifestyleShotConfig = {
+  gender: 'auto',
+  ethnicity: 'auto',
+  pose: 'auto',
+  trouserStyle: 'auto',
+  topStyle: 'auto',
+  outfitColor: 'auto',
+};
+
+/**
+ * Build the complete prompt for "Full Body on Model" shot type.
+ * Balances static (essential) and dynamic (configurable) elements.
+ */
+export function buildLifestylePrompt(config: LifestyleShotConfig): string {
+  const sections: string[] = [];
+  
+  // === STATIC: Always included ===
+  sections.push("=== FULL BODY ON MODEL SHOT ===");
+  sections.push("");
+  
+  // Frame & Composition (STATIC)
+  sections.push("FRAMING & COMPOSITION (MANDATORY):");
+  sections.push("- Single, high-resolution e-commerce image (one frame only, no collage)");
+  sections.push("- Full-body product-on-model shot, framed from upper chest/shoulders to feet");
+  sections.push("- Head intentionally cropped out of frame");
+  sections.push("- Pulled-back distance showing full body proportions and negative space");
+  sections.push("- Similar to classic Birkenstock lookbook imagery");
+  sections.push("");
+  
+  // Background (STATIC)
+  sections.push("BACKGROUND (MANDATORY):");
+  sections.push("- Pure white seamless studio background");
+  sections.push("- Visible floor and wall plane");
+  sections.push("- Soft cast shadows grounding the model");
+  sections.push("- Camera angle: eye-level, neutral, no compression or wide-angle distortion");
+  sections.push("");
+  
+  // Product Integrity (STATIC - CRITICAL)
+  sections.push("PRODUCT INTEGRITY (CRITICAL - LOCKED):");
+  sections.push("- The footwear must match the reference EXACTLY in shape, materials, proportions");
+  sections.push("- Preserve exact buckle placement, sole thickness, hardware finish");
+  sections.push("- Natural cork-latex footbed, EVA outsole visible");
+  sections.push("- No shearling, no lining, no extra padding, no reinterpretation");
+  sections.push("- The shoe must remain IDENTICAL across all generated images");
+  sections.push("");
+  
+  // === MODEL DIRECTION (DYNAMIC) ===
+  const modelParts: string[] = [];
+  if (config.gender && config.gender !== 'auto') {
+    modelParts.push(`${config.gender} model`);
+  }
+  if (config.ethnicity && config.ethnicity !== 'auto') {
+    modelParts.push(config.ethnicity);
+  }
+  if (modelParts.length > 0) {
+    sections.push("MODEL:");
+    sections.push(`- ${modelParts.join(', ')}`);
+    sections.push("");
+  }
+  
+  // Pose (DYNAMIC with auto fallback)
+  sections.push("POSE DIRECTION:");
+  if (config.pose === 'auto') {
+    sections.push("- Natural, commercially realistic pose");
+    sections.push("- AI may select: front-facing relaxed, three-quarter stance, side profile, walking pause, heel lift, or weight shift");
+  } else {
+    const poseOpt = lifestylePoseOptions.find(p => p.value === config.pose);
+    if (poseOpt?.prompt) {
+      sections.push(`- ${poseOpt.prompt}`);
+    }
+  }
+  sections.push("- Arms may hang naturally or be slightly bent");
+  sections.push("- Pose must feel casual, human, and unstyled—never exaggerated or editorial");
+  sections.push("");
+  
+  // Clothing (DYNAMIC with auto fallback)
+  sections.push("CLOTHING (VARIABLE - CONTROLLED):");
+  sections.push("- Minimal, classic, timeless clothing");
+  
+  // Trouser style
+  if (config.trouserStyle !== 'auto') {
+    const trouserOpt = lifestyleTrouserStyleOptions.find(t => t.value === config.trouserStyle);
+    if (trouserOpt?.prompt) {
+      sections.push(`- ${trouserOpt.prompt}`);
+    }
+  } else {
+    sections.push("- Trousers: tailored, slim, straight-leg, chinos, or minimal joggers");
+  }
+  
+  // Top style
+  if (config.topStyle !== 'auto') {
+    const topOpt = lifestyleTopStyleOptions.find(t => t.value === config.topStyle);
+    if (topOpt?.prompt) {
+      sections.push(`- ${topOpt.prompt}`);
+    }
+  } else {
+    sections.push("- Top: button-up shirt, knitwear, lightweight jacket, or simple tee");
+  }
+  
+  // Outfit color
+  if (config.outfitColor !== 'auto') {
+    const colorOpt = lifestyleOutfitColorOptions.find(c => c.value === config.outfitColor);
+    if (colorOpt?.prompt) {
+      sections.push(`- ${colorOpt.prompt}`);
+    }
+  } else {
+    sections.push("- Colors: black, white, off-white, cream, charcoal, grey, navy, or muted beige only");
+  }
+  
+  sections.push("- Fabrics are matte and clean");
+  sections.push("- NO logos, NO graphics, NO bold textures, NO trends");
+  sections.push("");
+  
+  // Lighting & Technical (STATIC)
+  sections.push("LIGHTING & TECHNICAL (MANDATORY):");
+  sections.push("- Clean, diffused studio lighting");
+  sections.push("- Soft shadows that ground the model");
+  sections.push("- Materials clearly visible: suede texture, cork grain, buckle finish");
+  sections.push("- Sharp focus, neutral and accurate color");
+  sections.push("");
+  
+  // Quality Standards (STATIC)
+  sections.push("QUALITY STANDARDS:");
+  sections.push("- Timeless, calm, brand-safe composition");
+  sections.push("- Suitable for lookbook and product listing use");
+  sections.push("- True to premium footwear e-commerce standards");
+  sections.push("");
+  
+  return sections.join("\n");
 }

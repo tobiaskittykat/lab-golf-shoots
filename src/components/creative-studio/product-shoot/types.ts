@@ -13,11 +13,8 @@ export type SettingType = 'studio' | 'outdoor' | 'auto';
 // ModelGender is now defined in shotTypeConfigs.ts
 export type ModelClothing = 'casual' | 'smart-casual' | 'formal' | 'athletic' | 'bohemian' | 'auto';
 
-// Product-specific shot types (updated for visual selector)
-export type ProductShotType = 
-  | 'product-focus' 
-  | 'on-foot' 
-  | 'lifestyle';
+// Re-export ProductShotType from shotTypeConfigs to avoid circular imports
+export type { ProductShotType } from './shotTypeConfigs';
 
 // Remix change options
 export interface RemixChanges {
@@ -27,8 +24,8 @@ export interface RemixChanges {
   changeAngle?: boolean;
 }
 
-// Model configuration - uses ModelGender from shotTypeConfigs
-import type { ModelGender } from './shotTypeConfigs';
+// Model configuration - uses types from shotTypeConfigs
+import type { ModelGender, ProductShotType } from './shotTypeConfigs';
 
 export interface ModelConfig {
   gender: ModelGender;
@@ -44,8 +41,15 @@ export {
   type LegStyling,
   type TrouserColor,
   type ModelGender,
+  type LifestyleShotConfig,
+  type LifestylePose,
+  type LifestyleTrouserStyle,
+  type LifestyleTopStyle,
+  type LifestyleOutfitColor,
   initialOnFootConfig,
+  initialLifestyleConfig,
   buildOnFootPrompt,
+  buildLifestylePrompt,
   shotTypeHasConfig,
   genderOptions,
 } from './shotTypeConfigs';
@@ -64,8 +68,8 @@ export interface ProductSKUData {
   }>;
 }
 
-// Import OnFootShotConfig type for the state
-import type { OnFootShotConfig } from './shotTypeConfigs';
+// Import config types for the state
+import type { OnFootShotConfig, LifestyleShotConfig } from './shotTypeConfigs';
 
 // Product Shoot State - extends creative studio state
 export interface ProductShootState {
@@ -97,6 +101,7 @@ export interface ProductShootState {
   
   // Shot-type-specific configs
   onFootConfig?: OnFootShotConfig;
+  lifestyleConfig?: LifestyleShotConfig;
   
   // Post-generation integrity check
   integrityResults?: Record<string, ProductIntegrityResult>;
@@ -133,13 +138,22 @@ export const initialProductShootState: ProductShootState = {
     useOnBrandDefaults: true,
   },
   productShotType: 'lifestyle',
-  // On-foot specific config (imported from shotTypeConfigs)
+  // On-foot specific config
   onFootConfig: {
     gender: 'auto',
     ethnicity: 'auto',
     poseVariation: 'auto',
     legStyling: 'auto',
     trouserColor: 'auto',
+  },
+  // Lifestyle (full body) specific config
+  lifestyleConfig: {
+    gender: 'auto',
+    ethnicity: 'auto',
+    pose: 'auto',
+    trouserStyle: 'auto',
+    topStyle: 'auto',
+    outfitColor: 'auto',
   },
 };
 
