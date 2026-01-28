@@ -155,8 +155,9 @@ export function buildOnFootPrompt(config: OnFootShotConfig): string {
   
   // Product Integrity (STATIC - CRITICAL)
   sections.push("PRODUCT INTEGRITY (CRITICAL):");
-  sections.push("- The footwear must match the reference EXACTLY in shape, materials, proportions");
-  sections.push("- Preserve exact buckle placement, sole thickness, hardware finish");
+  sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
+  sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
+  sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
   sections.push("- No reinterpretation, no added elements, no modifications");
   sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
   sections.push("");
@@ -386,11 +387,11 @@ export function buildLifestylePrompt(config: LifestyleShotConfig): string {
   
   // Product Integrity (STATIC - CRITICAL)
   sections.push("PRODUCT INTEGRITY (CRITICAL - LOCKED):");
-  sections.push("- The footwear must match the reference EXACTLY in shape, materials, proportions");
-  sections.push("- Preserve exact buckle placement, sole thickness, hardware finish");
-  sections.push("- Natural cork-latex footbed, EVA outsole visible");
+  sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
+  sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
+  sections.push("- Maintain signature Birkenstock details: natural cork-latex footbed, contoured sole, EVA outsole");
   sections.push("- No shearling, no lining, no extra padding, no reinterpretation");
-  sections.push("- The shoe must remain IDENTICAL across all generated images");
+  sections.push("- The Birkenstock shoe must remain IDENTICAL across all generated images");
   sections.push("");
   
   // === MODEL DIRECTION (DYNAMIC) ===
