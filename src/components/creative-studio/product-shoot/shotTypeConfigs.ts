@@ -101,14 +101,30 @@ export const trouserColorOptions = [
   { value: 'denim-light' as TrouserColor, label: 'Light Denim', prompt: 'light wash denim jeans' },
 ];
 
+// ===== MODEL GENDER =====
+export type ModelGender = 'auto' | 'female' | 'male' | 'nonbinary';
+
+export const genderOptions = [
+  { value: 'auto' as ModelGender, label: 'Auto (AI chooses)' },
+  { value: 'female' as ModelGender, label: 'Female' },
+  { value: 'male' as ModelGender, label: 'Male' },
+  { value: 'nonbinary' as ModelGender, label: 'Non-binary' },
+];
+
 // ===== ON-FOOT SHOT TYPE CONFIG =====
 export interface OnFootShotConfig {
+  // Model appearance
+  gender: ModelGender;
+  ethnicity: string;
+  // Pose & styling
   poseVariation: PoseVariation;
   legStyling: LegStyling;
   trouserColor: TrouserColor;
 }
 
 export const initialOnFootConfig: OnFootShotConfig = {
+  gender: 'auto',
+  ethnicity: 'auto',
   poseVariation: 'auto',
   legStyling: 'auto',
   trouserColor: 'auto',
@@ -182,6 +198,20 @@ export function buildOnFootPrompt(config: OnFootShotConfig): string {
     sections.push("- Neutral, matte fabric that complements the product");
   }
   sections.push("");
+  
+  // === MODEL DIRECTION (DYNAMIC) ===
+  const modelParts: string[] = [];
+  if (config.gender && config.gender !== 'auto') {
+    modelParts.push(`${config.gender} model`);
+  }
+  if (config.ethnicity && config.ethnicity !== 'auto') {
+    modelParts.push(config.ethnicity);
+  }
+  if (modelParts.length > 0) {
+    sections.push("MODEL:");
+    sections.push(`- ${modelParts.join(', ')}`);
+    sections.push("");
+  }
   
   // Lighting & Technical (STATIC)
   sections.push("LIGHTING & TECHNICAL (MANDATORY):");

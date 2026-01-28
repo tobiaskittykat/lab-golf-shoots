@@ -10,7 +10,7 @@ export type RecolorOption = 'none' | 'pre-generation' | 'during-generation';
 export type SettingType = 'studio' | 'outdoor' | 'auto';
 
 // Model configuration options
-export type ModelGender = 'female' | 'male' | 'nonbinary' | 'auto';
+// ModelGender is now defined in shotTypeConfigs.ts
 export type ModelClothing = 'casual' | 'smart-casual' | 'formal' | 'athletic' | 'bohemian' | 'auto';
 
 // Product-specific shot types (updated for visual selector)
@@ -27,7 +27,9 @@ export interface RemixChanges {
   changeAngle?: boolean;
 }
 
-// Model configuration
+// Model configuration - uses ModelGender from shotTypeConfigs
+import type { ModelGender } from './shotTypeConfigs';
+
 export interface ModelConfig {
   gender: ModelGender;
   ethnicity: string;
@@ -35,15 +37,17 @@ export interface ModelConfig {
   useOnBrandDefaults: boolean;
 }
 
-// Re-export shot type configs
+// Re-export shot type configs including ModelGender
 export { 
   type OnFootShotConfig,
   type PoseVariation,
   type LegStyling,
   type TrouserColor,
+  type ModelGender,
   initialOnFootConfig,
   buildOnFootPrompt,
   shotTypeHasConfig,
+  genderOptions,
 } from './shotTypeConfigs';
 
 // Product SKU for multi-angle grouping
@@ -131,6 +135,8 @@ export const initialProductShootState: ProductShootState = {
   productShotType: 'lifestyle',
   // On-foot specific config (imported from shotTypeConfigs)
   onFootConfig: {
+    gender: 'auto',
+    ethnicity: 'auto',
     poseVariation: 'auto',
     legStyling: 'auto',
     trouserColor: 'auto',
