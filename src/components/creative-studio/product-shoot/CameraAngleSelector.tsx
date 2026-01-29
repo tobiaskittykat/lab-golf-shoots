@@ -28,9 +28,9 @@ interface CameraAngleSelectorProps {
 
 export function CameraAngleSelector({ value, onChange }: CameraAngleSelectorProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label className="text-xs text-muted-foreground">Camera Angle</label>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="flex gap-1">
         {productFocusAngleOptions.map((option) => {
           const isSelected = value === option.value;
           const thumbnailSrc = option.thumbnail ? thumbnailMap[option.thumbnail] : null;
@@ -41,11 +41,11 @@ export function CameraAngleSelector({ value, onChange }: CameraAngleSelectorProp
               type="button"
               onClick={() => onChange(option.value)}
               className={cn(
-                "relative flex flex-col items-center rounded-lg border-2 transition-all overflow-hidden",
+                "relative flex flex-col items-center rounded border transition-all overflow-hidden flex-1 min-w-0",
                 "hover:border-accent/50 hover:bg-accent/5",
                 isSelected 
                   ? "border-accent bg-accent/10 ring-1 ring-accent/30" 
-                  : "border-border/50 bg-muted/30"
+                  : "border-border/40 bg-muted/20"
               )}
             >
               {/* Thumbnail or icon */}
@@ -58,11 +58,11 @@ export function CameraAngleSelector({ value, onChange }: CameraAngleSelectorProp
                   />
                 ) : option.value === 'lifestyle' ? (
                   <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                    <Sparkles className="w-5 h-5 text-muted-foreground" />
+                    <Sparkles className="w-3 h-3 text-muted-foreground" />
                   </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                    <Grid3X3 className="w-5 h-5 text-muted-foreground" />
+                    <Grid3X3 className="w-3 h-3 text-muted-foreground" />
                   </div>
                 )}
                 
@@ -74,7 +74,7 @@ export function CameraAngleSelector({ value, onChange }: CameraAngleSelectorProp
               
               {/* Label */}
               <div className={cn(
-                "w-full px-1 py-1 text-center text-[9px] font-medium truncate",
+                "w-full px-0.5 py-0.5 text-center text-[7px] font-medium truncate leading-tight",
                 isSelected ? "text-accent" : "text-muted-foreground"
               )}>
                 {option.label}
