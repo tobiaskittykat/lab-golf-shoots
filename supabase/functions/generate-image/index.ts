@@ -549,10 +549,18 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
     // Build multimodal content for prompt agent
     const promptAgentContent: any[] = [];
     
-    // Add product images FIRST so the agent can SEE them and describe them accurately
+    // Add the creative brief FIRST as text
+    promptAgentContent.push({
+      type: "text",
+      text: creativeBrief
+    });
+    
+    // Add product images AFTER brief so the agent can SEE them and describe them accurately
+    // Use the same limit as the image generator (up to 5 images for prompt agent analysis)
     if (productUrls.length > 0) {
-      console.log(`Adding ${productUrls.length} product images to prompt agent for visual analysis`);
-      for (const url of productUrls.slice(0, 3)) {
+      const attachCount = Math.min(productUrls.length, 5);
+      console.log(`Adding ${attachCount} product images to prompt agent for visual analysis`);
+      for (const url of productUrls.slice(0, attachCount)) {
         promptAgentContent.push({
           type: "image_url",
           image_url: { url }
@@ -560,14 +568,22 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
       }
       promptAgentContent.push({
         type: "text",
-        text: `⚠️ PRODUCT REFERENCE IMAGES ABOVE: Study these ${productUrls.length} product image(s) carefully. In your prompt, describe these products with EXACT visual accuracy - materials, colors, hardware, silhouette. Do NOT use product names.`
+        text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
+
+MANDATORY REQUIREMENTS:
+- Preserve EXACT visual details: materials, textures, colors, hardware finishes
+- Match proportions and silhouette precisely  
+- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy
+- Do NOT simplify, reimagine, or take creative liberties with these products
+- The products should look like they were photographed, not illustrated or reinterpreted
+- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
       });
     }
     
-    // Add the creative brief
+    // Add final instruction to craft the prompt
     promptAgentContent.push({
       type: "text",
-      text: `Craft a single, evocative image generation prompt from this creative brief:\n\n${creativeBrief}\n\nRemember: One cohesive prompt. Describe products visually based on the reference images above.`
+      text: `Craft a single, evocative image generation prompt from this creative brief. Describe products visually based on the reference images above with EXACT accuracy.`
     });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

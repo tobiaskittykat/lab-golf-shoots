@@ -48,7 +48,15 @@ export const ImageDetailModal = ({
       return;
     }
 
-    // If we already have the URL, use it
+    // Check settings.references for moodboard URL first (most reliable)
+    const settingsRefsUrl = (image.settings?.references as { moodboardUrl?: string } | undefined)?.moodboardUrl;
+    
+    // If we already have the URL from settings.references or direct field, use it
+    if (settingsRefsUrl) {
+      setResolvedMoodboardUrl(settingsRefsUrl);
+      return;
+    }
+    
     if (image.moodboardUrl) {
       setResolvedMoodboardUrl(image.moodboardUrl);
       return;
@@ -75,7 +83,7 @@ export const ImageDetailModal = ({
 
       fetchMoodboard();
     }
-  }, [image?.moodboardId, image?.moodboardUrl]);
+  }, [image?.moodboardId, image?.moodboardUrl, image?.settings]);
 
   // Format AI model name for display
   const formatModelName = (model: string): string => {
@@ -134,9 +142,16 @@ export const ImageDetailModal = ({
     setFailedImages(prev => new Set(prev).add(url));
   };
 
-  // Get product URLs - prefer array, fallback to single
-  const productUrls = image.productReferenceUrls || 
-    (image.productReferenceUrl ? [image.productReferenceUrl] : []);
+  // Get product URLs - prefer array from settings.references, fallback to legacy fields
+  const settingsRefs = image.settings?.references as { 
+    productReferenceUrls?: string[]; 
+    moodboardUrl?: string;
+    shotTypePrompt?: string;
+  } | undefined;
+  
+  const productUrls = settingsRefs?.productReferenceUrls?.length 
+    ? settingsRefs.productReferenceUrls 
+    : image.productReferenceUrls || (image.productReferenceUrl ? [image.productReferenceUrl] : []);
 
   // Get context URLs - prefer array, fallback to single
   const contextUrls = image.contextReferenceUrls || 
