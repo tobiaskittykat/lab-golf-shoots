@@ -85,6 +85,9 @@ export const ProductShootStep2 = ({
   
   // Track stable display order for inline product grid (decoupled from DB query order)
   const [displayedSkuIds, setDisplayedSkuIds] = useState<string[]>([]);
+  
+  // Cache for SKU data (for products selected from modal that aren't in recentSkus)
+  const [skuCache, setSkuCache] = useState<Map<string, ProductSKU>>(new Map());
 
   // Fetch top 3 SKUs for inline display (prioritize recently used, then newest)
   const { data: recentSkus = [] } = useQuery({
@@ -200,14 +203,35 @@ export const ProductShootStep2 = ({
     }
   }, [recentSkus, state.selectedProductId, hasAutoSelected]);
   
-  // Build displayed products from stable order
+  // Build displayed products from stable order (with cache fallback)
   const displayedProducts = useMemo(() => {
     if (displayedSkuIds.length === 0) return recentSkus.slice(0, 3);
     
     return displayedSkuIds
-      .map(id => recentSkus.find(s => s.id === id))
+      .map(id => {
+        // First try to find in recentSkus
+        const fromRecent = recentSkus.find(s => s.id === id);
+        if (fromRecent) return fromRecent;
+        
+        // Fall back to cache (for products selected from modal)
+        const fromCache = skuCache.get(id);
+        if (fromCache) {
+          return {
+            id: fromCache.id,
+            name: fromCache.name,
+            sku_code: fromCache.sku_code,
+            composite_image_url: fromCache.composite_image_url,
+            brand_id: fromCache.brand_id,
+            last_used_at: fromCache.last_used_at,
+            display_image_url: fromCache.composite_image_url || fromCache.angles?.[0]?.thumbnail_url,
+            description: null,
+          };
+        }
+        
+        return null;
+      })
       .filter(Boolean) as typeof recentSkus;
-  }, [displayedSkuIds, recentSkus]);
+  }, [displayedSkuIds, recentSkus, skuCache]);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -224,7 +248,14 @@ export const ProductShootStep2 = ({
     });
     
     // Only update display order if selecting from modal (Browse More)
-    if (fromModal && !displayedSkuIds.includes(sku.id)) {
+    if (fromModal) {
+      // Cache the SKU data for display
+      setSkuCache(prev => {
+        const next = new Map(prev);
+        next.set(sku.id, sku);
+        return next;
+      });
+      
       // Move new selection to front, keep existing order for rest
       setDisplayedSkuIds(prev => {
         const newOrder = [sku.id, ...prev.filter(id => id !== sku.id)].slice(0, 3);
@@ -398,18 +429,6 @@ export const ProductShootStep2 = ({
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => {
-                        setEditingSkuId(selectedSku.id);
-                        setShowEditSKUModal(true);
-                      }}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </Button>
                   </div>
                 )}
 
