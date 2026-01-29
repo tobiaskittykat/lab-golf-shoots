@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
@@ -79,6 +79,9 @@ export const ProductShootStep2 = ({
   const [showCreateSKUModal, setShowCreateSKUModal] = useState(false);
   const [selectedSku, setSelectedSku] = useState<ProductSKU | null>(null);
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  
+  // Track stable display order for inline product grid (decoupled from DB query order)
+  const [displayedSkuIds, setDisplayedSkuIds] = useState<string[]>([]);
 
   // Fetch top 3 SKUs for inline display (prioritize recently used, then newest)
   const { data: recentSkus = [] } = useQuery({
@@ -170,6 +173,13 @@ export const ProductShootStep2 = ({
     }
   }, [fetchedSku, selectedSku]);
 
+  // Initialize displayedSkuIds from database query (only once on first load)
+  useEffect(() => {
+    if (displayedSkuIds.length === 0 && recentSkus.length > 0) {
+      setDisplayedSkuIds(recentSkus.slice(0, 3).map(s => s.id));
+    }
+  }, [recentSkus, displayedSkuIds.length]);
+
   // Auto-select the most recently used product if none selected
   useEffect(() => {
     if (!hasAutoSelected && recentSkus.length > 0 && !state.selectedProductId) {
@@ -182,10 +192,19 @@ export const ProductShootStep2 = ({
         brand_id: mostRecent.brand_id,
         last_used_at: mostRecent.last_used_at,
         angles: [],
-      });
+      }, false); // Auto-select doesn't change display order
       setHasAutoSelected(true);
     }
   }, [recentSkus, state.selectedProductId, hasAutoSelected]);
+  
+  // Build displayed products from stable order
+  const displayedProducts = useMemo(() => {
+    if (displayedSkuIds.length === 0) return recentSkus.slice(0, 3);
+    
+    return displayedSkuIds
+      .map(id => recentSkus.find(s => s.id === id))
+      .filter(Boolean) as typeof recentSkus;
+  }, [displayedSkuIds, recentSkus]);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -194,12 +213,21 @@ export const ProductShootStep2 = ({
   // Check if shot type needs a model
   const needsModel = !['flat-lay', 'product-focus'].includes(state.productShotType);
 
-  const handleSkuSelect = (sku: ProductSKU) => {
+  const handleSkuSelect = (sku: ProductSKU, fromModal: boolean = false) => {
     setSelectedSku(sku);
     onStateChange({
       selectedProductId: sku.id,
       recoloredProductUrl: sku.composite_image_url || sku.angles[0]?.thumbnail_url,
     });
+    
+    // Only update display order if selecting from modal (Browse More)
+    if (fromModal && !displayedSkuIds.includes(sku.id)) {
+      // Move new selection to front, keep existing order for rest
+      setDisplayedSkuIds(prev => {
+        const newOrder = [sku.id, ...prev.filter(id => id !== sku.id)].slice(0, 3);
+        return newOrder;
+      });
+    }
   };
 
   const handleClearProduct = () => {
@@ -324,14 +352,14 @@ export const ProductShootStep2 = ({
                 /* Show recent products inline + browse all */
                 <div className="space-y-3">
                   {/* Recent Products Grid */}
-                  {recentSkus.length > 0 && (
+                  {displayedProducts.length > 0 && (
                     <div className="space-y-2">
                       <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
                         Your Products
                       </span>
                       <div className="grid grid-cols-3 gap-2">
-                        {recentSkus.map(sku => {
+                        {displayedProducts.map(sku => {
                           const isSelected = state.selectedProductId === sku.id;
                           const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
                           const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
@@ -340,7 +368,7 @@ export const ProductShootStep2 = ({
                           return (
                             <HoverCard key={sku.id} openDelay={300} closeDelay={100}>
                               <HoverCardTrigger asChild>
-                                <button
+                              <button
                                   onClick={() => handleSkuSelect({
                                     id: sku.id,
                                     name: sku.name,
@@ -349,7 +377,7 @@ export const ProductShootStep2 = ({
                                     brand_id: sku.brand_id,
                                     last_used_at: sku.last_used_at,
                                     angles: [],
-                                  })}
+                                  }, false)} // Inline click does NOT change display order
                                   className={cn(
                                     "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
                                     isSelected 
@@ -573,7 +601,7 @@ export const ProductShootStep2 = ({
         open={showProductPickerModal}
         onOpenChange={setShowProductPickerModal}
         selectedSkuId={selectedSku?.id || null}
-        onSelectSku={handleSkuSelect}
+        onSelectSku={(sku) => handleSkuSelect(sku, true)} // Modal selection DOES update display order
         onCreateNew={() => setShowCreateSKUModal(true)}
         onSmartUpload={() => setShowSmartUploadModal(true)}
       />
