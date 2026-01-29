@@ -1,15 +1,22 @@
-import { useState } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Plus, Sparkles } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { BackgroundSelector } from "./BackgroundSelector";
-import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
+import { ProductSKU } from "./ProductSKUPicker";
+import { ProductPickerModal } from "./ProductPickerModal";
+import { SmartUploadModal } from "./SmartUploadModal";
 import { CreateSKUModal } from "./CreateSKUModal";
 import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
 import { OnFootConfigurator } from "./OnFootConfigurator";
 import { LifestyleConfigurator } from "./LifestyleConfigurator";
 import { ProductFocusConfigurator } from "./ProductFocusConfigurator";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
+import { useQuery } from "@tanstack/react-query";
 import { 
   ProductShootState, 
   initialProductShootState,
@@ -53,6 +60,9 @@ export const ProductShootStep2 = ({
   sequentialGeneration,
   onOutputSettingsChange,
 }: ProductShootStep2Props) => {
+  const { user } = useAuth();
+  const { currentBrand } = useBrands();
+  
   const [openSections, setOpenSections] = useState({
     product: true,
     background: true,
@@ -60,8 +70,53 @@ export const ProductShootStep2 = ({
     output: true,
   });
   
+  const [showProductPickerModal, setShowProductPickerModal] = useState(false);
+  const [showSmartUploadModal, setShowSmartUploadModal] = useState(false);
   const [showCreateSKUModal, setShowCreateSKUModal] = useState(false);
   const [selectedSku, setSelectedSku] = useState<ProductSKU | null>(null);
+
+  // Fetch the selected SKU if we have a selectedProductId but no selectedSku object
+  const { data: fetchedSku } = useQuery({
+    queryKey: ['selected-sku', state.selectedProductId],
+    queryFn: async () => {
+      if (!state.selectedProductId || !user?.id) return null;
+      
+      const { data: sku } = await supabase
+        .from('product_skus')
+        .select('*')
+        .eq('id', state.selectedProductId)
+        .maybeSingle();
+      
+      if (!sku) return null;
+      
+      const { data: angles } = await supabase
+        .from('scraped_products')
+        .select('id, thumbnail_url, angle')
+        .eq('sku_id', sku.id);
+      
+      return {
+        id: sku.id,
+        name: sku.name,
+        sku_code: sku.sku_code,
+        composite_image_url: sku.composite_image_url,
+        brand_id: sku.brand_id,
+        last_used_at: sku.last_used_at,
+        angles: (angles || []).map(a => ({
+          id: a.id,
+          thumbnail_url: a.thumbnail_url,
+          angle: a.angle,
+        })),
+      } as ProductSKU;
+    },
+    enabled: !!state.selectedProductId && !selectedSku && !!user?.id,
+  });
+
+  // Sync fetchedSku to local state
+  useEffect(() => {
+    if (fetchedSku && !selectedSku) {
+      setSelectedSku(fetchedSku);
+    }
+  }, [fetchedSku, selectedSku]);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -70,21 +125,17 @@ export const ProductShootStep2 = ({
   // Check if shot type needs a model
   const needsModel = !['flat-lay', 'product-focus'].includes(state.productShotType);
 
-
-  const handleSkuSelect = (sku: ProductSKU | null) => {
+  const handleSkuSelect = (sku: ProductSKU) => {
     setSelectedSku(sku);
-    if (sku) {
-      onStateChange({
-        selectedProductId: sku.id,
-        // Use composite URL if available, otherwise first angle
-        recoloredProductUrl: sku.composite_image_url || sku.angles[0]?.thumbnail_url,
-      });
-    } else {
-      onStateChange({
-        selectedProductId: undefined,
-        recoloredProductUrl: undefined,
-      });
-    }
+    onStateChange({
+      selectedProductId: sku.id,
+      recoloredProductUrl: sku.composite_image_url || sku.angles[0]?.thumbnail_url,
+    });
+  };
+
+  const handleClearProduct = () => {
+    setSelectedSku(null);
+    onStateChange({ selectedProductId: undefined, recoloredProductUrl: undefined });
   };
 
   const handleSkuCreated = (skuId: string) => {
@@ -145,7 +196,7 @@ export const ProductShootStep2 = ({
   const currentProductName = selectedSku?.name || selectedProduct?.name;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-8">
       {/* Product Selection with SKU Picker */}
       <Collapsible open={openSections.product}>
         <div id="section-ps-product" className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -158,7 +209,7 @@ export const ProductShootStep2 = ({
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-4">
               {/* Selected Product Preview */}
-              {(selectedSku || selectedProduct) && currentProductImage && (
+              {(selectedSku || selectedProduct) && currentProductImage ? (
                 <div className="flex items-center gap-4 p-3 rounded-xl bg-muted/50">
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted relative">
                     <img 
@@ -177,25 +228,63 @@ export const ProductShootStep2 = ({
                     {selectedSku?.sku_code && (
                       <div className="text-xs text-muted-foreground">{selectedSku.sku_code}</div>
                     )}
+                    {selectedSku?.angles && selectedSku.angles.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {selectedSku.angles.length} angle{selectedSku.angles.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedSku(null);
-                      onStateChange({ selectedProductId: undefined, recoloredProductUrl: undefined });
-                    }}
-                    className="action-chip"
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowProductPickerModal(true)}
+                    >
+                      Change
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearProduct}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* No product selected - show call to action */
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full h-20 border-dashed flex flex-col gap-1"
+                    onClick={() => setShowProductPickerModal(true)}
                   >
-                    Clear
-                  </button>
+                    <Package className="w-6 h-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Select a product from your library</span>
+                  </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={() => setShowSmartUploadModal(true)}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Smart Upload
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={() => setShowCreateSKUModal(true)}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create SKU
+                    </Button>
+                  </div>
                 </div>
               )}
-
-              {/* SKU Picker */}
-              <ProductSKUPicker
-                selectedSkuId={selectedSku?.id || null}
-                onSelectSku={handleSkuSelect}
-                onCreateNew={() => setShowCreateSKUModal(true)}
-              />
             </div>
           </CollapsibleContent>
         </div>
@@ -356,6 +445,21 @@ export const ProductShootStep2 = ({
         </div>
       </Collapsible>
 
+      {/* Product Picker Modal */}
+      <ProductPickerModal
+        open={showProductPickerModal}
+        onOpenChange={setShowProductPickerModal}
+        selectedSkuId={selectedSku?.id || null}
+        onSelectSku={handleSkuSelect}
+        onCreateNew={() => setShowCreateSKUModal(true)}
+        onSmartUpload={() => setShowSmartUploadModal(true)}
+      />
+
+      {/* Smart Upload Modal */}
+      <SmartUploadModal 
+        open={showSmartUploadModal} 
+        onOpenChange={setShowSmartUploadModal} 
+      />
 
       {/* Create SKU Modal */}
       <CreateSKUModal
