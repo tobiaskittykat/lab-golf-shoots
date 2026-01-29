@@ -148,7 +148,7 @@ export const ProductShootStep2 = ({
     <div className="space-y-4">
       {/* Product Selection with SKU Picker */}
       <Collapsible open={openSections.product}>
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div id="section-ps-product" className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader 
             icon={Package} 
             title="Product" 
@@ -203,7 +203,7 @@ export const ProductShootStep2 = ({
 
       {/* Shot Type - Visual Selector */}
       <Collapsible open={openSections.shotType}>
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div id="section-ps-shot-type" className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader 
             icon={Camera} 
             title="Shot Type" 
@@ -250,7 +250,7 @@ export const ProductShootStep2 = ({
 
       {/* Background Selection */}
       <Collapsible open={openSections.background}>
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div id="section-ps-background" className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader 
             icon={ImageIcon} 
             title="Background" 
@@ -276,7 +276,7 @@ export const ProductShootStep2 = ({
 
       {/* Output Settings */}
       <Collapsible open={openSections.output}>
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div id="section-ps-output" className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader 
             icon={Settings2} 
             title="Output Settings" 

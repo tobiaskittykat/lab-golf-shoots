@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { smoothScrollTo } from "@/lib/utils";
-import { ProductShootSubtypeSelector, ProductShootStep2 } from "./product-shoot";
+import { ProductShootSubtypeSelector, ProductShootStep2, ProductShootIndicators } from "./product-shoot";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -936,33 +936,13 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 <SelectionIndicators state={state} />
               )}
               
-              {/* Product Shot specific info - enhanced bottom bar */}
+              {/* Product Shot specific info - clickable indicator chips matching lifestyle */}
               {state.useCase === 'product' && (
-                <div className="flex items-center gap-3 text-sm">
-                  {/* Product thumbnail + name */}
-                  {state.productShoot?.recoloredProductUrl && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border">
-                      <img 
-                        src={state.productShoot.recoloredProductUrl} 
-                        alt="Product" 
-                        className="w-6 h-6 rounded object-cover"
-                      />
-                      <span className="max-w-[100px] truncate text-muted-foreground text-xs">
-                        Product
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Shot type badge */}
-                  <span className="px-3 py-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground capitalize">
-                    {state.productShoot.productShotType?.replace('-', ' ') || 'Lifestyle'}
-                  </span>
-                  
-                  {/* Background type badge */}
-                  <span className="px-3 py-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground">
-                    {state.productShoot.settingType === 'studio' ? '🏢 Studio' : state.productShoot.settingType === 'outdoor' ? '🌳 Outdoor' : '✨ Auto'}
-                  </span>
-                </div>
+                <ProductShootIndicators 
+                  state={state.productShoot}
+                  imageCount={state.imageCount}
+                  aspectRatio={state.aspectRatio}
+                />
               )}
               
               {/* Discovery Mode Toggle - Only for non-product flows */}
@@ -991,7 +971,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 {isGeneratingImages 
                   ? 'Generating...' 
                   : state.useCase === 'product'
-                    ? `Generate Product Shot`
+                    ? `Generate (${state.imageCount} images)`
                     : isGeneratingConcepts || state.isLoadingConcepts 
                       ? 'Creating concepts...' 
                       : isAgentMatching 
