@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,7 @@ import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
 import { OnFootConfigurator } from "./OnFootConfigurator";
 import { LifestyleConfigurator } from "./LifestyleConfigurator";
 import { ProductFocusConfigurator } from "./ProductFocusConfigurator";
+import { ProductAnglePreview } from "./ProductAnglePreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
@@ -332,44 +334,43 @@ export const ProductShootStep2 = ({
                         {recentSkus.map(sku => {
                           const isSelected = state.selectedProductId === sku.id;
                           const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
+                          const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
+                          const attributes = formatSkuAttributes(displayInfo);
                           
                           return (
-                            <button
-                              key={sku.id}
-                              onClick={() => handleSkuSelect({
-                                id: sku.id,
-                                name: sku.name,
-                                sku_code: sku.sku_code,
-                                composite_image_url: sku.composite_image_url,
-                                brand_id: sku.brand_id,
-                                last_used_at: sku.last_used_at,
-                                angles: [],
-                              })}
-                              className={cn(
-                                "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                                isSelected 
-                                  ? "border-accent ring-2 ring-accent/30" 
-                                  : "border-transparent hover:border-muted-foreground/30"
-                              )}
-                            >
-                              {imageUrl ? (
-                                <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-muted flex items-center justify-center">
-                                  <Package className="w-6 h-6 text-muted-foreground" />
-                                </div>
-                              )}
-                              {/* Selection indicator */}
-                              {isSelected && (
-                                <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                                  <Check className="w-3 h-3 text-white" />
-                                </div>
-                              )}
-                              {/* Name overlay */}
-                              {(() => {
-                                const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
-                                const attributes = formatSkuAttributes(displayInfo);
-                                return (
+                            <HoverCard key={sku.id} openDelay={300} closeDelay={100}>
+                              <HoverCardTrigger asChild>
+                                <button
+                                  onClick={() => handleSkuSelect({
+                                    id: sku.id,
+                                    name: sku.name,
+                                    sku_code: sku.sku_code,
+                                    composite_image_url: sku.composite_image_url,
+                                    brand_id: sku.brand_id,
+                                    last_used_at: sku.last_used_at,
+                                    angles: [],
+                                  })}
+                                  className={cn(
+                                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                                    isSelected 
+                                      ? "border-accent ring-2 ring-accent/30" 
+                                      : "border-transparent hover:border-muted-foreground/30"
+                                  )}
+                                >
+                                  {imageUrl ? (
+                                    <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                                      <Package className="w-6 h-6 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  {/* Selection indicator */}
+                                  {isSelected && (
+                                    <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                                      <Check className="w-3 h-3 text-white" />
+                                    </div>
+                                  )}
+                                  {/* Name overlay */}
                                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                                     <span className="text-xs text-white font-medium truncate block">
                                       {displayInfo.modelName}
@@ -380,9 +381,17 @@ export const ProductShootStep2 = ({
                                       </span>
                                     )}
                                   </div>
-                                );
-                              })()}
-                            </button>
+                                </button>
+                              </HoverCardTrigger>
+                              <HoverCardContent 
+                                side="top" 
+                                align="center" 
+                                className="w-auto p-3"
+                                sideOffset={8}
+                              >
+                                <ProductAnglePreview skuId={sku.id} skuName={sku.name} />
+                              </HoverCardContent>
+                            </HoverCard>
                           );
                         })}
                       </div>

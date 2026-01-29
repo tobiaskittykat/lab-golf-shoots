@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
-import { Check, Wand2, Cloud } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Check, Wand2, Cloud, ChevronDown, ChevronUp } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
 import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
+
+const LAST_USED_BG_KEY = 'product-shoot-last-bg';
+const VISIBLE_COUNT = 4;
 
 interface BackgroundSelectorProps {
   settingType: SettingType;
@@ -36,6 +40,27 @@ export const BackgroundSelector = ({
   };
   
   const [activeTab, setActiveTab] = useState<'studio' | 'outdoor'>(getInitialTab());
+  const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
+
+  // Get last used background from localStorage
+  const lastUsedBgId = useMemo(() => {
+    try {
+      return localStorage.getItem(LAST_USED_BG_KEY) || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Save last used background when selection changes
+  useEffect(() => {
+    if (selectedBackgroundId) {
+      try {
+        localStorage.setItem(LAST_USED_BG_KEY, selectedBackgroundId);
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
+  }, [selectedBackgroundId]);
 
   // Sync tab when background selection changes externally
   useEffect(() => {
@@ -50,6 +75,7 @@ export const BackgroundSelector = ({
     const tab = value as 'studio' | 'outdoor';
     setActiveTab(tab);
     onSettingTypeChange(tab);
+    setShowAllBackgrounds(false); // Reset expand state on tab change
     // If switching to outdoor and no outdoor background selected, select first one
     if (tab === 'outdoor' && !selectedBackgroundId?.startsWith('outdoor-')) {
       onBackgroundSelect(outdoorBackgrounds[0].id);
@@ -58,7 +84,26 @@ export const BackgroundSelector = ({
     }
   };
 
-  const backgrounds = activeTab === 'studio' ? studioBackgrounds : outdoorBackgrounds;
+  // Sort backgrounds: recently used first, then default order
+  const sortedBackgrounds = useMemo(() => {
+    const baseList = activeTab === 'studio' ? studioBackgrounds : outdoorBackgrounds;
+    if (!lastUsedBgId) return baseList;
+    
+    const lastUsedIndex = baseList.findIndex(bg => bg.id === lastUsedBgId);
+    if (lastUsedIndex <= 0) return baseList; // Already first or not found
+    
+    // Move last used to front
+    const sorted = [...baseList];
+    const [lastUsed] = sorted.splice(lastUsedIndex, 1);
+    sorted.unshift(lastUsed);
+    return sorted;
+  }, [activeTab, lastUsedBgId]);
+
+  const visibleBackgrounds = showAllBackgrounds 
+    ? sortedBackgrounds 
+    : sortedBackgrounds.slice(0, VISIBLE_COUNT);
+  
+  const hiddenCount = sortedBackgrounds.length - VISIBLE_COUNT;
   const isOutdoorBackground = selectedBackgroundId?.startsWith('outdoor-') || settingType === 'outdoor';
 
   const renderBackgroundCard = (bg: BackgroundPreset) => {
@@ -133,16 +178,56 @@ export const BackgroundSelector = ({
           <TabsTrigger value="outdoor">Outdoor</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="studio" className="mt-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {studioBackgrounds.map(renderBackgroundCard)}
+        <TabsContent value="studio" className="mt-4 space-y-3">
+          <div className="grid grid-cols-4 gap-3">
+            {visibleBackgrounds.map(renderBackgroundCard)}
           </div>
+          {hiddenCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAllBackgrounds(!showAllBackgrounds)}
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              {showAllBackgrounds ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-1" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-1" />
+                  Show {hiddenCount} More
+                </>
+              )}
+            </Button>
+          )}
         </TabsContent>
         
-        <TabsContent value="outdoor" className="mt-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {outdoorBackgrounds.map(renderBackgroundCard)}
+        <TabsContent value="outdoor" className="mt-4 space-y-3">
+          <div className="grid grid-cols-4 gap-3">
+            {visibleBackgrounds.map(renderBackgroundCard)}
           </div>
+          {hiddenCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAllBackgrounds(!showAllBackgrounds)}
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              {showAllBackgrounds ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-1" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-1" />
+                  Show {hiddenCount} More
+                </>
+              )}
+            </Button>
+          )}
         </TabsContent>
       </Tabs>
 
