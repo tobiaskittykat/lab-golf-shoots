@@ -95,6 +95,25 @@ export function buildLightingSection(context: BackgroundContext): string[] {
   return sections;
 }
 
+// ===== RANDOM SELECTION UTILITY =====
+/**
+ * Pre-select a random concrete option when 'auto' is selected.
+ * This ensures prompts always have specific, evocative language rather than
+ * vague "AI will choose from..." instructions.
+ */
+function selectRandomFromOptions<T extends { value: string; prompt?: string | null }>(
+  options: T[], 
+  currentValue: string
+): T {
+  if (currentValue !== 'auto') {
+    return options.find(o => o.value === currentValue) || options[0];
+  }
+  // Filter out 'auto' and pick random
+  const concreteOptions = options.filter(o => o.value !== 'auto' && o.prompt);
+  if (concreteOptions.length === 0) return options[0];
+  return concreteOptions[Math.floor(Math.random() * concreteOptions.length)];
+}
+
 // ===== POSE VARIATIONS =====
 export type PoseVariation = 
   | 'auto'
@@ -108,32 +127,38 @@ export const poseVariationOptions = [
   { 
     value: 'auto' as PoseVariation, 
     label: 'Auto (AI chooses)', 
-    prompt: null // AI will select from the list below
+    prompt: null,
+    narrative: null, // Narrative version for evocative prompts
   },
   { 
     value: 'feet-parallel' as PoseVariation, 
     label: 'Feet Parallel', 
-    prompt: 'feet parallel with slight weight shift to one side' 
+    prompt: 'feet parallel with slight weight shift to one side',
+    narrative: 'a natural, relaxed stance with feet parallel:\n– Slight weight shift to one side\n– Casual, grounded posture\n– No exaggerated movement or editorial posing',
   },
   { 
     value: 'one-forward' as PoseVariation, 
     label: 'One Foot Forward', 
-    prompt: 'one foot subtly placed forward of the other' 
+    prompt: 'one foot subtly placed forward of the other',
+    narrative: 'a natural, relaxed stance with one foot subtly placed forward:\n– Casual, grounded posture\n– Both feet fully on the ground\n– No exaggerated movement or editorial posing',
   },
   { 
     value: 'heel-relaxed' as PoseVariation, 
     label: 'Heel Relaxed', 
-    prompt: 'heel of one foot relaxed outward at a natural angle' 
+    prompt: 'heel of one foot relaxed outward at a natural angle',
+    narrative: 'a natural, relaxed stance with the heel of one foot relaxed outward:\n– Natural, organic angle\n– Casual, grounded posture\n– No exaggerated movement or editorial posing',
   },
   { 
     value: 'toe-out' as PoseVariation, 
     label: 'Gentle Toe-Out', 
-    prompt: 'gentle toe-out on one foot only, subtle and natural' 
+    prompt: 'gentle toe-out on one foot only, subtle and natural',
+    narrative: 'a natural, relaxed stance with a gentle toe-out on one foot:\n– Subtle and organic\n– Casual, grounded posture\n– No exaggerated movement or editorial posing',
   },
   { 
     value: 'soft-asymmetry' as PoseVariation, 
     label: 'Soft Asymmetry', 
-    prompt: 'soft asymmetry in stance, natural and never exaggerated' 
+    prompt: 'soft asymmetry in stance, natural and never exaggerated',
+    narrative: 'a natural, relaxed stance with soft asymmetry:\n– Natural weight distribution\n– Casual, grounded posture\n– No exaggerated movement or editorial posing',
   },
 ];
 
@@ -150,32 +175,38 @@ export const legStylingOptions = [
   { 
     value: 'auto' as LegStyling, 
     label: 'Auto (AI chooses)', 
-    prompt: null 
+    prompt: null,
+    narrative: null,
   },
   { 
     value: 'wide-leg-cropped' as LegStyling, 
     label: 'Wide-Leg Cropped', 
-    prompt: 'wide-leg trousers cropped just above the ankle, showing bare ankle, matte neutral fabric (black, charcoal, or dark navy)' 
+    prompt: 'wide-leg trousers cropped just above the ankle, showing bare ankle, matte neutral fabric (black, charcoal, or dark navy)',
+    narrative: 'Wide-leg trousers cropped just above the ankle, showing bare ankle.\nMatte fabric, no logos, no graphics.',
   },
   { 
     value: 'straight-leg-cropped' as LegStyling, 
     label: 'Straight-Leg Cropped', 
-    prompt: 'straight-leg trousers cropped above ankle, small amount of bare ankle visible, matte neutral fabric' 
+    prompt: 'straight-leg trousers cropped above ankle, small amount of bare ankle visible, matte neutral fabric',
+    narrative: 'Straight-leg trousers cropped above the ankle, bare ankle visible.\nMatte fabric, no logos, no graphics.',
   },
   { 
     value: 'slim-cropped' as LegStyling, 
     label: 'Slim Cropped', 
-    prompt: 'slim-fit cropped trousers ending above ankle, bare ankle showing, neutral matte fabric' 
+    prompt: 'slim-fit cropped trousers ending above ankle, bare ankle showing, neutral matte fabric',
+    narrative: 'Slim-fit cropped trousers ending just above the ankle, bare ankle showing.\nMatte fabric, no logos, no graphics.',
   },
   { 
     value: 'cuffed-jeans' as LegStyling, 
     label: 'Cuffed Jeans', 
-    prompt: 'jeans with rolled cuff above ankle, relaxed casual style, bare ankle visible' 
+    prompt: 'jeans with rolled cuff above ankle, relaxed casual style, bare ankle visible',
+    narrative: 'Relaxed jeans with rolled cuff above the ankle, bare ankle visible.\nClassic denim, no logos, no graphics.',
   },
   { 
     value: 'bare-ankle' as LegStyling, 
     label: 'Bare Ankle Only', 
-    prompt: 'cropped pants of any style with visible bare ankle, clean and minimal' 
+    prompt: 'cropped pants of any style with visible bare ankle, clean and minimal',
+    narrative: 'Cropped pants ending above the ankle with visible bare ankle.\nClean, minimal styling, no logos, no graphics.',
   },
 ];
 
@@ -183,14 +214,14 @@ export const legStylingOptions = [
 export type TrouserColor = 'auto' | 'black' | 'charcoal' | 'navy' | 'white' | 'beige' | 'denim-blue' | 'denim-light';
 
 export const trouserColorOptions = [
-  { value: 'auto' as TrouserColor, label: 'Auto (AI chooses)', prompt: null },
-  { value: 'black' as TrouserColor, label: 'Black', prompt: 'black trousers' },
-  { value: 'charcoal' as TrouserColor, label: 'Charcoal', prompt: 'charcoal grey trousers' },
-  { value: 'navy' as TrouserColor, label: 'Navy', prompt: 'dark navy trousers' },
-  { value: 'white' as TrouserColor, label: 'White', prompt: 'crisp white trousers' },
-  { value: 'beige' as TrouserColor, label: 'Beige / Khaki', prompt: 'beige or khaki trousers' },
-  { value: 'denim-blue' as TrouserColor, label: 'Denim Blue', prompt: 'classic blue denim jeans' },
-  { value: 'denim-light' as TrouserColor, label: 'Light Denim', prompt: 'light wash denim jeans' },
+  { value: 'auto' as TrouserColor, label: 'Auto (AI chooses)', prompt: null, narrative: null },
+  { value: 'black' as TrouserColor, label: 'Black', prompt: 'black trousers', narrative: 'in black' },
+  { value: 'charcoal' as TrouserColor, label: 'Charcoal', prompt: 'charcoal grey trousers', narrative: 'in charcoal grey' },
+  { value: 'navy' as TrouserColor, label: 'Navy', prompt: 'dark navy trousers', narrative: 'in dark navy' },
+  { value: 'white' as TrouserColor, label: 'White', prompt: 'crisp white trousers', narrative: 'in crisp white' },
+  { value: 'beige' as TrouserColor, label: 'Beige / Khaki', prompt: 'beige or khaki trousers', narrative: 'in beige' },
+  { value: 'denim-blue' as TrouserColor, label: 'Denim Blue', prompt: 'classic blue denim jeans', narrative: 'in classic blue denim' },
+  { value: 'denim-light' as TrouserColor, label: 'Light Denim', prompt: 'light wash denim jeans', narrative: 'in light wash denim' },
 ];
 
 // ===== MODEL GENDER =====
@@ -229,112 +260,78 @@ export const initialOnFootConfig: OnFootShotConfig = {
  * Balances static (essential) and dynamic (configurable) elements.
  */
 export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: BackgroundContext): string {
-  const sections: string[] = [];
+  // Pre-select random options when 'auto' is set
+  const selectedPose = selectRandomFromOptions(poseVariationOptions, config.poseVariation);
+  const selectedLegStyle = selectRandomFromOptions(legStylingOptions, config.legStyling);
+  const selectedColor = selectRandomFromOptions(trouserColorOptions, config.trouserColor);
   
-  // === STATIC: Always included ===
-  sections.push("=== ON-FOOT SHOE FOCUS SHOT ===");
-  sections.push("");
+  // Determine gender string
+  const genderStr = config.gender === 'auto' 
+    ? ['female', 'male'][Math.floor(Math.random() * 2)]
+    : config.gender;
   
-  // Frame & Composition (STATIC)
-  sections.push("FRAMING & COMPOSITION (MANDATORY):");
-  sections.push("- Single, high-resolution e-commerce image (one frame only, no collage)");
-  sections.push("- Leg-down product shot framed from mid-calf to floor");
-  sections.push("- Both feet fully visible and grounded on the surface");
-  sections.push("- Camera angle: eye-level to slightly low, three-quarter side view (not top-down)");
-  sections.push("- Similar to standard Birkenstock/premium footwear product-on-model photography");
-  sections.push("");
+  // Determine background description
+  let backgroundDesc = 'a pure white seamless studio background with a visible floor plane and soft, natural contact shadows';
+  let lightingDesc = 'clean, diffused studio lighting that accurately represents suede texture and true color';
   
-  // Product Integrity (STATIC - CRITICAL)
-  sections.push("PRODUCT INTEGRITY (CRITICAL):");
-  sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
-  sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
-  sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
-  sections.push("- No reinterpretation, no added elements, no modifications");
-  sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
-  sections.push("");
-  
-  // Background (DYNAMIC)
-  if (bgContext) {
-    sections.push(...buildBackgroundSection(bgContext));
-    sections.push("");
-  }
-  
-  // Pose (DYNAMIC with auto fallback)
-  sections.push("POSE DIRECTION:");
-  if (config.poseVariation === 'auto') {
-    sections.push("- Natural, grounded stance with subtle variation");
-    sections.push("- AI may select: feet parallel, one foot forward, heel relaxed, gentle toe-out, or soft asymmetry");
-  } else {
-    const poseOpt = poseVariationOptions.find(p => p.value === config.poseVariation);
-    if (poseOpt?.prompt) {
-      sections.push(`- ${poseOpt.prompt}`);
+  if (bgContext?.backgroundId === 'studio-white') {
+    backgroundDesc = 'a pure white seamless studio background with a visible floor plane and soft, natural contact shadows';
+    lightingDesc = 'clean, diffused studio lighting that accurately represents suede texture and true color';
+  } else if (bgContext?.customBackgroundPrompt) {
+    backgroundDesc = bgContext.customBackgroundPrompt;
+    lightingDesc = 'lighting appropriate to the setting, revealing material textures';
+  } else if (bgContext?.backgroundId) {
+    const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
+    const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
+    if (preset) {
+      backgroundDesc = preset.prompt.toLowerCase();
+      const isOutdoor = bgContext.backgroundId.startsWith('outdoor-');
+      if (isOutdoor) {
+        const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+        lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
+      } else {
+        lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
+      }
     }
   }
-  sections.push("- Both feet remain fully on the ground at all times");
-  sections.push("- NO walking, NO stepping mid-air, NO crossed legs, NO fashion posing");
-  sections.push("");
-  
-  // Leg Styling (DYNAMIC with auto fallback)
-  sections.push("LEG STYLING:");
-  if (config.legStyling === 'auto') {
-    sections.push("- Cropped trousers or pants ending just above ankle");
-    sections.push("- Small amount of bare ankle visible");
-    sections.push("- Clean, minimal styling that doesn't distract from the product");
-  } else {
-    const legOpt = legStylingOptions.find(l => l.value === config.legStyling);
-    if (legOpt?.prompt) {
-      sections.push(`- ${legOpt.prompt}`);
-    }
-  }
-  
-  // Trouser Color (DYNAMIC)
-  if (config.trouserColor !== 'auto') {
-    const colorOpt = trouserColorOptions.find(c => c.value === config.trouserColor);
-    if (colorOpt?.prompt) {
-      sections.push(`- ${colorOpt.prompt}`);
-    }
-  } else {
-    sections.push("- Neutral, matte fabric that complements the product");
-  }
-  sections.push("");
-  
-  // === MODEL DIRECTION (DYNAMIC) ===
-  const modelParts: string[] = [];
-  if (config.gender && config.gender !== 'auto') {
-    modelParts.push(`${config.gender} model`);
-  }
-  if (config.ethnicity && config.ethnicity !== 'auto') {
-    modelParts.push(config.ethnicity);
-  }
-  if (modelParts.length > 0) {
-    sections.push("MODEL:");
-    sections.push(`- ${modelParts.join(', ')}`);
-    sections.push("");
-  }
-  
-  // Lighting & Technical (DYNAMIC based on background)
-  if (bgContext) {
-    sections.push(...buildLightingSection(bgContext));
-  } else {
-    // Default to studio lighting when no background context
-    sections.push("LIGHTING:");
-    sections.push("- Professional studio lighting, softbox diffusion");
-    sections.push("- Controlled even illumination with soft shadows");
-  }
-  sections.push("- Accurately reveal material textures: suede, cork grain, buckle finish, outsole depth");
-  sections.push("- Ultra-sharp focus on the footwear");
-  sections.push("- Neutral color balance, no color cast");
-  sections.push("- No wide-angle distortion, no dramatic perspective");
-  sections.push("");
-  
-  // Composition Standards (STATIC)
-  sections.push("QUALITY STANDARDS:");
-  sections.push("- Calm, balanced composition");
-  sections.push("- True to premium footwear e-commerce standards");
-  sections.push("- Professional retail-ready output");
-  sections.push("");
-  
-  return sections.join("\n");
+
+  // Build the evocative prompt
+  const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
+
+A close-up on-model product shot of a ${genderStr} model wearing Birkenstock footwear, photographed against ${backgroundDesc}.
+
+Framing is tight and product-focused, showing the feet, shoes, ankles, and lower legs, cropped roughly from mid-calf down. The shoes fill most of the frame, consistent with official Birkenstock e-commerce photography.
+
+Camera angle is eye-level to slightly low, neutral and undistorted. No top-down angle, no wide-angle distortion.
+
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+The model is wearing a Birkenstock Boston clog with the following fixed construction:
+– Closed-toe Boston silhouette with rounded toe box
+– Soft suede upper with visible nap and matte texture
+– Single adjustable instep strap with metal buckle
+– Natural cork-latex contoured footbed in warm brown cork tone
+– EVA outsole with accurate thickness and tread pattern
+
+The shoe's geometry, construction, proportions, and hardware placement must remain identical in every generation. Do not redesign, stylize, or reinterpret the product.
+
+MATERIAL BEHAVIOR — LOCKED
+– Suede remains matte, soft, and fibrous (no gloss, no synthetic smoothness)
+– Buckle remains metal, brushed or satin finish, not shiny
+– Cork remains natural warm brown tone
+– EVA outsole remains matte with subtle rubber texture
+
+STYLING & POSE — COMMERCIAL
+The model stands in ${selectedPose.narrative || 'a natural, relaxed stance:\n– Feet flat or one foot slightly forward\n– Casual, grounded posture\n– No exaggerated movement or editorial posing'}
+
+${selectedLegStyle.narrative || 'Pants are ankle-length or cropped to clearly show the shoe.'} ${selectedColor.narrative || 'in a neutral matte color'}.
+
+Lighting is ${lightingDesc}.
+Shadows are soft and realistic, grounding the shoe to the floor.
+Focus is sharp, color is neutral and accurate.
+
+The final image must be indistinguishable from an official Birkenstock e-commerce product photograph.`;
+
+  return prompt;
 }
 
 /**
@@ -530,13 +527,13 @@ export type LifestylePose =
   | 'weight-shift';
 
 export const lifestylePoseOptions = [
-  { value: 'auto' as LifestylePose, label: 'Auto (AI chooses)', prompt: null },
-  { value: 'front-relaxed' as LifestylePose, label: 'Front-Facing Relaxed', prompt: 'relaxed front-facing stance, arms hanging naturally' },
-  { value: 'three-quarter' as LifestylePose, label: 'Three-Quarter Stance', prompt: 'three-quarter body angle, natural pose' },
-  { value: 'side-profile' as LifestylePose, label: 'Side Profile', prompt: 'full side profile view, clean silhouette' },
-  { value: 'walking-pause' as LifestylePose, label: 'Walking Pause', prompt: 'subtle walking pause with one foot forward' },
-  { value: 'heel-lift' as LifestylePose, label: 'Gentle Heel Lift', prompt: 'gentle heel lift with toes grounded' },
-  { value: 'weight-shift' as LifestylePose, label: 'Weight Shift', prompt: 'soft weight shift through hips and knees' },
+  { value: 'auto' as LifestylePose, label: 'Auto (AI chooses)', prompt: null, narrative: null },
+  { value: 'front-relaxed' as LifestylePose, label: 'Front-Facing Relaxed', prompt: 'relaxed front-facing stance, arms hanging naturally', narrative: 'a relaxed front-facing stance:\n– Arms hanging naturally at sides\n– Weight evenly distributed\n– Casual, confident posture' },
+  { value: 'three-quarter' as LifestylePose, label: 'Three-Quarter Stance', prompt: 'three-quarter body angle, natural pose', narrative: 'a three-quarter body angle:\n– Natural, slightly turned posture\n– Arms relaxed at sides or one slightly bent\n– Open, approachable stance' },
+  { value: 'side-profile' as LifestylePose, label: 'Side Profile', prompt: 'full side profile view, clean silhouette', narrative: 'a full side profile:\n– Clean silhouette visible from head to toe\n– Arms relaxed along body\n– Natural standing posture' },
+  { value: 'walking-pause' as LifestylePose, label: 'Walking Pause', prompt: 'subtle walking pause with one foot forward', narrative: 'a subtle walking pause:\n– One foot naturally forward\n– Mid-stride frozen moment\n– Casual, unstaged movement feel' },
+  { value: 'heel-lift' as LifestylePose, label: 'Gentle Heel Lift', prompt: 'gentle heel lift with toes grounded', narrative: 'a gentle heel lift:\n– One heel slightly raised\n– Toes remain grounded\n– Subtle, natural weight shift' },
+  { value: 'weight-shift' as LifestylePose, label: 'Weight Shift', prompt: 'soft weight shift through hips and knees', narrative: 'a soft weight shift:\n– Weight distributed unevenly through hips\n– Relaxed knee bend on one side\n– Natural, comfortable stance' },
 ];
 
 // Trouser Styles (Full Body)
@@ -549,12 +546,12 @@ export type LifestyleTrouserStyle =
   | 'joggers';
 
 export const lifestyleTrouserStyleOptions = [
-  { value: 'auto' as LifestyleTrouserStyle, label: 'Auto (AI chooses)', prompt: null },
-  { value: 'tailored' as LifestyleTrouserStyle, label: 'Tailored Trousers', prompt: 'tailored trousers with clean lines' },
-  { value: 'slim' as LifestyleTrouserStyle, label: 'Slim Pants', prompt: 'slim-fit pants, modern and understated' },
-  { value: 'straight' as LifestyleTrouserStyle, label: 'Straight-Leg Pants', prompt: 'straight-leg pants, classic silhouette' },
-  { value: 'chinos' as LifestyleTrouserStyle, label: 'Relaxed Chinos', prompt: 'relaxed chinos, casual and comfortable' },
-  { value: 'joggers' as LifestyleTrouserStyle, label: 'Minimal Joggers', prompt: 'minimal joggers, clean athleisure look' },
+  { value: 'auto' as LifestyleTrouserStyle, label: 'Auto (AI chooses)', prompt: null, narrative: null },
+  { value: 'tailored' as LifestyleTrouserStyle, label: 'Tailored Trousers', prompt: 'tailored trousers with clean lines', narrative: 'tailored trousers with clean lines' },
+  { value: 'slim' as LifestyleTrouserStyle, label: 'Slim Pants', prompt: 'slim-fit pants, modern and understated', narrative: 'slim-fit pants, modern and understated' },
+  { value: 'straight' as LifestyleTrouserStyle, label: 'Straight-Leg Pants', prompt: 'straight-leg pants, classic silhouette', narrative: 'straight-leg pants with classic silhouette' },
+  { value: 'chinos' as LifestyleTrouserStyle, label: 'Relaxed Chinos', prompt: 'relaxed chinos, casual and comfortable', narrative: 'relaxed chinos, casual and comfortable' },
+  { value: 'joggers' as LifestyleTrouserStyle, label: 'Minimal Joggers', prompt: 'minimal joggers, clean athleisure look', narrative: 'minimal joggers with clean athleisure aesthetic' },
 ];
 
 // Top Styles
@@ -566,11 +563,11 @@ export type LifestyleTopStyle =
   | 'tee';
 
 export const lifestyleTopStyleOptions = [
-  { value: 'auto' as LifestyleTopStyle, label: 'Auto (AI chooses)', prompt: null },
-  { value: 'button-up' as LifestyleTopStyle, label: 'Button-Up Shirt', prompt: 'simple button-up shirt, clean and minimal' },
-  { value: 'knitwear' as LifestyleTopStyle, label: 'Knitwear / Sweater', prompt: 'soft knitwear or sweater, understated texture' },
-  { value: 'jacket' as LifestyleTopStyle, label: 'Lightweight Jacket', prompt: 'lightweight jacket, relaxed layering' },
-  { value: 'tee' as LifestyleTopStyle, label: 'Simple Tee', prompt: 'simple crew-neck tee, minimal and clean' },
+  { value: 'auto' as LifestyleTopStyle, label: 'Auto (AI chooses)', prompt: null, narrative: null },
+  { value: 'button-up' as LifestyleTopStyle, label: 'Button-Up Shirt', prompt: 'simple button-up shirt, clean and minimal', narrative: 'a simple button-up shirt, clean and minimal' },
+  { value: 'knitwear' as LifestyleTopStyle, label: 'Knitwear / Sweater', prompt: 'soft knitwear or sweater, understated texture', narrative: 'soft knitwear with understated texture' },
+  { value: 'jacket' as LifestyleTopStyle, label: 'Lightweight Jacket', prompt: 'lightweight jacket, relaxed layering', narrative: 'a lightweight jacket with relaxed layering' },
+  { value: 'tee' as LifestyleTopStyle, label: 'Simple Tee', prompt: 'simple crew-neck tee, minimal and clean', narrative: 'a simple crew-neck tee, minimal and clean' },
 ];
 
 // Outfit Color Schemes
@@ -584,13 +581,13 @@ export type LifestyleOutfitColor =
   | 'charcoal-white';
 
 export const lifestyleOutfitColorOptions = [
-  { value: 'auto' as LifestyleOutfitColor, label: 'Auto (AI chooses)', prompt: null },
-  { value: 'monochrome-black' as LifestyleOutfitColor, label: 'Monochrome Black', prompt: 'all-black outfit, matte fabrics' },
-  { value: 'monochrome-white' as LifestyleOutfitColor, label: 'Monochrome White/Cream', prompt: 'all-white or cream outfit, clean and fresh' },
-  { value: 'monochrome-grey' as LifestyleOutfitColor, label: 'Monochrome Grey', prompt: 'tonal grey outfit from charcoal to light grey' },
-  { value: 'contrast-neutral' as LifestyleOutfitColor, label: 'Contrast Neutrals', prompt: 'contrasting neutral tones (black/white, navy/cream)' },
-  { value: 'navy-cream' as LifestyleOutfitColor, label: 'Navy + Cream', prompt: 'navy and cream color combination, classic palette' },
-  { value: 'charcoal-white' as LifestyleOutfitColor, label: 'Charcoal + White', prompt: 'charcoal and white color pairing, understated' },
+  { value: 'auto' as LifestyleOutfitColor, label: 'Auto (AI chooses)', prompt: null, narrative: null },
+  { value: 'monochrome-black' as LifestyleOutfitColor, label: 'Monochrome Black', prompt: 'all-black outfit, matte fabrics', narrative: 'all-black outfit with matte fabrics' },
+  { value: 'monochrome-white' as LifestyleOutfitColor, label: 'Monochrome White/Cream', prompt: 'all-white or cream outfit, clean and fresh', narrative: 'all-white or cream outfit, clean and fresh' },
+  { value: 'monochrome-grey' as LifestyleOutfitColor, label: 'Monochrome Grey', prompt: 'tonal grey outfit from charcoal to light grey', narrative: 'tonal grey outfit from charcoal to light grey' },
+  { value: 'contrast-neutral' as LifestyleOutfitColor, label: 'Contrast Neutrals', prompt: 'contrasting neutral tones (black/white, navy/cream)', narrative: 'contrasting neutral tones' },
+  { value: 'navy-cream' as LifestyleOutfitColor, label: 'Navy + Cream', prompt: 'navy and cream color combination, classic palette', narrative: 'navy and cream color combination' },
+  { value: 'charcoal-white' as LifestyleOutfitColor, label: 'Charcoal + White', prompt: 'charcoal and white color pairing, understated', narrative: 'charcoal and white color pairing' },
 ];
 
 // Lifestyle Shot Configuration Interface
@@ -617,132 +614,94 @@ export const initialLifestyleConfig: LifestyleShotConfig = {
 
 /**
  * Build the complete prompt for "Full Body on Model" shot type.
- * Balances static (essential) and dynamic (configurable) elements.
+ * Uses evocative, narrative-style language matching professional e-commerce briefs.
+ * Pre-selects random options when 'auto' is set for specificity.
  */
 export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: BackgroundContext): string {
-  const sections: string[] = [];
+  // Pre-select random options when 'auto' is set
+  const selectedPose = selectRandomFromOptions(lifestylePoseOptions, config.pose);
+  const selectedTrouserStyle = selectRandomFromOptions(lifestyleTrouserStyleOptions, config.trouserStyle);
+  const selectedTopStyle = selectRandomFromOptions(lifestyleTopStyleOptions, config.topStyle);
+  const selectedOutfitColor = selectRandomFromOptions(lifestyleOutfitColorOptions, config.outfitColor);
   
-  // === STATIC: Always included ===
-  sections.push("=== FULL BODY ON MODEL SHOT ===");
-  sections.push("");
+  // Determine gender string
+  const genderStr = config.gender === 'auto' 
+    ? ['female', 'male'][Math.floor(Math.random() * 2)]
+    : config.gender;
   
-  // Frame & Composition (STATIC)
-  sections.push("FRAMING & COMPOSITION (MANDATORY):");
-  sections.push("- Single, high-resolution e-commerce image (one frame only, no collage)");
-  sections.push("- Full-body product-on-model shot, framed from upper chest/shoulders to feet");
-  sections.push("- Head intentionally cropped out of frame");
-  sections.push("- Pulled-back distance showing full body proportions and negative space");
-  sections.push("- Similar to classic Birkenstock lookbook imagery");
-  sections.push("");
+  // Determine background description
+  let backgroundDesc = 'a pure white seamless studio background with visible floor and wall plane';
+  let lightingDesc = 'clean, diffused studio lighting with soft, realistic shadows grounding the model';
   
-  // Background (DYNAMIC based on user selection)
-  if (bgContext) {
-    sections.push(...buildBackgroundSection(bgContext));
-  } else {
-    // Default to studio white background for backward compatibility
-    sections.push("BACKGROUND:");
-    sections.push("- Pure white seamless studio background");
-    sections.push("- Visible floor and wall plane");
-  }
-  sections.push("- Soft cast shadows grounding the model");
-  sections.push("- Camera angle: eye-level, neutral, no compression or wide-angle distortion");
-  sections.push("");
-  
-  // Product Integrity (STATIC - CRITICAL)
-  sections.push("PRODUCT INTEGRITY (CRITICAL - LOCKED):");
-  sections.push("- The model wears Birkenstock footwear - match the reference EXACTLY");
-  sections.push("- Preserve exact Birkenstock silhouette, buckle placement, sole thickness, hardware finish");
-  sections.push("- Maintain signature Birkenstock details: natural cork-latex footbed, contoured sole, EVA outsole");
-  sections.push("- No shearling, no lining, no extra padding, no reinterpretation");
-  sections.push("- The Birkenstock shoe must remain IDENTICAL across all generated images");
-  sections.push("");
-  
-  // === MODEL DIRECTION (DYNAMIC) ===
-  const modelParts: string[] = [];
-  if (config.gender && config.gender !== 'auto') {
-    modelParts.push(`${config.gender} model`);
-  }
-  if (config.ethnicity && config.ethnicity !== 'auto') {
-    modelParts.push(config.ethnicity);
-  }
-  if (modelParts.length > 0) {
-    sections.push("MODEL:");
-    sections.push(`- ${modelParts.join(', ')}`);
-    sections.push("");
-  }
-  
-  // Pose (DYNAMIC with auto fallback)
-  sections.push("POSE DIRECTION:");
-  if (config.pose === 'auto') {
-    sections.push("- Natural, commercially realistic pose");
-    sections.push("- AI may select: front-facing relaxed, three-quarter stance, side profile, walking pause, heel lift, or weight shift");
-  } else {
-    const poseOpt = lifestylePoseOptions.find(p => p.value === config.pose);
-    if (poseOpt?.prompt) {
-      sections.push(`- ${poseOpt.prompt}`);
+  if (bgContext?.backgroundId === 'studio-white') {
+    backgroundDesc = 'a pure white seamless studio background with visible floor and wall plane';
+    lightingDesc = 'clean, diffused studio lighting with soft, realistic shadows grounding the model';
+  } else if (bgContext?.customBackgroundPrompt) {
+    backgroundDesc = bgContext.customBackgroundPrompt;
+    lightingDesc = 'lighting appropriate to the setting, revealing material textures';
+  } else if (bgContext?.backgroundId) {
+    const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
+    const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
+    if (preset) {
+      backgroundDesc = preset.prompt.toLowerCase();
+      const isOutdoor = bgContext.backgroundId.startsWith('outdoor-');
+      if (isOutdoor) {
+        const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+        lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
+      } else {
+        lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
+      }
     }
   }
-  sections.push("- Arms may hang naturally or be slightly bent");
-  sections.push("- Pose must feel casual, human, and unstyled—never exaggerated or editorial");
-  sections.push("");
-  
-  // Clothing (DYNAMIC with auto fallback)
-  sections.push("CLOTHING (VARIABLE - CONTROLLED):");
-  sections.push("- Minimal, classic, timeless clothing");
-  
-  // Trouser style
-  if (config.trouserStyle !== 'auto') {
-    const trouserOpt = lifestyleTrouserStyleOptions.find(t => t.value === config.trouserStyle);
-    if (trouserOpt?.prompt) {
-      sections.push(`- ${trouserOpt.prompt}`);
-    }
-  } else {
-    sections.push("- Trousers: tailored, slim, straight-leg, chinos, or minimal joggers");
-  }
-  
-  // Top style
-  if (config.topStyle !== 'auto') {
-    const topOpt = lifestyleTopStyleOptions.find(t => t.value === config.topStyle);
-    if (topOpt?.prompt) {
-      sections.push(`- ${topOpt.prompt}`);
-    }
-  } else {
-    sections.push("- Top: button-up shirt, knitwear, lightweight jacket, or simple tee");
-  }
-  
-  // Outfit color
-  if (config.outfitColor !== 'auto') {
-    const colorOpt = lifestyleOutfitColorOptions.find(c => c.value === config.outfitColor);
-    if (colorOpt?.prompt) {
-      sections.push(`- ${colorOpt.prompt}`);
-    }
-  } else {
-    sections.push("- Colors: black, white, off-white, cream, charcoal, grey, navy, or muted beige only");
-  }
-  
-  sections.push("- Fabrics are matte and clean");
-  sections.push("- NO logos, NO graphics, NO bold textures, NO trends");
-  sections.push("");
-  
-  // Lighting & Technical (DYNAMIC based on background)
-  if (bgContext) {
-    sections.push(...buildLightingSection(bgContext));
-  } else {
-    // Default to studio lighting for backward compatibility
-    sections.push("LIGHTING:");
-    sections.push("- Professional studio lighting, softbox diffusion");
-    sections.push("- Controlled even illumination with soft shadows");
-  }
-  sections.push("- Materials clearly visible: suede texture, cork grain, buckle finish");
-  sections.push("- Sharp focus, neutral and accurate color");
-  sections.push("");
-  
-  // Quality Standards (STATIC)
-  sections.push("QUALITY STANDARDS:");
-  sections.push("- Timeless, calm, brand-safe composition");
-  sections.push("- Suitable for lookbook and product listing use");
-  sections.push("- True to premium footwear e-commerce standards");
-  sections.push("");
-  
-  return sections.join("\n");
+
+  // Build clothing description
+  const trouserDesc = selectedTrouserStyle.narrative || 'tailored trousers or straight-leg pants';
+  const topDesc = selectedTopStyle.narrative || 'a simple button-up shirt or knitwear';
+  const colorDesc = selectedOutfitColor.narrative || 'in neutral tones (black, white, charcoal, navy, cream)';
+
+  // Build the evocative prompt
+  const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
+
+A full-body product-on-model shot, framed from upper chest or shoulders down to the feet, with the head cropped out of frame.
+
+The ${genderStr} model is photographed at a pulled-back distance, allowing full body proportions and clear negative space around the figure, on ${backgroundDesc}.
+
+Camera angle is eye-level and neutral, with no wide-angle distortion, matching classic Birkenstock lookbook and e-commerce photography.
+
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+The model is wearing a Birkenstock Boston clog with the following fixed construction and materials:
+– Closed-toe Boston silhouette
+– Soft suede upper with visible nap and matte texture
+– Single adjustable instep strap
+– One metal buckle
+– Natural cork-latex contoured footbed in warm brown cork tone
+– EVA outsole with accurate thickness and tread
+
+The shoe's geometry, construction, stitching, and material behavior must remain identical in every generation. Do not redesign, stylize, or reinterpret the product.
+
+MATERIAL BEHAVIOR — LOCKED
+– Suede remains matte, fibrous, and soft (no gloss, no leather sheen)
+– Buckle remains metal, not plastic
+– Cork footbed remains natural brown and unchanged
+
+CLOTHING — VARIABLE (CONTROLLED)
+The model wears minimal, classic, timeless clothing:
+– ${trouserDesc}
+– ${topDesc}
+– Colors: ${colorDesc}
+
+Fabrics are matte and clean.
+No logos, no graphics, no bold textures, no trends.
+
+POSE — VARIABLE (LOOKBOOK-REALISTIC)
+The model stands in ${selectedPose.narrative || 'a natural, commercially realistic pose:\n– Relaxed, confident posture\n– Arms hanging naturally or slightly bent\n– Casual, human, and unstyled feel'}
+
+Pose must feel casual, human, and unstyled—never editorial or exaggerated.
+
+Lighting is ${lightingDesc}.
+Focus is sharp, color is neutral and accurate, materials are clearly visible.
+
+The final image must look indistinguishable from an official Birkenstock e-commerce or lookbook photograph.`;
+
+  return prompt;
 }
