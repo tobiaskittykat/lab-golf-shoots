@@ -1,53 +1,85 @@
 
 
-# Add 4K Resolution Support (4096px)
+# Fix Resolution Parameter - Actually Send to Gemini API
 
 ## Summary
 
-Based on your research, Gemini 3 Pro **natively supports up to 4K (4096×4096)** resolution. Our current UI caps at 2048px. This is a simple one-line change to enable true 4K output.
+The resolution selector in the UI stores the value but the edge function never passes it to the Gemini API. We need to add the `image_config` parameter to the API call.
 
 ---
 
-## What's Changing
+## Root Cause
 
-### File: `src/components/creative-studio/types.ts`
-
-**Current (lines 392-396):**
+In `supabase/functions/generate-image/index.ts` (lines 873-890), the API call only includes:
 ```typescript
-export const resolutions = [
-  { value: '512', label: '512px' },
-  { value: '1024', label: '1024px' },
-  { value: '2048', label: '2048px' },
-];
+body: JSON.stringify({
+  model: selectedModel,
+  messages: [...],
+  modalities: ["image", "text"],
+  // MISSING: image_config with image_size and aspect_ratio
+}),
 ```
 
-**Updated:**
+The `body.resolution` and `body.aspectRatio` values are received from the frontend but discarded.
+
+---
+
+## The Fix
+
+### File: `supabase/functions/generate-image/index.ts`
+
+#### Step 1: Map resolution values to API format (add before line 873)
+
 ```typescript
-export const resolutions = [
-  { value: '512', label: '512px' },
-  { value: '1024', label: '1024px' },
-  { value: '2048', label: '2048px (2K)' },
-  { value: '4096', label: '4096px (4K)' },
-];
+// Map resolution to Gemini image_size format
+const imageSizeMap: Record<string, string> = {
+  '512': '1K',    // 512px → 1K (closest match)
+  '1024': '1K',   // 1024px → 1K
+  '2048': '2K',   // 2048px → 2K
+  '4096': '4K',   // 4096px → 4K (true 4K!)
+};
+
+const imageSize = imageSizeMap[body.resolution || '1024'] || '1K';
+const aspectRatio = body.aspectRatio || '1:1';
+
+console.log(`Image config: size=${imageSize}, aspectRatio=${aspectRatio}`);
+```
+
+#### Step 2: Add `image_config` to the API call (modify lines 880-889)
+
+```typescript
+body: JSON.stringify({
+  model: selectedModel,
+  messages: [
+    { 
+      role: "user", 
+      content: messageContent
+    }
+  ],
+  modalities: ["image", "text"],
+  image_config: {
+    image_size: imageSize,
+    aspect_ratio: aspectRatio,
+  },
+}),
 ```
 
 ---
 
-## Why This Works
+## Expected Outcome
 
-1. The `resolutions` array is already used by both:
-   - **Lifestyle flow** (`StepTwoCustomize.tsx`)
-   - **Product Shoot flow** (`ProductShootStep2.tsx`)
-
-2. The selected resolution value is passed to the `generate-image` edge function via `settings.resolution`
-
-3. The edge function already passes this value to Gemini 3 Pro - no backend changes needed
+After this fix:
+- Selecting **4096px (4K)** will send `image_size: "4K"` to Gemini
+- Selecting **2048px (2K)** will send `image_size: "2K"` to Gemini
+- Aspect ratio will also be enforced via `aspect_ratio` parameter
+- Logs will show `Image config: size=4K, aspectRatio=1:1` for verification
 
 ---
 
-## Notes
+## Technical Notes
 
-- 4K generation may take longer and consume more API credits
-- Some interfaces may default to lower resolutions, but Gemini 3 Pro supports up to 4096×4096 natively
-- Labels updated to show "2K" and "4K" for clarity
+- The Lovable AI Gateway (OpenRouter-compatible) supports `image_config` for Gemini models
+- Supported sizes: `"1K"` (default), `"2K"`, `"4K"`
+- 4K generation may take longer and consume more credits
+- Aspect ratio mapping uses native Gemini formats (1:1, 16:9, 9:16, etc.)
 
