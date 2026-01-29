@@ -556,9 +556,9 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
     });
     
     // Add product images AFTER brief so the agent can SEE them and describe them accurately
-    // Use the same limit as the image generator (up to 5 images for prompt agent analysis)
+    // Gemini supports many images - send up to 10 for comprehensive product analysis
     if (productUrls.length > 0) {
-      const attachCount = Math.min(productUrls.length, 5);
+      const attachCount = Math.min(productUrls.length, 10);
       console.log(`Adding ${attachCount} product images to prompt agent for visual analysis`);
       for (const url of productUrls.slice(0, attachCount)) {
         promptAgentContent.push({
@@ -873,13 +873,13 @@ Deno.serve(async (req) => {
           console.log("⚠️ NO MOODBOARD URL TO ATTACH - moodboardUrl was:", moodboardUrl);
         }
         
-        // Add product references as visual inputs (up to 6, skip GIFs which aren't supported)
+        // Add product references as visual inputs (up to 10, skip GIFs which aren't supported)
         const productUrls = (body.productReferenceUrls || [])
           .filter(url => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
         
         if (productUrls.length > 0) {
-          // Attach up to 6 product reference images for better fidelity
-          const attachCount = Math.min(productUrls.length, 6);
+          // Attach up to 10 product reference images for maximum fidelity - Gemini supports many images
+          const attachCount = Math.min(productUrls.length, 10);
           for (let i = 0; i < attachCount; i++) {
             const url = productUrls[i];
             messageContent.push({
