@@ -452,6 +452,7 @@ export const ProductShootStep2 = ({
                   onConfigChange={(updates) => onStateChange({
                     onFootConfig: { ...(state.onFootConfig || initialOnFootConfig), ...updates }
                   })}
+                  onReset={() => onStateChange({ onFootConfig: initialOnFootConfig })}
                 />
               )}
               
@@ -461,6 +462,7 @@ export const ProductShootStep2 = ({
                   onConfigChange={(updates) => onStateChange({
                     lifestyleConfig: { ...(state.lifestyleConfig || initialLifestyleConfig), ...updates }
                   })}
+                  onReset={() => onStateChange({ lifestyleConfig: initialLifestyleConfig })}
                 />
               )}
               
@@ -470,6 +472,7 @@ export const ProductShootStep2 = ({
                   onConfigChange={(updates) => onStateChange({
                     productFocusConfig: { ...(state.productFocusConfig || initialProductFocusConfig), ...updates }
                   })}
+                  onReset={() => onStateChange({ productFocusConfig: initialProductFocusConfig })}
                 />
               )}
             </div>

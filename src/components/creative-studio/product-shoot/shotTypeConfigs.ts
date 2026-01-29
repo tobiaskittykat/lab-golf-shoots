@@ -637,6 +637,45 @@ export const initialLifestyleConfig: LifestyleShotConfig = {
   outfitColor: 'auto',
 };
 
+// ===== CUSTOMIZATION DETECTION HELPERS =====
+
+/**
+ * Check if OnFoot config has any non-auto values (is customized)
+ */
+export function isOnFootConfigCustomized(config: OnFootShotConfig): boolean {
+  return (
+    config.gender !== 'auto' ||
+    config.ethnicity !== 'auto' ||
+    config.poseVariation !== 'auto' ||
+    config.legStyling !== 'auto' ||
+    config.trouserColor !== 'auto'
+  );
+}
+
+/**
+ * Check if Lifestyle config has any non-auto values (is customized)
+ */
+export function isLifestyleConfigCustomized(config: LifestyleShotConfig): boolean {
+  return (
+    config.gender !== 'auto' ||
+    config.ethnicity !== 'auto' ||
+    config.pose !== 'auto' ||
+    config.trouserStyle !== 'auto' ||
+    config.topStyle !== 'auto' ||
+    config.outfitColor !== 'auto'
+  );
+}
+
+/**
+ * Check if ProductFocus config has any non-auto values (is customized)
+ */
+export function isProductFocusConfigCustomized(config: ProductFocusShotConfig): boolean {
+  return (
+    config.cameraAngle !== 'auto' ||
+    config.lighting !== 'auto'
+  );
+}
+
 /**
  * Build the complete prompt for "Full Body on Model" shot type.
  * Uses evocative, narrative-style language matching professional e-commerce briefs.
