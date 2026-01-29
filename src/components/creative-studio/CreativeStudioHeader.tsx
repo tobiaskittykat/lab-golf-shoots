@@ -24,6 +24,7 @@ interface CreativeStudioHeaderProps {
   onRegenerate?: () => void;
   showRegenerate?: boolean;
   hideBriefInput?: boolean;
+  disableTypeSwitch?: boolean; // Locks type selection in Step 2
 }
 
 export const CreativeStudioHeader = ({ 
@@ -32,9 +33,13 @@ export const CreativeStudioHeader = ({
   onRegenerate,
   showRegenerate = false,
   hideBriefInput = false,
+  disableTypeSwitch = false,
 }: CreativeStudioHeaderProps) => {
 
   const handleTypeChipClick = (chipId: string) => {
+    // Don't allow switching if disabled (Step 2)
+    if (disableTypeSwitch) return;
+    
     onUpdate({ 
       selectedTypeCard: chipId,
       useCase: chipId as CreativeStudioState['useCase'],
@@ -86,8 +91,9 @@ export const CreativeStudioHeader = ({
         {typeChips.map((chip) => {
           const Icon = chip.icon;
           const isSelected = state.selectedTypeCard === chip.id;
+          const isDisabled = chip.comingSoon || (disableTypeSwitch && !isSelected);
           
-          if (chip.comingSoon) {
+          if (isDisabled) {
             return (
               <Tooltip key={chip.id}>
                 <TooltipTrigger asChild>
@@ -98,7 +104,9 @@ export const CreativeStudioHeader = ({
                     {chip.label}
                   </span>
                 </TooltipTrigger>
-                <TooltipContent>Coming Soon</TooltipContent>
+                <TooltipContent>
+                  {chip.comingSoon ? 'Coming Soon' : 'Return to Step 1 to change'}
+                </TooltipContent>
               </Tooltip>
             );
           }

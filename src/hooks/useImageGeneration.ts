@@ -112,7 +112,8 @@ export function useImageGeneration() {
       let moodboardName: string | undefined;
       let moodboardAnalysis: Record<string, unknown> | undefined;
       
-      if (state.moodboard) {
+      // Only fetch moodboard for NON-product flows to avoid cross-contamination
+      if (state.moodboard && state.useCase !== 'product') {
         // Custom moodboards may have 'custom-' prefix OR be raw UUIDs - handle both
         const isCustomMoodboard = state.moodboard.startsWith('custom-') || 
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(state.moodboard);
@@ -148,26 +149,29 @@ export function useImageGeneration() {
       }
 
       // Resolve product reference URLs and names (supports both sample + scraped products)
+      // Only process lifestyle product references for NON-product flows
       const productReferenceUrls: string[] = [];
       const productNames: string[] = [];
-      for (const productRef of state.productReferences) {
-        if (productRef.startsWith('scraped-')) {
-          const dbId = productRef.replace('scraped-', '');
-          const { data: scrapedRow, error: scrapedErr } = await supabase
-            .from('scraped_products')
-            .select('full_url, thumbnail_url, name')
-            .eq('id', dbId)
-            .maybeSingle();
+      if (state.useCase !== 'product') {
+        for (const productRef of state.productReferences) {
+          if (productRef.startsWith('scraped-')) {
+            const dbId = productRef.replace('scraped-', '');
+            const { data: scrapedRow, error: scrapedErr } = await supabase
+              .from('scraped_products')
+              .select('full_url, thumbnail_url, name')
+              .eq('id', dbId)
+              .maybeSingle();
 
-          if (!scrapedErr && scrapedRow) {
-            const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
-            if (url) productReferenceUrls.push(url);
-            if (scrapedRow.name) productNames.push(scrapedRow.name);
+            if (!scrapedErr && scrapedRow) {
+              const url = scrapedRow.full_url || scrapedRow.thumbnail_url;
+              if (url) productReferenceUrls.push(url);
+              if (scrapedRow.name) productNames.push(scrapedRow.name);
+            }
+          } else {
+            const ref = sampleProductReferences.find(r => r.id === productRef);
+            if (ref?.url) productReferenceUrls.push(ref.url);
+            if (ref?.name) productNames.push(ref.name);
           }
-        } else {
-          const ref = sampleProductReferences.find(r => r.id === productRef);
-          if (ref?.url) productReferenceUrls.push(ref.url);
-          if (ref?.name) productNames.push(ref.name);
         }
       }
 
@@ -345,10 +349,16 @@ export function useImageGeneration() {
       console.log('==============================');
       
       // Build base request body (shared across all generation calls)
-      const buildRequestBody = (shotPromptOverride?: string | null, imgCount?: number) => ({
+      const buildRequestBody = (shotPromptOverride?: string | null, imgCount?: number) => {
+        // For product shoot, use SKU name instead of concept title
+        const imageTitle = state.useCase === 'product'
+          ? (productNames[0] || 'Product Shot')
+          : selectedConcept?.title;
+        
+        return {
         // Use concept-derived prompt instead of raw brief
         prompt: primaryPrompt,
-        conceptTitle: selectedConcept?.title,
+        conceptTitle: imageTitle,
         conceptDescription: selectedConcept?.description,
         coreIdea: selectedConcept?.coreIdea,
         tonality: selectedConcept?.tonality,
@@ -433,7 +443,8 @@ export function useImageGeneration() {
             ? (state.productShoot.productFocusConfig || initialProductFocusConfig)
             : undefined,
         } : undefined,
-      });
+        };
+      };
 
       let data: any;
       let error: any;

@@ -11,7 +11,7 @@ import { SelectionIndicators } from "./SelectionIndicators";
 import { DiscoveryModeGallery } from "./DiscoveryModeGallery";
 import { DiscoverySwipeView } from "./DiscoverySwipeView";
 import { CampaignStyleSummary } from "./CampaignStyleSummary";
-import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept, UserPreference, CampaignStyle, ProductShootState } from "./types";
+import { CreativeStudioState, initialCreativeStudioState, GeneratedImage, SavedConcept, UserPreference, CampaignStyle, ProductShootState, initialProductShootState } from "./types";
 import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useBrands } from "@/hooks/useBrands";
 import { useBrandImages } from "@/hooks/useBrandImages";
@@ -242,7 +242,25 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   }, [state.prompt, state.useCase, state.targetPersona, currentBrand, handleUpdate, generateConcepts]);
 
   const handleBack = useCallback(() => {
-    handleUpdate({ step: 1 });
+    // Clear ALL step 2 selections when going back to ensure clean state
+    handleUpdate({ 
+      step: 1,
+      // Clear lifestyle flow data
+      concepts: [],
+      selectedConcept: null,
+      moodboard: null,
+      productReferences: [],
+      contextReference: null,
+      curatedMoodboards: [],
+      curatedProducts: [],
+      displayedMoodboardIds: [],
+      displayedProductIds: [],
+      discoveryMode: false,
+      discoveryImages: [],
+      userPreferences: [],
+      // Reset product shoot to defaults
+      productShoot: initialProductShootState,
+    });
   }, [handleUpdate]);
 
   // Load a saved concept and jump to Step 2 with all presets applied
@@ -767,6 +785,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                       onUpdate={handleUpdate}
                       showRegenerate={false}
                       hideBriefInput={true}
+                      disableTypeSwitch={true}
                     />
                     
                     <div style={{ paddingBottom: footerHeight + 24 }}>
@@ -844,6 +863,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                       onUpdate={handleUpdate}
                       onRegenerate={handleContinue}
                       showRegenerate={true}
+                      disableTypeSwitch={true}
                     />
                     
                     <div style={{ paddingBottom: footerHeight + 24 }}>
