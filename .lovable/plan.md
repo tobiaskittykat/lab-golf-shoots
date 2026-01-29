@@ -1,145 +1,188 @@
 
-# Clean Flow Isolation: Product Shoot vs Lifestyle
+# Add Inline Recent Products & Auto-Preselection
 
 ## Overview
 
-The current architecture allows users to click between "Product Shot" and "Lifestyle" chips at any step, but state from one flow bleeds into the other, causing:
-- Lifestyle moodboards appearing on Product Shoot generations
-- Wrong product references attached
-- Lifestyle concept names on Product Shoot images
-
-This plan implements **proper flow isolation** by locking the flow type once in Step 2 and adding a complete state reset when switching flows.
+Enhance the Product section to show the last 3 recently used products directly inline, with the most recent automatically pre-selected when entering Step 2.
 
 ---
 
-## Architecture Decision
+## Current State
 
-**Chosen approach: Lock flow type in Step 2**
+The Product section shows either:
+- A "Select a product" CTA with Smart Upload/Create buttons (when no product selected)
+- A product preview card (when a product is selected)
 
-| Option | Description | Recommendation |
-|--------|-------------|----------------|
-| Lock in Step 2 | Type chips disabled after entering Step 2 | **Selected** - cleanest UX |
-| Reset on switch | Allow switch but force back to Step 1 | Alternative |
+The modal has "Recently Used" but it's hidden until opened.
 
 ---
 
-## Changes Required
+## Proposed UI
 
-### 1. Disable Type Chips in Step 2
-
-**File: `src/components/creative-studio/CreativeStudioHeader.tsx`**
-
-Add a new prop `disableTypeSwitch` and use it to lock the chips:
-
-```typescript
-interface CreativeStudioHeaderProps {
-  state: CreativeStudioState;
-  onUpdate: (updates: Partial<CreativeStudioState>) => void;
-  onRegenerate?: () => void;
-  showRegenerate?: boolean;
-  hideBriefInput?: boolean;
-  disableTypeSwitch?: boolean;  // NEW - locks type selection
-}
+```
+┌─────────────────────────────────────────────────────────┐
+│  🔲 Product                                        ▾    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Recently Used                                          │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐                 │
+│  │  [img]  │  │  [img]  │  │  [img]  │                 │
+│  │ ✓ Name  │  │  Name   │  │  Name   │                 │
+│  └─────────┘  └─────────┘  └─────────┘                 │
+│                                                         │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │            Browse All Products...                 │ │
+│  └───────────────────────────────────────────────────┘ │
+│                                                         │
+│  ┌─ Smart Upload ─┐  ┌─ + Create SKU ─┐                │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
 ```
 
-In the chip rendering, when `disableTypeSwitch` is true:
-- Selected chip stays styled as selected
-- Other chips are grayed out (like "Coming Soon" chips)
-- Clicking does nothing (or shows tooltip: "Go back to Step 1 to change")
+**Key behaviors:**
+- First card is pre-selected automatically (most recent)
+- Clicking a card selects it immediately (no modal)
+- "Browse All Products" opens the full modal for 1000+ SKU support
+- Cards show thumbnail + name + checkmark if selected
 
-### 2. Pass Prop from Wizard
+---
 
-**File: `src/components/creative-studio/CreativeStudioWizard.tsx`**
+## Changes
 
-Pass `disableTypeSwitch={state.step === 2}` to all `CreativeStudioHeader` usages in Step 2:
+### 1. Fetch Recent SKUs Inline
+
+**File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`**
+
+Add a query to fetch the top 3 recently used SKUs:
 
 ```typescript
-<CreativeStudioHeader
-  state={state}
-  onUpdate={handleUpdate}
-  disableTypeSwitch={state.step === 2}  // Lock in step 2
-  ...
-/>
+// Fetch recent SKUs for inline display
+const { data: recentSkus = [] } = useQuery({
+  queryKey: ['recent-skus', user?.id, currentBrand?.id],
+  queryFn: async () => {
+    if (!user?.id) return [];
+    
+    let query = supabase
+      .from('product_skus')
+      .select('*')
+      .eq('user_id', user.id)
+      .not('last_used_at', 'is', null)
+      .order('last_used_at', { ascending: false })
+      .limit(3);
+    
+    if (currentBrand?.id) {
+      query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
+    }
+    
+    const { data } = await query;
+    return data || [];
+  },
+  enabled: !!user?.id,
+});
 ```
 
-### 3. Clear Cross-Flow State on Back
+### 2. Auto-Preselect Most Recent
 
-When user clicks "Back" from Step 2 to Step 1, clear the OTHER flow's state:
-
-**File: `src/components/creative-studio/CreativeStudioWizard.tsx`**
-
-Update `handleBack` to reset step-2-specific state so Step 1 is clean:
+Add effect to auto-select when entering step with no selection:
 
 ```typescript
-const handleBack = useCallback(() => {
-  handleUpdate({ 
-    step: 1,
-    // Clear step 2 selections so they don't persist
-    concepts: [],
-    selectedConcept: null,
-    moodboard: null,
-    productReferences: [],
-    curatedMoodboards: [],
-    curatedProducts: [],
-    displayedMoodboardIds: [],
-    displayedProductIds: [],
-    discoveryMode: false,
-    discoveryImages: [],
-    userPreferences: [],
-    // Reset product shoot to defaults
-    productShoot: initialProductShootState,
-  });
-}, [handleUpdate]);
-```
+const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-### 4. Fix Product Shoot Image Naming
-
-**File: `src/hooks/useImageGeneration.ts`**
-
-Currently passes `conceptTitle: selectedConcept?.title` which comes from lifestyle. For Product Shoot, use the SKU/product name instead:
-
-```typescript
-// Around line 351 in buildRequestBody
-conceptTitle: state.useCase === 'product' 
-  ? (productNames[0] || 'Product Shot')
-  : selectedConcept?.title,
-```
-
-### 5. Skip Lifestyle References in Product Shoot
-
-**File: `src/hooks/useImageGeneration.ts`**
-
-The lifestyle `productReferences` array (lines 152-172) and moodboard (lines 115-148) should be skipped for product flow:
-
-```typescript
-// Only process lifestyle product references for non-product flows
-if (state.useCase !== 'product') {
-  for (const productRef of state.productReferences) {
-    // ... existing loop
+useEffect(() => {
+  // Auto-select the most recently used product if none selected
+  if (!hasAutoSelected && recentSkus.length > 0 && !state.selectedProductId) {
+    const mostRecent = recentSkus[0];
+    handleSkuSelect({
+      id: mostRecent.id,
+      name: mostRecent.name,
+      sku_code: mostRecent.sku_code,
+      composite_image_url: mostRecent.composite_image_url,
+      brand_id: mostRecent.brand_id,
+      last_used_at: mostRecent.last_used_at,
+      angles: [],  // Will be fetched if needed
+    });
+    setHasAutoSelected(true);
   }
-}
-
-// Only fetch moodboard for non-product flows
-if (state.moodboard && state.useCase !== 'product') {
-  // ... existing moodboard logic
-}
+}, [recentSkus, state.selectedProductId, hasAutoSelected]);
 ```
 
----
+### 3. Render Recent Products Inline
 
-## Visual Behavior
+Replace the current empty-state CTA with a grid showing recent products:
 
-### Step 1
-- All available type chips are clickable
-- User picks "Product Shot" or "Lifestyle"
-- Clicks "Continue" to proceed
+```tsx
+{/* Recent Products Grid */}
+{recentSkus.length > 0 && (
+  <div className="space-y-2">
+    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+      <Clock className="w-3 h-3" />
+      Recently Used
+    </span>
+    <div className="grid grid-cols-3 gap-2">
+      {recentSkus.map(sku => {
+        const isSelected = state.selectedProductId === sku.id;
+        const imageUrl = sku.composite_image_url;
+        
+        return (
+          <button
+            key={sku.id}
+            onClick={() => handleSkuSelect({
+              id: sku.id,
+              name: sku.name,
+              sku_code: sku.sku_code,
+              composite_image_url: sku.composite_image_url,
+              brand_id: sku.brand_id,
+              last_used_at: sku.last_used_at,
+              angles: [],
+            })}
+            className={cn(
+              "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+              isSelected 
+                ? "border-accent ring-2 ring-accent/30" 
+                : "border-transparent hover:border-muted-foreground/30"
+            )}
+          >
+            {imageUrl ? (
+              <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <Package className="w-6 h-6 text-muted-foreground" />
+              </div>
+            )}
+            {/* Selection indicator */}
+            {isSelected && (
+              <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                <Check className="w-3 h-3 text-white" />
+              </div>
+            )}
+            {/* Name overlay */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+              <span className="text-xs text-white font-medium truncate block">
+                {sku.name}
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+)}
 
-### Step 2
-- Selected type chip is highlighted
-- Other type chips are grayed out with reduced opacity
-- Hovering shows tooltip: "Return to Step 1 to change"
-- User configures the selected flow
-- "Back" button returns to Step 1 with clean state
+{/* Browse All Button */}
+<Button
+  variant="outline"
+  className="w-full"
+  onClick={() => setShowProductPickerModal(true)}
+>
+  Browse All Products...
+</Button>
+```
+
+### 4. Conditionally Show Selected Preview
+
+Only show the detailed preview card when a product is selected AND it's not in the recent grid (or always show but more compact):
+
+Actually, simpler approach: When a product is selected, the recent grid still shows with the selected one highlighted, plus we show the selected product info below for actions (Change/Clear).
 
 ---
 
@@ -147,16 +190,14 @@ if (state.moodboard && state.useCase !== 'product') {
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/CreativeStudioHeader.tsx` | Add `disableTypeSwitch` prop, gray out non-selected chips |
-| `src/components/creative-studio/CreativeStudioWizard.tsx` | Pass `disableTypeSwitch` in Step 2, reset state on Back |
-| `src/hooks/useImageGeneration.ts` | Skip lifestyle refs for product flow, fix naming |
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Add recent SKUs query, auto-preselection, inline grid UI |
 
 ---
 
-## Result
+## Expected Result
 
-After these changes:
-1. **No accidental flow switching** - Step 2 locks the selected flow
-2. **Clean state on Back** - returning to Step 1 resets everything
-3. **Correct image naming** - Product Shoot uses SKU names, not concept titles
-4. **No cross-contamination** - Lifestyle moodboards/products won't appear in Product Shoot generations
+1. When entering Step 2, the most recently used product is automatically pre-selected
+2. The Product section shows 3 recent products as clickable thumbnail cards
+3. Clicking a card immediately selects it (no modal needed for recent products)
+4. "Browse All Products..." button opens the full modal for searching 1000+ SKUs
+5. Smart Upload and Create SKU buttons remain available
