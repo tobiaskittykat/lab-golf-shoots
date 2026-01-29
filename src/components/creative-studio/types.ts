@@ -392,7 +392,8 @@ export const aspectRatios = ['1:1', '4:5', '16:9', '9:16', '4:3', '3:4'];
 export const resolutions = [
   { value: '512', label: '512px' },
   { value: '1024', label: '1024px' },
-  { value: '2048', label: '2048px' },
+  { value: '2048', label: '2048px (2K)' },
+  { value: '4096', label: '4096px (4K)' },
 ];
 
 // Updated artistic styles - more visual/cinematic options
