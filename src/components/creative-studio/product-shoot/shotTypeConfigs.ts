@@ -329,6 +329,7 @@ export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: Backgrou
 • Match the exact silhouette, buckle placement, strap width, sole thickness
 • Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap
 • Capture authentic material textures: suede nap, cork grain, metal buckle finish
+• LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - "BIRKENSTOCK" text, buckle logos, footbed stamps must be letter-perfect
 • NO reinterpretation, NO modifications, NO creative liberties with the product
 • The shoe's geometry and construction must remain identical in every generation
 
@@ -494,6 +495,7 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   sections.push("- Match the exact silhouette, buckle placement, strap width, sole thickness, hardware finish");
   sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
   sections.push("- Capture authentic material textures: suede nap, cork grain, metal buckle finish, sole grooves");
+  sections.push("- LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - 'BIRKENSTOCK' text, buckle logos, footbed stamps must be letter-perfect");
   sections.push("- NO reinterpretation, NO modifications, NO creative liberties with the product");
   sections.push("- The shoe's geometry and construction must remain identical in every generation");
   sections.push("");
@@ -749,6 +751,7 @@ export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: Ba
 • Match the exact silhouette, buckle placement, strap width, sole thickness
 • Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap
 • Capture authentic material textures: suede nap, cork grain, metal buckle finish
+• LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - "BIRKENSTOCK" text, buckle logos, footbed stamps must be letter-perfect
 • NO reinterpretation, NO modifications, NO creative liberties with the product
 • The shoe's geometry and construction must remain identical in every generation
 

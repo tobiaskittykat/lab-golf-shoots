@@ -484,9 +484,14 @@ CRITICAL RULES:
    - DESCRIBE the products visually in your prompt with EXACT detail
    - Include: material (leather, croc-embossed, smooth, pebbled), color, hardware finish (gold, silver, gunmetal)
    - Include: silhouette/type (crossbody, clutch, card holder, phone case), and key details (chain strap, magnetic closure, zip)
+   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy - no misspellings, no altered letterforms
    - Example: Instead of "the Remi Magnet crossbody", write "a black croc-embossed leather phone crossbody with a detachable gold chain strap and magnetic gold hardware closure"
    - This visual description ensures the image generator renders the product EXACTLY as it appears
    - Do NOT use product names - use VISUAL DESCRIPTIONS only
+   
+   **IMPORTANT FOR PRODUCT SHOOTS**: If the brief contains a "=== PRODUCT INTEGRITY (CRITICAL) ===" section, 
+   you MUST include this EXACT section at the START of your output, preserving the header and all bullet points verbatim.
+   This is an EXCEPTION to the "no section headers" rule - product integrity instructions are non-negotiable.
 
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
@@ -503,6 +508,7 @@ CRITICAL RULES:
 11. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
 12. Match the target audience vibe without being heavy-handed
 13. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
+    **EXCEPTION**: The "=== PRODUCT INTEGRITY (CRITICAL) ===" section must be preserved verbatim when present in the brief.
 
 QUALITY STANDARDS:
 - High-quality, professional imagery
