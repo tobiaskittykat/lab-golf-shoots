@@ -1,353 +1,249 @@
 
 
-# Post-Generation Product Integrity Check
+# Progressive Image Display & Parallel Sequential Generation
 
 ## Summary
 
-Implement a background AI analysis that runs automatically after each image generation to compare the generated image against its product reference images. This will detect issues like incorrect colors, missing features (straps, hardware), wrong silhouette, or material mismatches - and display the results as a badge on each image card.
+Currently, when generating multiple images in Sequential Generation mode, all images are generated one by one (sequentially), and the UI only displays them after **all** images are complete. This creates a poor user experience where users stare at skeletons for 2-3 minutes.
+
+The solution is two-fold:
+1. **Progressive display**: Show each image as soon as it completes (like Discovery Mode already does)
+2. **Parallel execution**: Generate images in parallel batches (groups of 2-3) to significantly reduce total wait time
 
 ---
 
-## Architecture Overview
+## Current Behavior Analysis
 
-```text
-+------------------+        +----------------------+        +------------------+
-| generate-image   | -----> | Client receives      | -----> | Trigger async    |
-| edge function    |        | completed images     |        | integrity check  |
-+------------------+        +----------------------+        +------------------+
-                                                                     |
-                                                                     v
-                                                          +----------------------+
-                                                          | analyze-product-     |
-                                                          | integrity edge fn    |
-                                                          +----------------------+
-                                                                     |
-                                                                     v
-                                                          +----------------------+
-                                                          | Gemini Vision API    |
-                                                          | Compare images       |
-                                                          +----------------------+
-                                                                     |
-                                                                     v
-                                                          +----------------------+
-                                                          | Update DB with       |
-                                                          | integrity_analysis   |
-                                                          +----------------------+
-                                                                     |
-                                                                     v
-                                                          +----------------------+
-                                                          | Client polls/fetches |
-                                                          | displays badge       |
-                                                          +----------------------+
-```
+### Sequential Generation (lines 464-492 in useImageGeneration.ts)
 
----
-
-## Components to Build
-
-### 1. New Edge Function: `analyze-product-integrity`
-
-**Purpose**: Compare a generated image against its product reference images using Gemini Vision
-
-**Input**:
 ```typescript
-{
-  imageId: string;               // Generated image ID
-  generatedImageUrl: string;     // URL of the generated image
-  productReferenceUrls: string[]; // Array of reference product images
-  productName?: string;          // Product name for context
+// CURRENT: Loop that waits for each image before starting the next
+for (let i = 0; i < state.imageCount; i++) {
+  const { data } = await supabase.functions.invoke('generate-image', { ... });
+  allImages.push(...data.images);  // Collected but not shown yet
 }
+// ONLY NOW are images returned to the UI
+return { images: allImages };
 ```
 
-**Output**:
-```typescript
-{
-  score: number;          // 0-100 overall integrity score
-  issues: string[];       // List of detected problems
-  passesCheck: boolean;   // true if score >= 70
-  details: {
-    colorMatch: { score: number; notes: string };
-    silhouetteMatch: { score: number; notes: string };
-    featureMatch: { score: number; notes: string };
-    materialMatch: { score: number; notes: string };
-  }
-}
-```
+**Problems:**
+- Each image takes ~30-60 seconds to generate
+- 4 images = 2-4 minutes of waiting with no visual feedback
+- No parallelization despite independent operations
 
-**AI Prompt Strategy**:
-- Attach ALL reference images + the generated image
-- Ask Gemini to compare and score: color accuracy, silhouette fidelity, feature presence (buckles, straps, hardware), material textures
-- Use function calling to extract structured analysis
+### Discovery Mode (already has progressive display)
 
----
-
-### 2. Database Schema Update
-
-Add a new JSONB column to `generated_images`:
-
-```sql
-ALTER TABLE generated_images 
-ADD COLUMN integrity_analysis JSONB DEFAULT NULL;
-```
-
-This will store:
-- `score`: 0-100
-- `issues`: string[]
-- `passesCheck`: boolean
-- `analyzedAt`: timestamp
-- `details`: sub-scores for color, silhouette, features, materials
-
----
-
-### 3. Client-Side Integration
-
-#### A. Update `useImageGeneration.ts`
-
-After successful generation, trigger the background integrity check:
+Discovery mode uses an `onImageReady` callback that progressively adds images to the UI as they complete:
 
 ```typescript
-// After images are returned successfully
-const successfulImages = images.filter(i => i.status === 'completed');
-
-// Fire-and-forget: trigger integrity analysis for each image with product refs
-successfulImages.forEach(img => {
-  if (productReferenceUrls.length > 0) {
-    supabase.functions.invoke('analyze-product-integrity', {
-      body: {
-        imageId: img.id,
-        generatedImageUrl: img.imageUrl,
-        productReferenceUrls,
-        productName: selectedSku?.name || undefined,
-      }
-    }).catch(err => console.error('Integrity check failed:', err));
-  }
+// DISCOVERY: Parallel + progressive
+const shotPromises = shotTypes.map(async (shot) => {
+  const result = await generateSingleImage(...);
+  if (onImageReady) onImageReady(result);  // Immediately visible!
+  return result;
 });
+await Promise.all(shotPromises);
 ```
-
-#### B. Update `GeneratedImageCard.tsx`
-
-Add the `ProductIntegrityBadge` component to display results:
-
-```typescript
-// Fetch integrity analysis from image settings or prop
-const integrityResult = image.settings?.integrityAnalysis;
-
-// In the card footer, next to the status badge:
-<ProductIntegrityBadge 
-  result={integrityResult}
-  isAnalyzing={!integrityResult && image.productReferenceUrls?.length > 0}
-  onRegenerate={() => onVariation(image)}
-  compact
-/>
-```
-
-#### C. Update `ImageDetailModal.tsx`
-
-Show detailed integrity analysis in the modal sidebar:
-- Full score breakdown (color, silhouette, features, materials)
-- List of specific issues detected
-- "Regenerate with focus on fidelity" button if score < 70
 
 ---
 
-### 4. Hook for Live Updates: `useIntegrityResults`
+## Solution Architecture
 
-Create a hook that polls or subscribes for integrity results:
+```text
+  Sequential Mode (Current)          Sequential Mode (New)
+  ========================          =====================
+  
+  [Start] ─→ [Generate #1] ─→      [Start] ─┬→ [Gen #1] ─→ [Show #1]
+              ↓                              │
+          [Wait 45s]                         ├→ [Gen #2] ─→ [Show #2]
+              ↓                              │     (parallel batch 1)
+          [Generate #2] ─→                   ↓
+              ↓                         [Wait ~45s for batch]
+          [Wait 45s]                         │
+              ↓                         ─┬→ [Gen #3] ─→ [Show #3]
+          [Generate #3] ─→               │
+              ...                        ├→ [Gen #4] ─→ [Show #4]
+              ↓                               (parallel batch 2)
+          [Show ALL]                         
+                                    Total: ~90s for 4 images
+  Total: ~180s for 4 images         (50% faster + progressive feedback)
+```
+
+---
+
+## Technical Changes
+
+### 1. Update `generateImages` in `useImageGeneration.ts`
+
+Add an `onImageReady` callback parameter (same pattern as `generateDiscoveryBatch`):
 
 ```typescript
-export function useIntegrityResults(imageIds: string[]) {
-  const [results, setResults] = useState<Record<string, ProductIntegrityResult>>({});
+const generateImages = useCallback(async (
+  state: CreativeStudioState,
+  logoUrl?: string,
+  brandId?: string,
+  onImageReady?: (image: GeneratedImage) => void  // NEW: progressive callback
+): Promise<GeneratedImage[]> => {
+```
+
+### 2. Rewrite Sequential Generation Block
+
+Replace the sequential `for` loop with parallel batches:
+
+```typescript
+if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
+  console.log(`Sequential mode: generating ${state.imageCount} images with parallel batches`);
   
-  useEffect(() => {
-    // Initial fetch for images that have integrity_analysis
-    const fetchResults = async () => {
-      const { data } = await supabase
-        .from('generated_images')
-        .select('id, integrity_analysis')
-        .in('id', imageIds)
-        .not('integrity_analysis', 'is', null);
-      
-      const resultsMap = {};
-      data?.forEach(img => {
-        resultsMap[img.id] = img.integrity_analysis;
-      });
-      setResults(resultsMap);
-    };
+  const BATCH_SIZE = 2; // Generate 2-3 images in parallel at a time
+  const allImages: GeneratedImage[] = [];
+  
+  // Create all generation promises (but don't execute yet)
+  const generateOne = async (index: number): Promise<GeneratedImage | null> => {
+    const freshShotTypePrompt = buildShotTypePromptForProduct();
+    console.log(`Sequential image ${index + 1}/${state.imageCount} - starting`);
     
-    if (imageIds.length > 0) {
-      fetchResults();
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: buildRequestBody(freshShotTypePrompt, 1),
+      });
       
-      // Poll every 5 seconds for updates (until all analyzed)
-      const interval = setInterval(fetchResults, 5000);
-      return () => clearInterval(interval);
+      if (error || !data?.images?.[0]) return null;
+      
+      const img = data.images[0];
+      const generatedImage: GeneratedImage = {
+        id: img.id || `seq-${Date.now()}-${index}`,
+        imageUrl: img.imageUrl || '',
+        status: img.status || 'failed',
+        prompt: state.prompt,
+        refinedPrompt: img.refinedPrompt,
+        conceptTitle: productNames[0] || 'Product Shot',
+        index,
+        productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+        productReferenceUrl: productReferenceUrls[0],
+      };
+      
+      // PROGRESSIVE DISPLAY: Immediately notify caller
+      if (onImageReady && generatedImage.status === 'completed') {
+        onImageReady(generatedImage);
+      }
+      
+      return generatedImage;
+    } catch (err) {
+      console.error(`Sequential image ${index + 1} failed:`, err);
+      return null;
     }
-  }, [imageIds]);
+  };
   
-  return results;
+  // Process in parallel batches to avoid overwhelming the API
+  for (let batchStart = 0; batchStart < state.imageCount; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE, state.imageCount);
+    const batchPromises = [];
+    
+    for (let i = batchStart; i < batchEnd; i++) {
+      batchPromises.push(generateOne(i));
+    }
+    
+    const batchResults = await Promise.all(batchPromises);
+    const successfulImages = batchResults.filter((img): img is GeneratedImage => img !== null);
+    allImages.push(...successfulImages);
+  }
+  
+  data = { images: allImages };
+  error = allImages.length === 0 ? { message: 'All sequential generations failed' } : null;
 }
 ```
 
----
+### 3. Update `handleGenerate` in `CreativeStudioWizard.tsx`
 
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `supabase/functions/analyze-product-integrity/index.ts` | Create | New edge function for AI comparison |
-| `supabase/config.toml` | Update | Register the new function |
-| Migration | Create | Add `integrity_analysis` column |
-| `src/hooks/useIntegrityResults.ts` | Create | Hook for fetching/polling integrity data |
-| `src/hooks/useImageGeneration.ts` | Update | Trigger background check after generation |
-| `src/components/creative-studio/GeneratedImageCard.tsx` | Update | Display integrity badge |
-| `src/components/creative-studio/ImageDetailModal.tsx` | Update | Show detailed analysis |
-| `src/components/creative-studio/types.ts` | Update | Add integrity fields to GeneratedImage type |
-
----
-
-## Edge Function Implementation Details
-
-### `analyze-product-integrity/index.ts`
+Use the callback to progressively add images to state:
 
 ```typescript
-// Key implementation points:
-
-// 1. Attach generated image + all reference images
-const messages = [
-  {
-    role: 'user',
-    content: [
-      // Reference images first
-      ...productReferenceUrls.map(url => ({
-        type: 'image_url',
-        image_url: { url }
-      })),
-      // Generated image last
-      { type: 'image_url', image_url: { url: generatedImageUrl } },
-      // Analysis prompt
-      { type: 'text', text: analysisPrompt }
-    ]
-  }
-];
-
-// 2. Structured analysis prompt
-const analysisPrompt = `
-The first ${refCount} images are PRODUCT REFERENCE photos showing the actual product.
-The LAST image is an AI-GENERATED image that should contain this product.
-
-Compare the generated image to the reference images and analyze:
-
-1. COLOR ACCURACY (0-100): Does the product color in the generated image match the reference exactly?
-   - Check main color, accent colors, hardware colors
-   
-2. SILHOUETTE MATCH (0-100): Does the shape/form match the reference?
-   - Check proportions, curves, overall outline
-   
-3. FEATURE PRESENCE (0-100): Are all distinctive features present?
-   - Straps, buckles, hardware, logos, stitching, linings
-   
-4. MATERIAL ACCURACY (0-100): Do materials look correct?
-   - Suede texture, leather grain, shearling, cork, rubber
-
-Call the extract_integrity_analysis function with your findings.
-`;
-
-// 3. Use function calling for structured output
-const tools = [{
-  type: 'function',
-  function: {
-    name: 'extract_integrity_analysis',
-    parameters: {
-      type: 'object',
-      properties: {
-        overall_score: { type: 'number' },
-        color_match: { 
-          type: 'object',
-          properties: { score: { type: 'number' }, notes: { type: 'string' } }
-        },
-        silhouette_match: { ... },
-        feature_match: { ... },
-        material_match: { ... },
-        issues: { type: 'array', items: { type: 'string' } }
+const handleGenerate = useCallback(async () => {
+  handleUpdate({ isGenerating: true, generatedImages: [] });
+  
+  // Generate placeholder images for loading state (show remaining slots)
+  const placeholders: GeneratedImage[] = Array.from({ length: state.imageCount }).map((_, i) => ({
+    id: `pending-${i}`,
+    imageUrl: '',
+    status: 'pending' as const,
+    prompt: state.prompt,
+    index: i,
+  }));
+  handleUpdate({ generatedImages: placeholders });
+  
+  // Progressive callback: replace placeholder with real image as each completes
+  const onImageReady = (image: GeneratedImage) => {
+    setState(prev => {
+      // Find the first pending placeholder and replace it, OR just add to end
+      const newImages = [...prev.generatedImages];
+      const pendingIdx = newImages.findIndex(img => img.status === 'pending');
+      
+      if (pendingIdx >= 0) {
+        newImages[pendingIdx] = image;
+      } else {
+        newImages.push(image);
       }
-    }
-  }
-}];
+      
+      return { ...prev, generatedImages: newImages };
+    });
+  };
+  
+  // Call with progressive callback
+  const images = await generateImages(state, logoUrl, currentBrand?.id, onImageReady);
+  
+  // Final update (replaces any remaining placeholders with failed status)
+  handleUpdate({ 
+    isGenerating: false, 
+    generatedImages: images.length > 0 
+      ? images 
+      : placeholders.map(p => ({ ...p, status: 'failed' as const }))
+  });
+}, [state, handleUpdate, generateImages, logoUrl, currentBrand?.id]);
+```
 
-// 4. Update database with results
-await supabase
-  .from('generated_images')
-  .update({
-    integrity_analysis: {
-      score: result.overall_score,
-      issues: result.issues,
-      passesCheck: result.overall_score >= 70,
-      analyzedAt: new Date().toISOString(),
-      details: {
-        colorMatch: result.color_match,
-        silhouetteMatch: result.silhouette_match,
-        featureMatch: result.feature_match,
-        materialMatch: result.material_match
-      }
-    }
-  })
-  .eq('id', imageId);
+### 4. Update Gallery to Handle Mixed State
+
+The `GeneratedImagesGallery` already supports mixed states (pending + completed), but we should ensure it gracefully handles the transition:
+
+```typescript
+// In GeneratedImagesGallery.tsx - existing logic handles this well
+<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+  {images.map((image) => (
+    image.status === 'pending' ? (
+      <GeneratedImageCardSkeleton key={image.id} />
+    ) : (
+      <GeneratedImageCard key={image.id} image={image} ... />
+    )
+  ))}
+</div>
 ```
 
 ---
 
-## UI Display
+## Files to Modify
 
-### GeneratedImageCard Badge
-
-Position: Bottom-left corner of image, or in the footer next to status
-
-- Green badge (80-100): "Excellent" with checkmark
-- Yellow badge (60-79): "Fair" with warning icon
-- Red badge (<60): "Issues" with X icon and "Regenerate" button
-
-### ImageDetailModal Detailed View
-
-Add a collapsible "Product Integrity" section:
-
-```text
-+------------------------------------------+
-| Product Integrity           Score: 65/100 |
-+------------------------------------------+
-| Color Match        ████████░░  82%        |
-| Silhouette         ██████░░░░  62%        |
-| Features           █████░░░░░  48%        |
-| Materials          ███████░░░  71%        |
-+------------------------------------------+
-| Issues Detected:                          |
-| • Heel strap appears missing              |
-| • Color is slightly darker than reference |
-| • Shearling lining not visible            |
-+------------------------------------------+
-| [Regenerate with Focus on Fidelity]       |
-+------------------------------------------+
-```
+| File | Changes |
+|------|---------|
+| `src/hooks/useImageGeneration.ts` | Add `onImageReady` callback parameter; rewrite sequential loop to use parallel batches with progressive callbacks |
+| `src/components/creative-studio/CreativeStudioWizard.tsx` | Update `handleGenerate` to use progressive callback |
+| `src/components/creative-studio/GeneratedImagesGallery.tsx` | Minor: ensure mixed pending/completed rendering works smoothly |
 
 ---
 
-## Performance Considerations
+## Performance Impact
 
-1. **Background execution**: Use `EdgeRuntime.waitUntil()` if the edge function needs to do cleanup
-2. **Rate limiting**: Process one image at a time to avoid overwhelming the AI API
-3. **Caching**: Skip analysis if product references haven't changed and score is already high
-4. **Timeout handling**: Set reasonable timeout (30s) for the vision API call
+| Scenario | Current Time | New Time | Improvement |
+|----------|-------------|----------|-------------|
+| 4 images (sequential) | ~180s | ~90s | 50% faster |
+| 4 images (first visible) | ~180s | ~45s | 75% faster perceived |
+| 8 images | ~360s | ~180s | 50% faster |
 
 ---
 
-## Migration SQL
+## Edge Cases
 
-```sql
--- Add integrity_analysis column to generated_images
-ALTER TABLE public.generated_images 
-ADD COLUMN IF NOT EXISTS integrity_analysis JSONB DEFAULT NULL;
-
--- Add index for efficient querying of un-analyzed images
-CREATE INDEX IF NOT EXISTS idx_generated_images_integrity_analysis 
-ON public.generated_images ((integrity_analysis IS NULL))
-WHERE integrity_analysis IS NULL;
-```
+1. **Partial failures**: If 2/4 images fail, the successful ones still appear immediately
+2. **All failures**: Remaining placeholders convert to failed state at the end
+3. **Rate limiting**: Batch size of 2-3 prevents API overload while still providing parallelism
+4. **Integrity analysis**: Already triggers per-image, so progressive display works seamlessly
 
