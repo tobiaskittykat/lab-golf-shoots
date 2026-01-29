@@ -30,14 +30,14 @@ export default function Settings() {
   const { currentBrand, updateBrand, isLoading } = useBrands();
   const { toast } = useToast();
 
-  // Existing prompts
-  const [conceptPrompt, setConceptPrompt] = useState("");
-  const [promptAgentPrompt, setPromptAgentPrompt] = useState("");
+  // Existing prompts - initialize with defaults to ensure correct disabled state on reset buttons
+  const [conceptPrompt, setConceptPrompt] = useState(DEFAULT_CONCEPT_AGENT_PROMPT);
+  const [promptAgentPrompt, setPromptAgentPrompt] = useState(DEFAULT_PROMPT_AGENT_PROMPT);
   
   // New shot-type prompts
-  const [onFootPrompt, setOnFootPrompt] = useState("");
-  const [lifestylePrompt, setLifestylePrompt] = useState("");
-  const [productFocusPrompt, setProductFocusPrompt] = useState("");
+  const [onFootPrompt, setOnFootPrompt] = useState(DEFAULT_ON_FOOT_SHOT_PROMPT);
+  const [lifestylePrompt, setLifestylePrompt] = useState(DEFAULT_LIFESTYLE_SHOT_PROMPT);
+  const [productFocusPrompt, setProductFocusPrompt] = useState(DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT);
   
   // UI state
   const [conceptOpen, setConceptOpen] = useState(true);
