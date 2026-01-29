@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid3X3, Sparkles } from 'lucide-react';
+import { Grid3X3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProductFocusAngle, productFocusAngleOptions } from './shotTypeConfigs';
 
@@ -10,6 +10,7 @@ import angleTopDown from '@/assets/product-angles/angle-top-down.jpg';
 import angleSole from '@/assets/product-angles/angle-sole.jpg';
 import angleDetail from '@/assets/product-angles/angle-detail.jpg';
 import anglePair from '@/assets/product-angles/angle-pair.jpg';
+import angleLifestyle from '@/assets/product-angles/angle-lifestyle.jpg';
 
 // Map thumbnail filenames to imports
 const thumbnailMap: Record<string, string> = {
@@ -19,6 +20,7 @@ const thumbnailMap: Record<string, string> = {
   'angle-sole.jpg': angleSole,
   'angle-detail.jpg': angleDetail,
   'angle-pair.jpg': anglePair,
+  'angle-lifestyle.jpg': angleLifestyle,
 };
 
 interface CameraAngleSelectorProps {
@@ -56,10 +58,6 @@ export function CameraAngleSelector({ value, onChange }: CameraAngleSelectorProp
                     alt={option.label}
                     className="w-full h-full object-cover"
                   />
-                ) : option.value === 'lifestyle' ? (
-                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                    <Sparkles className="w-3 h-3 text-muted-foreground" />
-                  </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted/50">
                     <Grid3X3 className="w-3 h-3 text-muted-foreground" />

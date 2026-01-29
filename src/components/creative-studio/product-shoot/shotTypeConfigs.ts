@@ -443,7 +443,7 @@ export const productFocusAngleOptions = [
     value: 'lifestyle' as ProductFocusAngle, 
     label: 'Lifestyle', 
     prompt: 'dynamic lifestyle composition with creative freedom, product artfully placed in context with props or environmental elements, editorial product photography with mood and atmosphere, AI determines optimal angle and arrangement',
-    thumbnail: null,
+    thumbnail: 'angle-lifestyle.jpg',
   },
 ];
 
