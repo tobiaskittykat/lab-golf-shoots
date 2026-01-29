@@ -940,8 +940,6 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
               {state.useCase === 'product' && (
                 <ProductShootIndicators 
                   state={state.productShoot}
-                  imageCount={state.imageCount}
-                  aspectRatio={state.aspectRatio}
                 />
               )}
               

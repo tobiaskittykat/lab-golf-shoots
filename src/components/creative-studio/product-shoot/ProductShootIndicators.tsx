@@ -4,8 +4,6 @@ import { ProductShootState } from "./types";
 
 interface ProductShootIndicatorsProps {
   state: ProductShootState;
-  imageCount: number;
-  aspectRatio: string;
 }
 
 interface IndicatorChipProps {
@@ -44,7 +42,7 @@ const scrollToSection = (sectionId: string) => {
   }
 };
 
-export const ProductShootIndicators = ({ state, imageCount, aspectRatio }: ProductShootIndicatorsProps) => {
+export const ProductShootIndicators = ({ state }: ProductShootIndicatorsProps) => {
   const hasProduct = !!state.recoloredProductUrl;
   
   const shotTypeLabels: Record<string, string> = {
@@ -52,16 +50,13 @@ export const ProductShootIndicators = ({ state, imageCount, aspectRatio }: Produ
     'on-foot': 'On Foot',
     'lifestyle': 'Full Body',
   };
-  const shotLabel = shotTypeLabels[state.productShotType] || 'Shot Type';
+  const shotLabel = `Shot Type: ${shotTypeLabels[state.productShotType] || 'Select'}`;
   
   const getBackgroundLabel = () => {
-    if (state.settingType === 'auto') return 'Background (auto)';
-    if (state.settingType === 'studio') return 'Studio';
-    if (state.settingType === 'outdoor') return 'Outdoor';
-    return 'Background';
+    if (state.settingType === 'studio') return 'Background: Studio';
+    if (state.settingType === 'outdoor') return 'Background: Outdoor';
+    return 'Background: Auto';
   };
-  
-  const outputLabel = `${imageCount}x ${aspectRatio}`;
   
   return (
     <div className="flex items-center gap-0.5">
@@ -83,17 +78,8 @@ export const ProductShootIndicators = ({ state, imageCount, aspectRatio }: Produ
       
       <IndicatorChip
         label={getBackgroundLabel()}
-        selected={state.settingType !== 'auto'}
-        isAuto={state.settingType === 'auto'}
-        onClick={() => scrollToSection('section-ps-background')}
-      />
-      
-      <span className="text-muted-foreground/30">·</span>
-      
-      <IndicatorChip
-        label={outputLabel}
         selected={true}
-        onClick={() => scrollToSection('section-ps-output')}
+        onClick={() => scrollToSection('section-ps-background')}
       />
     </div>
   );
