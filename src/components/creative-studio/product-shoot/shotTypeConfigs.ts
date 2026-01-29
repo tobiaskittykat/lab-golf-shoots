@@ -323,17 +323,7 @@ export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: Backgrou
   // Build the evocative prompt
   const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
 
-=== PRODUCT INTEGRITY (CRITICAL) ===
-⚠️ ABSOLUTE PRIORITY: The footwear must match the reference images EXACTLY.
-• This is Birkenstock footwear - preserve the iconic brand identity
-• Match the exact silhouette, buckle placement, strap width, sole thickness
-• Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap
-• Capture authentic material textures: suede nap, cork grain, metal buckle finish
-• LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - "BIRKENSTOCK" text, buckle logos, footbed stamps must be letter-perfect
-• NO reinterpretation, NO modifications, NO creative liberties with the product
-• The shoe's geometry and construction must remain identical in every generation
-
-A close-up on-model product shot of a ${modelDesc} model wearing Birkenstock footwear, photographed against ${backgroundDesc}.
+A close-up on-model product shot of a ${modelDesc} model wearing the footwear, photographed against ${backgroundDesc}.
 
 Framing is tight and product-focused, showing the feet, shoes, ankles, and lower legs, cropped roughly from mid-calf down. The shoes fill most of the frame, consistent with official Birkenstock e-commerce photography.
 
@@ -488,17 +478,7 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   sections.push("- Clean, professional product photography composition");
   sections.push("");
   
-  // Product Integrity (STATIC - CRITICAL)
-  sections.push("=== PRODUCT INTEGRITY (CRITICAL) ===");
-  sections.push("⚠️ ABSOLUTE PRIORITY: The footwear must match the reference images EXACTLY.");
-  sections.push("- This is Birkenstock footwear - preserve the iconic brand identity");
-  sections.push("- Match the exact silhouette, buckle placement, strap width, sole thickness, hardware finish");
-  sections.push("- Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap");
-  sections.push("- Capture authentic material textures: suede nap, cork grain, metal buckle finish, sole grooves");
-  sections.push("- LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - 'BIRKENSTOCK' text, buckle logos, footbed stamps must be letter-perfect");
-  sections.push("- NO reinterpretation, NO modifications, NO creative liberties with the product");
-  sections.push("- The shoe's geometry and construction must remain identical in every generation");
-  sections.push("");
+  // Product integrity is now handled by the prompt agent instructions
   
   // Background (DYNAMIC)
   if (bgContext) {
@@ -744,16 +724,6 @@ export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: Ba
 
   // Build the evocative prompt
   const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
-
-=== PRODUCT INTEGRITY (CRITICAL) ===
-⚠️ ABSOLUTE PRIORITY: The footwear must match the reference images EXACTLY.
-• This is Birkenstock footwear - preserve the iconic brand identity
-• Match the exact silhouette, buckle placement, strap width, sole thickness
-• Maintain signature Birkenstock details: cork-latex footbed, contoured sole, adjustable strap
-• Capture authentic material textures: suede nap, cork grain, metal buckle finish
-• LOGO & TEXT ACCURACY: Reproduce all embossed, engraved, or stamped brand markings with 100% accuracy - "BIRKENSTOCK" text, buckle logos, footbed stamps must be letter-perfect
-• NO reinterpretation, NO modifications, NO creative liberties with the product
-• The shoe's geometry and construction must remain identical in every generation
 
 A full-body product-on-model shot, framed from upper chest or shoulders down to the feet, with the head cropped out of frame.
 

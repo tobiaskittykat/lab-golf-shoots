@@ -144,6 +144,16 @@ interface GenerateImageRequest {
   // Custom prompt agent system prompt
   customPromptAgentSystemPrompt?: string;
   
+  // Product Identity (parsed from SKU name + description)
+  productIdentity?: {
+    brandName?: string;
+    modelName?: string;
+    material?: string;
+    color?: string;
+    productType?: string;
+    fullName?: string;
+  };
+  
   // Logo placement for compositing
   logoPlacement?: LogoPlacement | null;
   
@@ -374,6 +384,20 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
     
     // ===== TONALITY (from 9-point framework) =====
     
+    // ===== PRODUCT IDENTITY (CRITICAL for product shoots) =====
+    // Pass brand, model, color, material to help AI name the product correctly
+    if (request.productIdentity) {
+      const pi = request.productIdentity;
+      sections.push("=== PRODUCT IDENTITY (USE IN PROMPT) ===");
+      sections.push("⚠️ IMPORTANT: Include these identifiers in your prompt for product recognition:");
+      if (pi.brandName) sections.push(`Brand: ${pi.brandName}`);
+      if (pi.modelName) sections.push(`Model: ${pi.modelName}`);
+      if (pi.color) sections.push(`Color: ${pi.color}`);
+      if (pi.material) sections.push(`Material: ${pi.material}`);
+      if (pi.productType) sections.push(`Type: ${pi.productType}`);
+      sections.push("");
+    }
+    
     // Product Section (product names for clarity)
     if (request.productNames && request.productNames.length > 0) {
       sections.push("=== PRODUCT REFERENCES ===");
@@ -481,17 +505,13 @@ CRITICAL RULES:
 2. Lead with the product DESCRIPTION (shot type label ONLY if explicitly specified in brief)
 
 3. **⚠️ PRODUCT INTEGRITY IS CRITICAL** - When product reference images are provided:
-   - DESCRIBE the products visually in your prompt with EXACT detail
-   - Include: material (leather, croc-embossed, smooth, pebbled), color, hardware finish (gold, silver, gunmetal)
-   - Include: silhouette/type (crossbody, clutch, card holder, phone case), and key details (chain strap, magnetic closure, zip)
-   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy - no misspellings, no altered letterforms
-   - Example: Instead of "the Remi Magnet crossbody", write "a black croc-embossed leather phone crossbody with a detachable gold chain strap and magnetic gold hardware closure"
-   - This visual description ensures the image generator renders the product EXACTLY as it appears
-   - Do NOT use product names - use VISUAL DESCRIPTIONS only
-   
-   **IMPORTANT FOR PRODUCT SHOOTS**: If the brief contains a "=== PRODUCT INTEGRITY (CRITICAL) ===" section, 
-   you MUST include this EXACT section at the START of your output, preserving the header and all bullet points verbatim.
-   This is an EXCEPTION to the "no section headers" rule - product integrity instructions are non-negotiable.
+   - **INCLUDE brand name and model name** (e.g., "Birkenstock Boston", "Nike Air Max") when provided in PRODUCT IDENTITY section - this helps the image generator understand the iconic product
+   - ALSO describe the products visually in your prompt with EXACT detail
+   - Include: material (leather, suede, croc-embossed), color, hardware finish (gold, silver, brushed metal)
+   - Include: silhouette/type (clog, sandal, crossbody), and key details (cork footbed, adjustable buckle, chain strap)
+   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy
+   - Example: "the iconic Birkenstock Boston clog in taupe suede, featuring the signature cork-latex footbed, adjustable metal buckle strap, and contoured EVA sole"
+   - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials. Make this emphasis feel natural, not like a checklist.
 
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
@@ -507,8 +527,7 @@ CRITICAL RULES:
 10. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
 11. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
 12. Match the target audience vibe without being heavy-handed
-13. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
-    **EXCEPTION**: The "=== PRODUCT INTEGRITY (CRITICAL) ===" section must be preserved verbatim when present in the brief.
+13. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", "=== PRODUCT INTEGRITY ===" etc. Start DIRECTLY with the image description and weave all requirements naturally into the prose.
 
 QUALITY STANDARDS:
 - High-quality, professional imagery
@@ -516,7 +535,7 @@ QUALITY STANDARDS:
 - Appropriate lighting for the mood
 - Clean, intentional composition
 
-OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Describe products visually, not by name. Start directly with the scene description.`;
+OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Include brand/model names when provided, and describe products with visual precision. Start directly with the scene description.`;
 
     const systemPrompt = request.customPromptAgentSystemPrompt || defaultSystemPrompt;
     console.log("Using custom prompt agent system prompt:", !!request.customPromptAgentSystemPrompt);

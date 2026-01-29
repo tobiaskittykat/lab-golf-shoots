@@ -66,17 +66,13 @@ CRITICAL RULES:
 2. Lead with the product DESCRIPTION (shot type label ONLY if explicitly specified in brief)
 
 3. **⚠️ PRODUCT INTEGRITY IS CRITICAL** - When product reference images are provided:
-   - DESCRIBE the products visually in your prompt with EXACT detail
-   - Include: material (leather, croc-embossed, smooth, pebbled), color, hardware finish (gold, silver, gunmetal)
-   - Include: silhouette/type (crossbody, clutch, card holder, phone case), and key details (chain strap, magnetic closure, zip)
-   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy - no misspellings, no altered letterforms
-   - Example: Instead of "the Remi Magnet crossbody", write "a black croc-embossed leather phone crossbody with a detachable gold chain strap and magnetic gold hardware closure"
-   - This visual description ensures the image generator renders the product EXACTLY as it appears
-   - Do NOT use product names - use VISUAL DESCRIPTIONS only
-   
-   **IMPORTANT FOR PRODUCT SHOOTS**: If the brief contains a "=== PRODUCT INTEGRITY (CRITICAL) ===" section, 
-   you MUST include this EXACT section at the START of your output, preserving the header and all bullet points verbatim.
-   This is an EXCEPTION to the "no section headers" rule - product integrity instructions are non-negotiable.
+   - **INCLUDE brand name and model name** (e.g., "Birkenstock Boston", "Nike Air Max") when provided in PRODUCT IDENTITY section - this helps the image generator understand the iconic product
+   - ALSO describe the products visually in your prompt with EXACT detail
+   - Include: material (leather, suede, croc-embossed), color, hardware finish (gold, silver, brushed metal)
+   - Include: silhouette/type (clog, sandal, crossbody), and key details (cork footbed, adjustable buckle, chain strap)
+   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy
+   - Example: "the iconic Birkenstock Boston clog in taupe suede, featuring the signature cork-latex footbed, adjustable metal buckle strap, and contoured EVA sole"
+   - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials. Make this emphasis feel natural, not like a checklist.
 
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
@@ -84,7 +80,7 @@ CRITICAL RULES:
    - ⛔ When an "AVOID" list is provided, these elements are FORBIDDEN - never include them in the prompt
    - When Brand Brain data is marked as "HIGH PRIORITY", treat it as the brand's established visual DNA - all images must feel on-brand
    
-   ⚠️ **CRITICAL PRIORITY RULE**: If a concept's "mustHave" list contains an element that appears in the Brand's "AVOID" list, the AVOID list ALWAYS WINS. Never include forbidden brand elements regardless of concept direction. Example: If the concept says "mustHave: lens flare" but the brand says "AVOID: lens flare", you must NOT include lens flare.
+   ⚠️ **CRITICAL PRIORITY RULE**: If a concept's "mustHave" list contains an element that appears in the Brand's "AVOID" list, the AVOID list ALWAYS WINS. Never include forbidden brand elements regardless of concept direction.
 
 5. **MODEL STYLING (when applicable)**:
    - When Brand Brain includes modelStyling data and the shot involves a model (e.g., "On Model" shots), use it to describe human subjects
@@ -101,8 +97,7 @@ CRITICAL RULES:
 11. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
 12. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
 13. Match the target audience vibe without being heavy-handed
-14. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", etc. Start DIRECTLY with the image description.
-    **EXCEPTION**: The "=== PRODUCT INTEGRITY (CRITICAL) ===" section must be preserved verbatim when present in the brief.
+14. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", "=== PRODUCT INTEGRITY ===" etc. Start DIRECTLY with the image description and weave all requirements naturally into the prose.
 
 QUALITY STANDARDS:
 - High-quality, professional imagery
@@ -110,7 +105,7 @@ QUALITY STANDARDS:
 - Appropriate lighting for the mood
 - Clean, intentional composition
 
-OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Describe products visually, not by name. Start directly with the scene description.`;
+OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Include brand/model names when provided, and describe products with visual precision. Start directly with the scene description.`;
 
 // ===== PRODUCT SHOOT PROMPTS =====
 
