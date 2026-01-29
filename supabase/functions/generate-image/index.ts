@@ -509,9 +509,15 @@ CRITICAL RULES:
    - ALSO describe the products visually in your prompt with EXACT detail
    - Include: material (leather, suede, croc-embossed), color, hardware finish (gold, silver, brushed metal)
    - Include: silhouette/type (clog, sandal, crossbody), and key details (cork footbed, adjustable buckle, chain strap)
-   - **LOGO & TEXT FIDELITY**: All embossed, engraved, or stamped brand text/logos must be reproduced with 100% accuracy
-   - Example: "the iconic Birkenstock Boston clog in taupe suede, featuring the signature cork-latex footbed, adjustable metal buckle strap, and contoured EVA sole"
-   - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials. Make this emphasis feel natural, not like a checklist.
+   
+   **⚠️ BIRKENSTOCK LOGO FIDELITY (CRITICAL)**:
+   - The embossed "BIRKENSTOCK" wordmark on the footbed and the engraved "Birkenstock" on the buckle are signature brand identifiers
+   - These logos MUST be clearly visible and accurately reproduced in every product shot
+   - Pay special attention to: the classic serif typography, correct letter spacing, proper placement on footbed and buckle
+   - Your final prompt MUST explicitly describe and emphasize these logo elements to ensure the image generator renders them faithfully
+   
+   - Example: "the iconic Birkenstock Boston clog in taupe suede, featuring the signature cork-latex footbed with the embossed 'BIRKENSTOCK' wordmark clearly visible in classic serif typography, the adjustable metal buckle engraved with the distinctive 'Birkenstock' script, and contoured EVA sole"
+   - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials, same branding. Make this emphasis feel natural, not like a checklist.
 
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
