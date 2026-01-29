@@ -1,109 +1,83 @@
 
+# Fix Background Indicator Display
 
-# Remove Redundant Product Info + Fix Selection Indicator
+## Issue
 
-## Summary
-
-Two UI fixes for the Product Shoot workflow:
-1. Remove the redundant "Selected Product Info Row" below the product grid
-2. Fix the bottom bar "Product" chip to show checkmark when a product is selected
+The bottom bar shows "Background: Auto" even when a studio background (White Cyclorama) is selected. The indicator should reflect the actual selection.
 
 ---
 
-## Issue #1: Remove Redundant Product Info Row
+## Root Cause
 
-### Current Behavior
-Below the 3-product grid, there's a grey info row showing:
-- "Birkenstock Arizona Dark Brown Sandals"
-- "BIRK-ARIZONA-DBR"
+The `getBackgroundLabel` function in `ProductShootIndicators.tsx` only checks `state.settingType`:
 
-This is redundant because:
-- The product name is already shown in the collapsible header
-- The product grid thumbnails already show names and selection state
-
-### Fix
-
-**File:** `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`
-
-Remove lines 419-433:
 ```typescript
-{/* Selected Product Info Row - DELETE THIS */}
-{selectedSku && (
-  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-    <div className="flex-1 min-w-0">
-      <div className="font-medium text-foreground truncate">{selectedSku.name}</div>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {selectedSku.sku_code && <span className="truncate">{selectedSku.sku_code}</span>}
-        {selectedSku.sku_code && selectedSku.angles?.length > 0 && <span>•</span>}
-        {selectedSku.angles?.length > 0 && (
-          <span>{selectedSku.angles.length} angle{selectedSku.angles.length !== 1 ? 's' : ''}</span>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+const getBackgroundLabel = () => {
+  if (state.settingType === 'studio') return 'Background: Studio';
+  if (state.settingType === 'outdoor') return 'Background: Outdoor';
+  return 'Background: Auto';
+};
 ```
+
+However, when a specific background is selected from the Studio/Outdoor tabs, the `backgroundId` is set (e.g., `studio-white`), but `settingType` may not be properly synced. The indicator should also consider the `backgroundId` prefix to correctly determine the background category.
 
 ---
 
-## Issue #2: Fix Product Selection Indicator
+## Fix
 
-### Current Behavior
-The bottom bar shows "Product" without a checkmark even when a product is selected.
-
-### Root Cause
-In `ProductShootIndicators.tsx`, line 46:
-```typescript
-const hasProduct = !!state.recoloredProductUrl;
-```
-
-This checks for `recoloredProductUrl`, but the correct check should be for `selectedProductId` since:
-- `selectedProductId` is set immediately when a product is selected
-- `recoloredProductUrl` may be undefined if the product has no composite image or angles
-
-### Fix
+Update `getBackgroundLabel` to check both `settingType` AND the `backgroundId` prefix:
 
 **File:** `src/components/creative-studio/product-shoot/ProductShootIndicators.tsx`
 
-Change line 46 from:
+**Current (lines 55-59):**
 ```typescript
-const hasProduct = !!state.recoloredProductUrl;
+const getBackgroundLabel = () => {
+  if (state.settingType === 'studio') return 'Background: Studio';
+  if (state.settingType === 'outdoor') return 'Background: Outdoor';
+  return 'Background: Auto';
+};
 ```
 
-To:
+**Updated:**
 ```typescript
-const hasProduct = !!state.selectedProductId;
+const getBackgroundLabel = () => {
+  // Check backgroundId prefix first (most reliable indicator of actual selection)
+  if (state.backgroundId?.startsWith('studio-')) return 'Background: Studio';
+  if (state.backgroundId?.startsWith('outdoor-')) return 'Background: Outdoor';
+  
+  // Fall back to settingType
+  if (state.settingType === 'studio') return 'Background: Studio';
+  if (state.settingType === 'outdoor') return 'Background: Outdoor';
+  
+  return 'Background: Auto';
+};
 ```
-
----
-
-## File Changes Summary
-
-| File | Changes |
-|------|---------|
-| `ProductShootStep2.tsx` | Remove "Selected Product Info Row" (lines 419-433) |
-| `ProductShootIndicators.tsx` | Change `hasProduct` check from `recoloredProductUrl` to `selectedProductId` |
 
 ---
 
 ## Expected Result
 
-After fix:
+When "White Cyclorama" (studio-white) is selected:
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ Your Products                                           │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
-│ │  ✓       │ │          │ │          │                 │
-│ │[Arizona] │ │[Boston]  │ │[Arizona] │                 │
-│ │Dark Brn  │ │Taupe     │ │EVA       │                 │
-│ └──────────┘ └──────────┘ └──────────┘                 │
-│                                                         │
-│ [Browse All Products...]  ← No redundant info row      │
-└─────────────────────────────────────────────────────────┘
-
-Bottom bar:
-✓ Product · ✓ Shot Type: Product Focus · ✓ Background: Auto
-↑ Now shows checkmark correctly
+✓ Product · ✓ Shot Type: Full Body · ✓ Background: Studio
+                                                      ↑ Now correctly shows "Studio"
 ```
 
+When an outdoor background is selected:
+```text
+✓ Product · ✓ Shot Type: Full Body · ✓ Background: Outdoor
+```
+
+When "Auto" is selected (no specific background):
+```text
+✓ Product · ✓ Shot Type: Full Body · ✓ Background: Auto
+```
+
+---
+
+## File Changes
+
+| File | Changes |
+|------|---------|
+| `ProductShootIndicators.tsx` | Update `getBackgroundLabel` to check `backgroundId` prefix in addition to `settingType` |
