@@ -1,87 +1,239 @@
 
 
-# Add Aspect Ratio and Resolution to Generation Info
+# Shot Options UX Enhancements
 
 ## Summary
 
-Add two new metadata rows to the "Generation Info" section in the Image Detail Modal:
-1. **Aspect Ratio** - Display the selected ratio (e.g., "1:1", "16:9", "4:5")
-2. **Resolution** - Display the pixel size (e.g., "1024px", "2048px")
+Improve the Shot Options section visibility and usability with 4 enhancements:
+1. Reset to "auto" when navigating back to Step 1
+2. Add a Reset button within Shot Options
+3. Auto-expand when customized (stay open instead of collapsed)
+4. Show "Customized" chip/indicator even when collapsed
 
 ---
 
-## Current State
+## Current State Analysis
 
-The Generation Info section currently shows:
-- Model (e.g., "Gemini 3 Pro")
-- Status (e.g., "Completed")
-- Image ID (truncated UUID)
+### Already Working
+The `handleBack()` function in `CreativeStudioWizard.tsx` already resets `productShoot` to `initialProductShootState` when navigating back to Step 1. All initial configs have 'auto' values.
 
-The data is already available in `image.settings.aspectRatio` and `image.settings.resolution` - it just needs to be displayed.
+### Files to Modify
+- `OnFootConfigurator.tsx`
+- `LifestyleConfigurator.tsx`
+- `ProductFocusConfigurator.tsx`
+- `ProductShootStep2.tsx` (for passing isCustomized prop)
+- `shotTypeConfigs.ts` (for helper functions)
 
 ---
 
-## Technical Changes
+## Implementation Details
 
-### File: `src/components/creative-studio/ImageDetailModal.tsx`
+### Part 1: Add Helper Functions for Detecting Customization
 
-Add two new rows after the "Model" row (around line 392):
+**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`
 
-**After this block (lines 387-392):**
+Add three helper functions to check if each config type has been customized:
+
 ```typescript
-{/* AI Model */}
-{image.settings?.aiModel && (
-  <div className="flex items-center justify-between py-1.5 border-b border-border/50">
-    <span className="text-muted-foreground">Model</span>
-    <span className="text-xs font-medium">{formatModelName(image.settings.aiModel)}</span>
+// Check if OnFoot config has any non-auto values
+export function isOnFootConfigCustomized(config: OnFootShotConfig): boolean {
+  return (
+    config.gender !== 'auto' ||
+    config.ethnicity !== 'auto' ||
+    config.poseVariation !== 'auto' ||
+    config.legStyling !== 'auto' ||
+    config.trouserColor !== 'auto'
+  );
+}
+
+// Check if Lifestyle config has any non-auto values
+export function isLifestyleConfigCustomized(config: LifestyleShotConfig): boolean {
+  return (
+    config.gender !== 'auto' ||
+    config.ethnicity !== 'auto' ||
+    config.pose !== 'auto' ||
+    config.trouserStyle !== 'auto' ||
+    config.topStyle !== 'auto' ||
+    config.outfitColor !== 'auto'
+  );
+}
+
+// Check if ProductFocus config has any non-auto values
+export function isProductFocusConfigCustomized(config: ProductFocusShotConfig): boolean {
+  return (
+    config.cameraAngle !== 'auto' ||
+    config.lighting !== 'auto'
+  );
+}
+```
+
+---
+
+### Part 2: Update Configurator Components
+
+All three configurators need the same pattern of changes. Here's the pattern using `OnFootConfigurator.tsx` as example:
+
+#### Add Props
+
+```typescript
+interface OnFootConfiguratorProps {
+  config: OnFootShotConfig;
+  onConfigChange: (updates: Partial<OnFootShotConfig>) => void;
+  onReset: () => void;  // NEW: callback to reset config
+}
+```
+
+#### Change Open State Logic
+
+```typescript
+// Determine if customized
+const isCustomized = isOnFootConfigCustomized(config);
+
+// Auto-open when customized, otherwise closed by default
+const [isOpen, setIsOpen] = useState(isCustomized);
+
+// Keep in sync if user makes changes
+useEffect(() => {
+  if (isCustomized && !isOpen) {
+    setIsOpen(true);
+  }
+}, [isCustomized]);
+```
+
+#### Add Customized Badge & Reset Button in Header
+
+```typescript
+<CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 transition-colors">
+  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <SlidersHorizontal className="w-4 h-4 text-accent" />
+    Shot Options
+    {/* Customized indicator badge */}
+    {isCustomized && (
+      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-accent/20 text-accent rounded">
+        Customized
+      </span>
+    )}
   </div>
+  <div className="flex items-center gap-2">
+    {/* Reset button - stops propagation to not toggle collapse */}
+    {isCustomized && (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onReset();
+        }}
+        className="p-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+        title="Reset to defaults"
+      >
+        <RotateCcw className="w-3.5 h-3.5" />
+      </button>
+    )}
+    {isOpen ? (
+      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+    ) : (
+      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+    )}
+  </div>
+</CollapsibleTrigger>
+```
+
+---
+
+### Part 3: Wire Up Reset Callbacks in ProductShootStep2
+
+**File:** `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`
+
+Pass reset callbacks to each configurator:
+
+```typescript
+{state.productShotType === 'on-foot' && (
+  <OnFootConfigurator
+    config={state.onFootConfig || initialOnFootConfig}
+    onConfigChange={(updates) => onStateChange({
+      onFootConfig: { ...(state.onFootConfig || initialOnFootConfig), ...updates }
+    })}
+    onReset={() => onStateChange({ onFootConfig: initialOnFootConfig })}
+  />
+)}
+
+{state.productShotType === 'lifestyle' && (
+  <LifestyleConfigurator
+    config={state.lifestyleConfig || initialLifestyleConfig}
+    onConfigChange={(updates) => onStateChange({
+      lifestyleConfig: { ...(state.lifestyleConfig || initialLifestyleConfig), ...updates }
+    })}
+    onReset={() => onStateChange({ lifestyleConfig: initialLifestyleConfig })}
+  />
+)}
+
+{state.productShotType === 'product-focus' && (
+  <ProductFocusConfigurator
+    config={state.productFocusConfig || initialProductFocusConfig}
+    onConfigChange={(updates) => onStateChange({
+      productFocusConfig: { ...(state.productFocusConfig || initialProductFocusConfig), ...updates }
+    })}
+    onReset={() => onStateChange({ productFocusConfig: initialProductFocusConfig })}
+  />
 )}
 ```
 
-**Add:**
-```typescript
-{/* Aspect Ratio */}
-{image.settings?.aspectRatio && (
-  <div className="flex items-center justify-between py-1.5 border-b border-border/50">
-    <span className="text-muted-foreground">Aspect Ratio</span>
-    <span className="text-xs font-medium">{image.settings.aspectRatio}</span>
-  </div>
-)}
-
-{/* Resolution */}
-{image.settings?.resolution && (
-  <div className="flex items-center justify-between py-1.5 border-b border-border/50">
-    <span className="text-muted-foreground">Resolution</span>
-    <span className="text-xs font-medium">{image.settings.resolution}px</span>
-  </div>
-)}
-```
-
 ---
 
-## Expected Result
+## Visual Result
+
+### Before
 
 ```text
-┌─────────────────────────────────────────┐
-│ 🎨 Generation Info                      │
-├─────────────────────────────────────────┤
-│ Model                      Gemini 3 Pro │
-│ ─────────────────────────────────────── │
-│ Aspect Ratio                       4:5  │  ← NEW
-│ ─────────────────────────────────────── │
-│ Resolution                      1024px  │  ← NEW
-│ ─────────────────────────────────────── │
-│ Status                       Completed  │
-│ ─────────────────────────────────────── │
-│ Image ID                    d673f29f... │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│ ⚙ Shot Options                          > │
+└─────────────────────────────────────────────┘
+(Collapsed, no indication if customized)
+```
+
+### After - With Customizations (Expanded by Default)
+
+```text
+┌─────────────────────────────────────────────┐
+│ ⚙ Shot Options  [Customized]       ↻   v │
+├─────────────────────────────────────────────┤
+│ Gender            [Female ▼]                │
+│ Ethnicity         [Asian ▼]                 │
+│ Pose Variation    [One Foot Forward ▼]      │
+│ ...                                         │
+└─────────────────────────────────────────────┘
+```
+
+### After - Default State (Collapsed)
+
+```text
+┌─────────────────────────────────────────────┐
+│ ⚙ Shot Options                          > │
+└─────────────────────────────────────────────┘
+(No badge, no reset icon - all values are auto)
 ```
 
 ---
 
-## File Changes
+## Technical Summary
 
 | File | Changes |
 |------|---------|
-| `ImageDetailModal.tsx` | Add Aspect Ratio and Resolution rows to Generation Info section |
+| `shotTypeConfigs.ts` | Add 3 helper functions: `isOnFootConfigCustomized`, `isLifestyleConfigCustomized`, `isProductFocusConfigCustomized` |
+| `OnFootConfigurator.tsx` | Add `onReset` prop, add "Customized" badge, add reset button, auto-expand when customized |
+| `LifestyleConfigurator.tsx` | Same pattern as OnFootConfigurator |
+| `ProductFocusConfigurator.tsx` | Same pattern as OnFootConfigurator |
+| `ProductShootStep2.tsx` | Pass `onReset` callbacks to configurators |
+| `types.ts` | Export new helper functions |
+
+---
+
+## Behavior Summary
+
+| Feature | Behavior |
+|---------|----------|
+| Step 1 Reset | Already works - `handleBack()` resets `productShoot` to initial state |
+| Reset Button | Appears only when customized, resets config to all 'auto' values |
+| Default Open State | Closed when all 'auto', opens automatically when any value is customized |
+| Customized Badge | Shows "Customized" chip next to "Shot Options" when any value is non-auto |
 
