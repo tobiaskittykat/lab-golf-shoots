@@ -387,6 +387,10 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       if (request.artisticStyle && request.artisticStyle !== 'auto') sections.push(`Style: ${request.artisticStyle}`);
       if (request.lightingStyle && request.lightingStyle !== 'auto') sections.push(`Lighting: ${request.lightingStyle}`);
       if (request.cameraAngle && request.cameraAngle !== 'auto') sections.push(`Camera: ${request.cameraAngle}`);
+      // Add aspect ratio instruction so AI composes correctly for the format
+      if (request.aspectRatio && request.aspectRatio !== '1:1') {
+        sections.push(`Aspect Ratio: ${request.aspectRatio} format - compose the scene to fill this canvas shape effectively`);
+      }
       sections.push("");
     }
     

@@ -238,6 +238,9 @@ export interface CreativeStudioState {
   // Prompt refinement
   lightingStyle: string;
   cameraAngle: string;
+  
+  // Sequential generation mode (fresh prompt per image)
+  sequentialGeneration: boolean;
 
   // Generation
   isGenerating: boolean;
@@ -302,6 +305,9 @@ export const initialCreativeStudioState: CreativeStudioState = {
 
   lightingStyle: 'auto',
   cameraAngle: 'auto',
+  
+  // Sequential generation mode off by default
+  sequentialGeneration: false,
 
   isGenerating: false,
   isLoadingConcepts: false,

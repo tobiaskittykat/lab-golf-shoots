@@ -790,6 +790,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                         imageCount={state.imageCount}
                         resolution={state.resolution}
                         aspectRatio={state.aspectRatio}
+                        sequentialGeneration={state.sequentialGeneration}
                         onOutputSettingsChange={(updates) => handleUpdate(updates)}
                       />
                     </div>
@@ -935,14 +936,31 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                 <SelectionIndicators state={state} />
               )}
               
-              {/* Product Shot specific info */}
+              {/* Product Shot specific info - enhanced bottom bar */}
               {state.useCase === 'product' && (
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="px-2 py-1 rounded bg-secondary">
-                    {state.productShoot.productShotType || 'Lifestyle'}
+                <div className="flex items-center gap-3 text-sm">
+                  {/* Product thumbnail + name */}
+                  {state.productShoot?.recoloredProductUrl && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border">
+                      <img 
+                        src={state.productShoot.recoloredProductUrl} 
+                        alt="Product" 
+                        className="w-6 h-6 rounded object-cover"
+                      />
+                      <span className="max-w-[100px] truncate text-muted-foreground text-xs">
+                        Product
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Shot type badge */}
+                  <span className="px-3 py-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground capitalize">
+                    {state.productShoot.productShotType?.replace('-', ' ') || 'Lifestyle'}
                   </span>
-                  <span className="px-2 py-1 rounded bg-secondary">
-                    {state.productShoot.settingType === 'auto' ? 'Auto background' : state.productShoot.settingType}
+                  
+                  {/* Background type badge */}
+                  <span className="px-3 py-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground">
+                    {state.productShoot.settingType === 'studio' ? '🏢 Studio' : state.productShoot.settingType === 'outdoor' ? '🌳 Outdoor' : '✨ Auto'}
                   </span>
                 </div>
               )}

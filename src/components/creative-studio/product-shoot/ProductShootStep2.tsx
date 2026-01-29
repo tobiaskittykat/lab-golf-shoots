@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { BackgroundSelector } from "./BackgroundSelector";
 import { ProductSKUPicker, ProductSKU } from "./ProductSKUPicker";
 import { CreateSKUModal } from "./CreateSKUModal";
@@ -32,10 +33,12 @@ interface ProductShootStep2Props {
   imageCount: number;
   resolution: string;
   aspectRatio: string;
+  sequentialGeneration: boolean;
   onOutputSettingsChange: (updates: { 
     imageCount?: number; 
     resolution?: string; 
-    aspectRatio?: string; 
+    aspectRatio?: string;
+    sequentialGeneration?: boolean; 
   }) => void;
 }
 
@@ -47,6 +50,7 @@ export const ProductShootStep2 = ({
   imageCount,
   resolution,
   aspectRatio,
+  sequentialGeneration,
   onOutputSettingsChange,
 }: ProductShootStep2Props) => {
   const [openSections, setOpenSections] = useState({
@@ -334,6 +338,18 @@ export const ProductShootStep2 = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              {/* Sequential Generation Toggle */}
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">Sequential Generation</label>
+                  <p className="text-xs text-muted-foreground">Fresh styling for each image</p>
+                </div>
+                <Switch
+                  checked={sequentialGeneration}
+                  onCheckedChange={(v) => onOutputSettingsChange({ sequentialGeneration: v })}
+                />
               </div>
             </div>
           </CollapsibleContent>

@@ -12,6 +12,7 @@ import {
 } from '@/components/creative-studio/types';
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
 import { buildOnFootPrompt, buildLifestylePrompt, buildProductFocusPrompt, initialOnFootConfig, initialLifestyleConfig, initialProductFocusConfig, BackgroundContext } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
+import { updateSkuLastUsed } from '@/components/creative-studio/product-shoot/ProductSKUPicker';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -274,9 +275,12 @@ export function useImageGeneration() {
       // Extract single shot type prompt (text guidance, not image URL)
       // For product shoot flow, use the visual shot type's promptHint
       // For on-foot, we build the full structured prompt with pose/leg/trouser configs
-      let shotTypePrompt: string | null = null;
-      
-      if (state.useCase === 'product' && state.productShoot?.productShotType) {
+      // Helper function to build shot type prompt (for both single and sequential generation)
+      const buildShotTypePromptForProduct = (): string | null => {
+        if (!state.useCase || state.useCase !== 'product' || !state.productShoot?.productShotType) {
+          return null;
+        }
+        
         const shotType = state.productShoot.productShotType;
         
         // Build background context for dynamic lighting/background
@@ -290,22 +294,29 @@ export function useImageGeneration() {
         if (shotType === 'on-foot') {
           // Build full structured on-foot prompt with all static/dynamic elements
           const onFootConfig = state.productShoot.onFootConfig || initialOnFootConfig;
-          shotTypePrompt = buildOnFootPrompt(onFootConfig, bgContext);
+          return buildOnFootPrompt(onFootConfig, bgContext);
         } else if (shotType === 'lifestyle') {
           // Build full structured lifestyle (full body) prompt
           const lifestyleConfig = state.productShoot.lifestyleConfig || initialLifestyleConfig;
-          shotTypePrompt = buildLifestylePrompt(lifestyleConfig, bgContext);
+          return buildLifestylePrompt(lifestyleConfig, bgContext);
         } else if (shotType === 'product-focus') {
           // Build full structured product focus prompt
           const productFocusConfig = state.productShoot.productFocusConfig || initialProductFocusConfig;
-          shotTypePrompt = buildProductFocusPrompt(productFocusConfig, bgContext);
+          return buildProductFocusPrompt(productFocusConfig, bgContext);
         } else {
           // Other product shot types - use the simple promptHint
           const selectedShotType = visualShotTypes.find(s => s.id === shotType);
           if (selectedShotType) {
-            shotTypePrompt = selectedShotType.promptHint;
+            return selectedShotType.promptHint;
           }
         }
+        return null;
+      };
+      
+      let shotTypePrompt: string | null = null;
+      
+      if (state.useCase === 'product' && state.productShoot?.productShotType) {
+        shotTypePrompt = buildShotTypePromptForProduct();
       } else if (state.contextReference) {
         // Lifestyle flow - use context reference's shot prompt
         shotTypePrompt = sampleContextReferences.find(r => r.id === state.contextReference)?.shotPrompt || null;
@@ -330,99 +341,145 @@ export function useImageGeneration() {
       console.log('Moodboard URL:', moodboardUrl);
       console.log('Product URLs:', productReferenceUrls);
       console.log('Shot prompt:', shotTypePrompt);
+      console.log('Sequential mode:', state.sequentialGeneration);
       console.log('==============================');
       
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: {
-          // Use concept-derived prompt instead of raw brief
-          prompt: primaryPrompt,
-          conceptTitle: selectedConcept?.title,
-          conceptDescription: selectedConcept?.description,
-          coreIdea: selectedConcept?.coreIdea,
-          tonality: selectedConcept?.tonality,
-          
-          // Full 9-point concept data (NEW)
-          visualWorld: selectedConcept?.visualWorld,
-          contentPillars: selectedConcept?.contentPillars,
-          targetAudience: selectedConcept?.targetAudience,
-          consumerInsight: selectedConcept?.consumerInsight,
-          productFocus: selectedConcept?.productFocus,
-          taglines: selectedConcept?.taglines,
-          
-          moodboardId: state.moodboard,
-          moodboardName,
-          moodboardDescription,
-          moodboardUrl,
-          moodboardAnalysis,
-          
-          artisticStyle: state.artisticStyle,
-          lightingStyle: state.lightingStyle,
-          cameraAngle: state.cameraAngle,
-          
-          // Reference URLs and names
-          productReferenceUrls,
-          productNames,
-          // Shot type as single text prompt guidance (null = AI decides)
-          shotTypePrompt,
-          
-          // Brand context for prompt agent
-          brandName,
-          brandPersonality,
-          brandContext,
-          
-          // Brand ID for storage association
-          brandId: brandId || null,
-          
-          // Brand Brain (synthesized visual identity)
-          brandBrain,
-          
-          // Custom prompt agent system prompt (from brand settings)
-          customPromptAgentSystemPrompt,
-          
-          extraKeywords: state.extraKeywords,
-          negativePrompt: state.negativePrompt,
-          textOnImage: state.textOnImage,
-          
-          imageCount: state.imageCount,
-          resolution: state.resolution,
-          aspectRatio: state.aspectRatio,
-          
-          aiModel: state.aiModel,
-          guidanceScale: state.guidanceScale,
-          seed: state.seed,
-          
-          folder: state.saveToFolder,
-          
-          // Logo placement for server-side compositing
-          logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
-            enabled: true,
-            position: state.logoPlacement.position,
-            sizePercent: state.logoPlacement.sizePercent,
-            opacity: state.logoPlacement.opacity,
-            paddingPx: state.logoPlacement.paddingPx,
-            logoUrl: logoUrl,
-          } : null,
-          
-          // Product Shoot configuration (for product use case)
-          productShootConfig: state.useCase === 'product' && state.productShoot ? {
-            shotType: state.productShoot.productShotType,
-            settingType: state.productShoot.settingType,
-            backgroundId: state.productShoot.backgroundId,
-            customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
-            weatherCondition: state.productShoot.weatherCondition,
-            modelConfig: state.productShoot.modelConfig,
-            onFootConfig: state.productShoot.productShotType === 'on-foot' 
-              ? (state.productShoot.onFootConfig || initialOnFootConfig) 
-              : undefined,
-            lifestyleConfig: state.productShoot.productShotType === 'lifestyle'
-              ? (state.productShoot.lifestyleConfig || initialLifestyleConfig)
-              : undefined,
-            productFocusConfig: state.productShoot.productShotType === 'product-focus'
-              ? (state.productShoot.productFocusConfig || initialProductFocusConfig)
-              : undefined,
-          } : undefined,
-        },
+      // Build base request body (shared across all generation calls)
+      const buildRequestBody = (shotPromptOverride?: string | null, imgCount?: number) => ({
+        // Use concept-derived prompt instead of raw brief
+        prompt: primaryPrompt,
+        conceptTitle: selectedConcept?.title,
+        conceptDescription: selectedConcept?.description,
+        coreIdea: selectedConcept?.coreIdea,
+        tonality: selectedConcept?.tonality,
+        
+        // Full 9-point concept data (NEW)
+        visualWorld: selectedConcept?.visualWorld,
+        contentPillars: selectedConcept?.contentPillars,
+        targetAudience: selectedConcept?.targetAudience,
+        consumerInsight: selectedConcept?.consumerInsight,
+        productFocus: selectedConcept?.productFocus,
+        taglines: selectedConcept?.taglines,
+        
+        moodboardId: state.moodboard,
+        moodboardName,
+        moodboardDescription,
+        moodboardUrl,
+        moodboardAnalysis,
+        
+        artisticStyle: state.artisticStyle,
+        lightingStyle: state.lightingStyle,
+        cameraAngle: state.cameraAngle,
+        
+        // Reference URLs and names
+        productReferenceUrls,
+        productNames,
+        // Shot type as single text prompt guidance (null = AI decides)
+        shotTypePrompt: shotPromptOverride !== undefined ? shotPromptOverride : shotTypePrompt,
+        
+        // Brand context for prompt agent
+        brandName,
+        brandPersonality,
+        brandContext,
+        
+        // Brand ID for storage association
+        brandId: brandId || null,
+        
+        // Brand Brain (synthesized visual identity)
+        brandBrain,
+        
+        // Custom prompt agent system prompt (from brand settings)
+        customPromptAgentSystemPrompt,
+        
+        extraKeywords: state.extraKeywords,
+        negativePrompt: state.negativePrompt,
+        textOnImage: state.textOnImage,
+        
+        imageCount: imgCount ?? state.imageCount,
+        resolution: state.resolution,
+        aspectRatio: state.aspectRatio,
+        
+        aiModel: state.aiModel,
+        guidanceScale: state.guidanceScale,
+        seed: state.seed,
+        
+        folder: state.saveToFolder,
+        
+        // Logo placement for server-side compositing
+        logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
+          enabled: true,
+          position: state.logoPlacement.position,
+          sizePercent: state.logoPlacement.sizePercent,
+          opacity: state.logoPlacement.opacity,
+          paddingPx: state.logoPlacement.paddingPx,
+          logoUrl: logoUrl,
+        } : null,
+        
+        // Product Shoot configuration (for product use case)
+        productShootConfig: state.useCase === 'product' && state.productShoot ? {
+          shotType: state.productShoot.productShotType,
+          settingType: state.productShoot.settingType,
+          backgroundId: state.productShoot.backgroundId,
+          customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
+          weatherCondition: state.productShoot.weatherCondition,
+          modelConfig: state.productShoot.modelConfig,
+          onFootConfig: state.productShoot.productShotType === 'on-foot' 
+            ? (state.productShoot.onFootConfig || initialOnFootConfig) 
+            : undefined,
+          lifestyleConfig: state.productShoot.productShotType === 'lifestyle'
+            ? (state.productShoot.lifestyleConfig || initialLifestyleConfig)
+            : undefined,
+          productFocusConfig: state.productShoot.productShotType === 'product-focus'
+            ? (state.productShoot.productFocusConfig || initialProductFocusConfig)
+            : undefined,
+        } : undefined,
       });
+
+      let data: any;
+      let error: any;
+      
+      // Sequential generation: call generate-image once per image with fresh prompts
+      if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
+        console.log(`Sequential mode: generating ${state.imageCount} images with fresh prompts`);
+        
+        const allImages: any[] = [];
+        
+        for (let i = 0; i < state.imageCount; i++) {
+          // Build a fresh shot type prompt for each iteration (re-randomizes auto selections)
+          const freshShotTypePrompt = buildShotTypePromptForProduct();
+          console.log(`Sequential image ${i + 1}/${state.imageCount} - fresh prompt built`);
+          
+          const { data: singleData, error: singleError } = await supabase.functions.invoke('generate-image', {
+            body: buildRequestBody(freshShotTypePrompt, 1), // Generate 1 image at a time
+          });
+          
+          if (singleError) {
+            console.error(`Sequential image ${i + 1} failed:`, singleError);
+            // Continue with other images even if one fails
+          } else if (singleData?.images) {
+            allImages.push(...singleData.images.map((img: any, idx: number) => ({
+              ...img,
+              index: allImages.length + idx,
+            })));
+          }
+        }
+        
+        // Combine results
+        data = { images: allImages };
+        error = allImages.length === 0 ? { message: 'All sequential generations failed' } : null;
+      } else {
+        // Standard batch generation: single call with all images
+        const result = await supabase.functions.invoke('generate-image', {
+          body: buildRequestBody(),
+        });
+        data = result.data;
+        error = result.error;
+      }
+      
+      // Update last_used_at for the selected SKU (fire-and-forget)
+      if (state.productShoot?.selectedProductId) {
+        updateSkuLastUsed(state.productShoot.selectedProductId);
+      }
 
       // Handle timeout/connection errors by checking if images were actually created
       if (error) {

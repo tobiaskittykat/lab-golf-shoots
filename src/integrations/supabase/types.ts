@@ -272,6 +272,7 @@ export type Database = {
           created_at: string | null
           description: Json | null
           id: string
+          last_used_at: string | null
           name: string
           sku_code: string | null
           updated_at: string | null
@@ -284,6 +285,7 @@ export type Database = {
           created_at?: string | null
           description?: Json | null
           id?: string
+          last_used_at?: string | null
           name: string
           sku_code?: string | null
           updated_at?: string | null
@@ -296,6 +298,7 @@ export type Database = {
           created_at?: string | null
           description?: Json | null
           id?: string
+          last_used_at?: string | null
           name?: string
           sku_code?: string | null
           updated_at?: string | null
