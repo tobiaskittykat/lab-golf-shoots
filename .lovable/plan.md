@@ -1,203 +1,218 @@
 
-# Add Inline Recent Products & Auto-Preselection
+# SKU Display Enhancement & Button Cleanup
 
 ## Overview
 
-Enhance the Product section to show the last 3 recently used products directly inline, with the most recent automatically pre-selected when entering Step 2.
+Clean up redundant buttons and improve SKU naming display to show structured product attributes (brand, model, material, color) consistently across the Product picker and Gallery.
 
 ---
 
-## Current State
+## Current State Analysis
 
-The Product section shows either:
-- A "Select a product" CTA with Smart Upload/Create buttons (when no product selected)
-- A product preview card (when a product is selected)
-
-The modal has "Recently Used" but it's hidden until opened.
-
----
-
-## Proposed UI
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  🔲 Product                                        ▾    │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Recently Used                                          │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐                 │
-│  │  [img]  │  │  [img]  │  │  [img]  │                 │
-│  │ ✓ Name  │  │  Name   │  │  Name   │                 │
-│  └─────────┘  └─────────┘  └─────────┘                 │
-│                                                         │
-│  ┌───────────────────────────────────────────────────┐ │
-│  │            Browse All Products...                 │ │
-│  └───────────────────────────────────────────────────┘ │
-│                                                         │
-│  ┌─ Smart Upload ─┐  ┌─ + Create SKU ─┐                │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+**Existing SKU Data Structure** (from `product_skus.description` JSONB):
+```json
+{
+  "colors": ["taupe", "brown"],
+  "materials": ["suede", "cork", "rubber"],
+  "product_type": "clog",
+  "style_keywords": ["casual", "comfort", "slip-on"]
+}
 ```
 
-**Key behaviors:**
-- First card is pre-selected automatically (most recent)
-- Clicking a card selects it immediately (no modal)
-- "Browse All Products" opens the full modal for 1000+ SKU support
-- Cards show thumbnail + name + checkmark if selected
+**Current SKU Names** are already well-structured (e.g., "Birkenstock Boston Taupe Suede Clog") but display is inconsistent.
 
 ---
 
 ## Changes
 
-### 1. Fetch Recent SKUs Inline
+### 1. Remove Duplicate Buttons
 
 **File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`**
 
-Add a query to fetch the top 3 recently used SKUs:
+Remove lines 389-409 (the "Quick actions" section with Smart Upload and Create SKU buttons) since these already exist inside the ProductPickerModal.
 
-```typescript
-// Fetch recent SKUs for inline display
-const { data: recentSkus = [] } = useQuery({
-  queryKey: ['recent-skus', user?.id, currentBrand?.id],
-  queryFn: async () => {
-    if (!user?.id) return [];
-    
-    let query = supabase
-      .from('product_skus')
-      .select('*')
-      .eq('user_id', user.id)
-      .not('last_used_at', 'is', null)
-      .order('last_used_at', { ascending: false })
-      .limit(3);
-    
-    if (currentBrand?.id) {
-      query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
-    }
-    
-    const { data } = await query;
-    return data || [];
-  },
-  enabled: !!user?.id,
-});
+```
+REMOVE:
+{/* Quick actions */}
+<div className="flex gap-2">
+  <Button variant="default" ... onClick={() => setShowSmartUploadModal(true)}>
+    Smart Upload
+  </Button>
+  <Button variant="outline" ... onClick={() => setShowCreateSKUModal(true)}>
+    Create SKU
+  </Button>
+</div>
 ```
 
-### 2. Auto-Preselect Most Recent
+### 2. Create SKU Display Helper
 
-Add effect to auto-select when entering step with no selection:
+**New utility function** to parse and format SKU display info:
 
 ```typescript
-const [hasAutoSelected, setHasAutoSelected] = useState(false);
+// Helper to extract display attributes from SKU
+interface SKUDisplayInfo {
+  brandName: string;      // "Birkenstock"
+  modelName: string;      // "Boston"
+  material: string;       // "Suede"
+  color: string;          // "Taupe"
+  productType: string;    // "Clog"
+}
 
-useEffect(() => {
-  // Auto-select the most recently used product if none selected
-  if (!hasAutoSelected && recentSkus.length > 0 && !state.selectedProductId) {
-    const mostRecent = recentSkus[0];
-    handleSkuSelect({
-      id: mostRecent.id,
-      name: mostRecent.name,
-      sku_code: mostRecent.sku_code,
-      composite_image_url: mostRecent.composite_image_url,
-      brand_id: mostRecent.brand_id,
-      last_used_at: mostRecent.last_used_at,
-      angles: [],  // Will be fetched if needed
-    });
-    setHasAutoSelected(true);
-  }
-}, [recentSkus, state.selectedProductId, hasAutoSelected]);
+function parseSkuDisplayInfo(name: string, description?: object): SKUDisplayInfo {
+  // Try to parse from name format "Brand Model Color Material Type"
+  // Fallback to description JSONB if available
+}
 ```
 
-### 3. Render Recent Products Inline
+### 3. Improve Thumbnail Overlay Display
 
-Replace the current empty-state CTA with a grid showing recent products:
+**File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`**
 
+Update the name overlay on product thumbnails (around line 368-372) to show structured info:
+
+**Current:**
 ```tsx
-{/* Recent Products Grid */}
-{recentSkus.length > 0 && (
-  <div className="space-y-2">
-    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-      <Clock className="w-3 h-3" />
-      Recently Used
-    </span>
-    <div className="grid grid-cols-3 gap-2">
-      {recentSkus.map(sku => {
-        const isSelected = state.selectedProductId === sku.id;
-        const imageUrl = sku.composite_image_url;
-        
-        return (
-          <button
-            key={sku.id}
-            onClick={() => handleSkuSelect({
-              id: sku.id,
-              name: sku.name,
-              sku_code: sku.sku_code,
-              composite_image_url: sku.composite_image_url,
-              brand_id: sku.brand_id,
-              last_used_at: sku.last_used_at,
-              angles: [],
-            })}
-            className={cn(
-              "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-              isSelected 
-                ? "border-accent ring-2 ring-accent/30" 
-                : "border-transparent hover:border-muted-foreground/30"
-            )}
-          >
-            {imageUrl ? (
-              <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center">
-                <Package className="w-6 h-6 text-muted-foreground" />
-              </div>
-            )}
-            {/* Selection indicator */}
-            {isSelected && (
-              <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-            )}
-            {/* Name overlay */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-              <span className="text-xs text-white font-medium truncate block">
-                {sku.name}
-              </span>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  </div>
-)}
-
-{/* Browse All Button */}
-<Button
-  variant="outline"
-  className="w-full"
-  onClick={() => setShowProductPickerModal(true)}
->
-  Browse All Products...
-</Button>
+<span className="text-xs text-white font-medium truncate block">
+  {sku.name}
+</span>
 ```
 
-### 4. Conditionally Show Selected Preview
+**Proposed:**
+```tsx
+<div className="text-xs text-white">
+  <span className="font-medium block truncate">{displayInfo.modelName}</span>
+  <span className="opacity-80 text-[10px] truncate block">
+    {displayInfo.color} {displayInfo.material}
+  </span>
+</div>
+```
 
-Only show the detailed preview card when a product is selected AND it's not in the recent grid (or always show but more compact):
+This displays:
+- Line 1: **Boston** (model name - bold)
+- Line 2: Taupe Suede (color + material - smaller, subtle)
 
-Actually, simpler approach: When a product is selected, the recent grid still shows with the selected one highlighted, plus we show the selected product info below for actions (Change/Clear).
+### 4. Improve ProductPickerModal Row Display
+
+**File: `src/components/creative-studio/product-shoot/ProductPickerModal.tsx`**
+
+Update ProductRow component (lines 186-196) to show structured attributes:
+
+**Current:**
+```tsx
+<div className="flex items-center gap-2">
+  <span className="font-medium truncate">{sku.name}</span>
+</div>
+<div className="text-xs text-muted-foreground">
+  {sku.sku_code && <span>{sku.sku_code}</span>}
+  <span>{sku.angles.length} angles</span>
+</div>
+```
+
+**Proposed:**
+```tsx
+<div className="flex items-center gap-2">
+  <span className="font-medium truncate">{displayInfo.modelName}</span>
+  {isSelected && <Check className="w-4 h-4 text-accent" />}
+</div>
+<div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+  <span className="text-foreground/70">{displayInfo.brandName}</span>
+  <span>•</span>
+  <span>{displayInfo.color} {displayInfo.material}</span>
+  {sku.angles.length > 1 && (
+    <>
+      <span>•</span>
+      <span>{sku.angles.length} angles</span>
+    </>
+  )}
+</div>
+```
+
+This displays:
+- Line 1: **Boston** + checkmark
+- Line 2: Birkenstock • Taupe Suede • 3 angles
+
+### 5. Update Gallery Image Cards
+
+**File: `src/components/creative-studio/GeneratedImageCard.tsx`**
+
+Currently (line 228-229):
+```tsx
+{image.conceptTitle || 'Generated Image'}
+```
+
+For Product Shoot images, `conceptTitle` already contains the product name. This should be sufficient but ensure it's using the improved naming when generated.
+
+---
+
+## SKU Name Parsing Logic
+
+The parsing function will handle existing well-formatted names:
+
+| Input Name | Brand | Model | Color | Material | Type |
+|------------|-------|-------|-------|----------|------|
+| Birkenstock Boston Taupe Suede Clog | Birkenstock | Boston | Taupe | Suede | Clog |
+| Birkenstock Arizona EVA Sandals Taupe | Birkenstock | Arizona | Taupe | EVA | Sandals |
+
+**Algorithm:**
+1. First word = Brand (if known brand like "Birkenstock")
+2. Second word = Model name
+3. Last word = Product type (clog, sandal, boot, etc.)
+4. Remaining words = Color + Material (from description JSONB if available)
+
+**Fallback:** If parsing fails, just show full name as-is.
+
+---
+
+## Visual Comparison
+
+### Before (Thumbnails)
+```
+┌─────────────────────┐
+│                     │
+│      [image]        │
+│                     │
+│ Birkenstock Bosto...│
+└─────────────────────┘
+```
+
+### After (Thumbnails)
+```
+┌─────────────────────┐
+│                     │
+│      [image]        │
+│                     │
+│ Boston              │
+│ Taupe Suede         │
+└─────────────────────┘
+```
+
+### Before (Modal Row)
+```
+[thumb] Birkenstock Boston Taupe Suede Clog  >
+        BIRK-BOSTON-TAUPE • 3 angles
+```
+
+### After (Modal Row)
+```
+[thumb] Boston                               >
+        Birkenstock • Taupe Suede • 3 angles
+```
 
 ---
 
 ## File Summary
 
-| File | Change |
-|------|--------|
-| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Add recent SKUs query, auto-preselection, inline grid UI |
+| File | Changes |
+|------|---------|
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Remove duplicate buttons, improve thumbnail display |
+| `src/components/creative-studio/product-shoot/ProductPickerModal.tsx` | Add description field to query, improve row display |
+| `src/lib/skuDisplayUtils.ts` | NEW: Create SKU name parsing utility |
 
 ---
 
-## Expected Result
+## Result
 
-1. When entering Step 2, the most recently used product is automatically pre-selected
-2. The Product section shows 3 recent products as clickable thumbnail cards
-3. Clicking a card immediately selects it (no modal needed for recent products)
-4. "Browse All Products..." button opens the full modal for searching 1000+ SKUs
-5. Smart Upload and Create SKU buttons remain available
+1. **Cleaner UI** - No duplicate Smart Upload / Create SKU buttons
+2. **Consistent naming** - Model name prominent, attributes secondary
+3. **Scannable** - Easy to distinguish products at a glance
+4. **Scalable** - Works for 1000+ SKUs with consistent formatting
