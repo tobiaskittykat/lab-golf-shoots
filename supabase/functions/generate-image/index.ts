@@ -870,6 +870,19 @@ MANDATORY REQUIREMENTS:
         ), null, 2));
         console.log("=====================================");
 
+        // Map resolution to Gemini image_size format
+        const imageSizeMap: Record<string, string> = {
+          '512': '1K',    // 512px → 1K (closest match)
+          '1024': '1K',   // 1024px → 1K
+          '2048': '2K',   // 2048px → 2K
+          '4096': '4K',   // 4096px → 4K (true 4K!)
+        };
+
+        const imageSize = imageSizeMap[body.resolution || '1024'] || '1K';
+        const aspectRatio = body.aspectRatio || '1:1';
+
+        console.log(`Image config: size=${imageSize}, aspectRatio=${aspectRatio}`);
+
         // Call Lovable AI Gateway for image generation
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -886,6 +899,10 @@ MANDATORY REQUIREMENTS:
               }
             ],
             modalities: ["image", "text"],
+            image_config: {
+              image_size: imageSize,
+              aspect_ratio: aspectRatio,
+            },
           }),
         });
 
