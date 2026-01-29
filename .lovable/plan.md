@@ -1,105 +1,82 @@
 
-# Enhanced Product Reference Language in Prompt Agent
+# Fix "Reset to Default" Button in AI Settings
 
 ## Summary
 
-Update the prompt agent instructions to explicitly teach it to reference the attached images when describing specific product features. Instead of just saying "tobacco brown suede", the agent will say "tobacco brown suede exactly as shown in the reference images".
+The "Reset to Default" buttons in the AI Settings page are not working correctly. The issue is that the prompt state variables are initialized with empty strings (`""`), but the disabled state comparison checks against the default prompt constants. This creates a timing issue during initial load.
 
 ---
 
-## The Enhancement
+## Root Cause
 
-Currently, the prompt agent is told to:
-- Preserve exact visual details
-- Match proportions and silhouette
-- Describe products visually
+| Issue | Current Code | Problem |
+|-------|-------------|---------|
+| Initial state | `useState("")` | Empty strings don't match defaults |
+| Disabled check | `disabled={prompt === DEFAULT_*}` | Always `false` initially |
+| Effect timing | Sets defaults in `useEffect` | Race condition with renders |
 
-**Missing**: The agent isn't instructed to **linguistically tie** each feature description back to the reference images.
+When the page loads:
+1. State initializes to `""`
+2. Component renders with button enabled (since `"" !== DEFAULT_*`)
+3. Effect runs and sets state to default
+4. Button should now be disabled
+
+But if the user clicks before step 3 completes, or if the comparison fails due to the initial empty state, the button appears clickable when it shouldn't be.
+
+---
+
+## Solution
+
+Initialize all prompt state variables with their default values instead of empty strings. This ensures:
+1. Buttons are correctly disabled from the first render
+2. No race condition with useEffect
+3. Consistent behavior regardless of timing
 
 ---
 
 ## Changes
 
-### File: `supabase/functions/generate-image/index.ts`
+### File: `src/pages/Settings.tsx`
 
-**Location**: Lines 569-580 (the PRODUCT FIDELITY instruction block after images are attached)
+**Lines 34-40 - Update initial state:**
 
-**Current text:**
 ```typescript
-text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES...
+// Before
+const [conceptPrompt, setConceptPrompt] = useState("");
+const [promptAgentPrompt, setPromptAgentPrompt] = useState("");
+const [onFootPrompt, setOnFootPrompt] = useState("");
+const [lifestylePrompt, setLifestylePrompt] = useState("");
+const [productFocusPrompt, setProductFocusPrompt] = useState("");
 
-MANDATORY REQUIREMENTS:
-- Preserve EXACT visual details: materials, textures, colors, hardware finishes
-- Match proportions and silhouette precisely  
-- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy
-- Do NOT simplify, reimagine, or take creative liberties with these products
-- The products should look like they were photographed, not illustrated or reinterpreted
-- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
+// After
+const [conceptPrompt, setConceptPrompt] = useState(DEFAULT_CONCEPT_AGENT_PROMPT);
+const [promptAgentPrompt, setPromptAgentPrompt] = useState(DEFAULT_PROMPT_AGENT_PROMPT);
+const [onFootPrompt, setOnFootPrompt] = useState(DEFAULT_ON_FOOT_SHOT_PROMPT);
+const [lifestylePrompt, setLifestylePrompt] = useState(DEFAULT_LIFESTYLE_SHOT_PROMPT);
+const [productFocusPrompt, setProductFocusPrompt] = useState(DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT);
 ```
 
-**Updated text:**
-```typescript
-text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
-
-MANDATORY REQUIREMENTS:
-- Preserve EXACT visual details: materials, textures, colors, hardware finishes
-- Match proportions and silhouette precisely  
-- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy
-- Do NOT simplify, reimagine, or take creative liberties with these products
-- The products should look like they were photographed, not illustrated or reinterpreted
-
-⚠️ REFERENCE-LINKED DESCRIPTIONS (CRITICAL):
-When describing ANY product feature in your prompt, explicitly tie it to the reference images. Examples:
-- Instead of "tobacco brown suede" → "tobacco brown suede exactly as shown in the reference images"
-- Instead of "gold buckle hardware" → "gold buckle hardware matching the attached reference photos precisely"
-- Instead of "cork footbed" → "signature cork footbed identical to the reference images in color and texture"
-- Instead of "shearling lining" → "warm shearling lining exactly as visible in the product reference images"
-
-This reference-linking applies to ALL visual features:
-- Color: "...in the exact shade of taupe visible in the reference images"
-- Material: "...genuine suede with the precise nap and texture shown in the attached photos"
-- Hardware: "...adjustable buckle in the same brushed silver finish as the reference"
-- Interior: "...wool lining matching the cream color and pile height from the reference images"
-- Silhouette: "...maintaining the exact proportions and shape shown in the attached product photos"
-
-Your prompt MUST include at least 2-3 explicit references to "the reference images" or "attached photos" when describing product details. This ensures the image generator knows to prioritize visual accuracy over interpretation.`
-```
-
----
-
-## Also Update Final Instruction (Line 584-587)
-
-**Current:**
-```typescript
-text: `Craft a single, evocative image generation prompt from this creative brief. Describe products visually based on the reference images above with EXACT accuracy.`
-```
-
-**Updated:**
-```typescript
-text: `Craft a single, evocative image generation prompt from this creative brief. When describing the product, explicitly reference the attached images for color, material, texture, and all visual details - use phrases like "exactly as shown in the reference images" and "matching the attached product photos precisely". This applies to ALL shot types.`
-```
-
----
-
-## Example Output Change
-
-**Before (current behavior):**
-> A high-resolution lifestyle photograph featuring Birkenstock Boston clogs in tobacco brown suede with signature cork footbed and adjustable buckle...
-
-**After (with reference-linking):**
-> A high-resolution lifestyle photograph featuring Birkenstock Boston clogs in tobacco brown suede exactly as shown in the reference images, with the signature cork footbed matching the warm honey tone visible in the attached photos, and adjustable silver buckle hardware identical to the reference...
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/generate-image/index.ts` | Update the PRODUCT FIDELITY instruction block (lines 569-580) and final instruction (lines 584-587) |
+This single change ensures:
+- Buttons are disabled correctly when prompts match defaults
+- Reset works immediately when user HAS customized prompts
+- No empty state flicker during initial load
 
 ---
 
 ## Technical Details
 
-The changes are purely to the text content of the prompt agent instructions. No structural code changes are needed - just updating two text strings in the `promptAgentContent` array.
+The `useEffect` on lines 52-63 will still run and update the state if custom prompts exist in `brand_context.aiPrompts`. But now:
+- If no custom prompts exist: state already has defaults, no change needed
+- If custom prompts exist: state updates to custom values, button becomes enabled
+- Clicking reset: sets back to default, button becomes disabled
 
+---
+
+## Testing
+
+After the fix:
+1. Load Settings page → all "Reset to Default" buttons should be disabled (showing defaults)
+2. Edit any prompt → button becomes enabled
+3. Click "Reset to Default" → textarea reverts to default, button becomes disabled
+4. Save with custom prompt, reload → button should be enabled
+5. Click reset → works correctly
