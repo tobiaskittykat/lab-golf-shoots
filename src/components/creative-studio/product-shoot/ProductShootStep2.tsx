@@ -416,22 +416,6 @@ export const ProductShootStep2 = ({
                   </div>
                 )}
 
-                {/* Selected Product Info Row */}
-                {selectedSku && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-foreground truncate">{selectedSku.name}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {selectedSku.sku_code && <span className="truncate">{selectedSku.sku_code}</span>}
-                        {selectedSku.sku_code && selectedSku.angles?.length > 0 && <span>•</span>}
-                        {selectedSku.angles?.length > 0 && (
-                          <span>{selectedSku.angles.length} angle{selectedSku.angles.length !== 1 ? 's' : ''}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Browse All Button */}
                 <Button
                   variant="outline"

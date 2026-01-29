@@ -43,7 +43,7 @@ const scrollToSection = (sectionId: string) => {
 };
 
 export const ProductShootIndicators = ({ state }: ProductShootIndicatorsProps) => {
-  const hasProduct = !!state.recoloredProductUrl;
+  const hasProduct = !!state.selectedProductId;
   
   const shotTypeLabels: Record<string, string> = {
     'product-focus': 'Product Focus',
