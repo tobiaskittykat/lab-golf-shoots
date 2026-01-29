@@ -77,26 +77,49 @@ export const ProductShootStep2 = ({
   const [selectedSku, setSelectedSku] = useState<ProductSKU | null>(null);
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-  // Fetch recent SKUs for inline display (top 3)
+  // Fetch top 3 SKUs for inline display (prioritize recently used, then newest)
   const { data: recentSkus = [] } = useQuery({
     queryKey: ['recent-skus-inline', user?.id, currentBrand?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
+      // Build base query for SKUs
       let query = supabase
         .from('product_skus')
         .select('*')
         .eq('user_id', user.id)
-        .not('last_used_at', 'is', null)
-        .order('last_used_at', { ascending: false })
+        .order('last_used_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(3);
       
       if (currentBrand?.id) {
         query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
       }
       
-      const { data } = await query;
-      return data || [];
+      const { data: skus } = await query;
+      if (!skus || skus.length === 0) return [];
+      
+      // For each SKU, fetch the first angle's thumbnail as fallback image
+      const skusWithImages = await Promise.all(
+        skus.map(async (sku) => {
+          if (sku.composite_image_url) {
+            return { ...sku, display_image_url: sku.composite_image_url };
+          }
+          // Get first angle's thumbnail
+          const { data: angles } = await supabase
+            .from('scraped_products')
+            .select('thumbnail_url')
+            .eq('sku_id', sku.id)
+            .limit(1);
+          
+          return {
+            ...sku,
+            display_image_url: angles?.[0]?.thumbnail_url || null,
+          };
+        })
+      );
+      
+      return skusWithImages;
     },
     enabled: !!user?.id,
   });
@@ -302,12 +325,12 @@ export const ProductShootStep2 = ({
                     <div className="space-y-2">
                       <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
-                        Recently Used
+                        Your Products
                       </span>
                       <div className="grid grid-cols-3 gap-2">
                         {recentSkus.map(sku => {
                           const isSelected = state.selectedProductId === sku.id;
-                          const imageUrl = sku.composite_image_url;
+                          const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
                           
                           return (
                             <button
