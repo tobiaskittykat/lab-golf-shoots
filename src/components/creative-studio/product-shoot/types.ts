@@ -145,7 +145,7 @@ export const initialProductShootState: ProductShootState = {
   productRecolorOption: 'none',
   settingType: 'studio', // Default to studio with white cyclorama
   backgroundId: 'studio-white', // White cyclorama as default
-  weatherCondition: 'auto',
+  weatherCondition: 'sunny',
   modelConfig: {
     gender: 'auto',
     ethnicity: 'auto',
