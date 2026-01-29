@@ -385,45 +385,58 @@ export function shotTypeHasConfig(shotType: ProductShotType): boolean {
 
 // ===== PRODUCT FOCUS SHOT TYPE =====
 
-// Camera Angle options (5 variations from product gallery)
+// Camera Angle options (6 angles from Birkenstock e-commerce photography standard)
 export type ProductFocusAngle = 
   | 'auto'
+  | 'hero'
   | 'side-profile'
-  | 'three-quarter'
   | 'top-down'
+  | 'sole-view'
   | 'detail-closeup'
-  | 'sole-view';
+  | 'pair-shot';
 
 export const productFocusAngleOptions = [
   { 
     value: 'auto' as ProductFocusAngle, 
     label: 'Auto (AI chooses)', 
-    prompt: null 
+    prompt: null,
+    thumbnail: null,
+  },
+  { 
+    value: 'hero' as ProductFocusAngle, 
+    label: 'Hero (3/4 Front)', 
+    prompt: 'three-quarter front view at 45-degree angle, classic hero product shot showing depth and dimension, single shoe angled toward camera',
+    thumbnail: 'angle-hero.jpg',
   },
   { 
     value: 'side-profile' as ProductFocusAngle, 
     label: 'Side Profile', 
-    prompt: 'pure side profile view, product centered, showing full silhouette from lateral angle' 
-  },
-  { 
-    value: 'three-quarter' as ProductFocusAngle, 
-    label: 'Three-Quarter', 
-    prompt: 'three-quarter view at 45-degree angle, showing depth and dimension of the product' 
+    prompt: 'pure lateral side profile view, single shoe centered, showing full silhouette from true side angle, product facing left',
+    thumbnail: 'angle-side-profile.jpg',
   },
   { 
     value: 'top-down' as ProductFocusAngle, 
     label: 'Top Down', 
-    prompt: 'overhead top-down view, footbed and upper fully visible from above' 
-  },
-  { 
-    value: 'detail-closeup' as ProductFocusAngle, 
-    label: 'Detail Close-up', 
-    prompt: 'extreme close-up on buckle, hardware, stitching, and material textures' 
+    prompt: 'overhead top-down view of pair, both shoes visible side by side, footbed and straps fully visible from above, embossed branding readable',
+    thumbnail: 'angle-top-down.jpg',
   },
   { 
     value: 'sole-view' as ProductFocusAngle, 
     label: 'Sole View', 
-    prompt: 'sole facing camera, showing tread pattern, construction, and outsole details' 
+    prompt: 'one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces',
+    thumbnail: 'angle-sole.jpg',
+  },
+  { 
+    value: 'detail-closeup' as ProductFocusAngle, 
+    label: 'Detail Close-up', 
+    prompt: 'extreme close-up cropped tight on buckle hardware, strap texture, and material details, macro-style product detail shot',
+    thumbnail: 'angle-detail.jpg',
+  },
+  { 
+    value: 'pair-shot' as ProductFocusAngle, 
+    label: 'Pair Shot', 
+    prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered',
+    thumbnail: 'angle-pair.jpg',
   },
 ];
 

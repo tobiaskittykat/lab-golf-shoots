@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, SlidersHorizontal, Sun, RotateCcw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CameraAngleSelector } from './CameraAngleSelector';
 import { 
   ProductFocusShotConfig,
-  ProductFocusAngle,
   ProductFocusLighting,
-  productFocusAngleOptions,
   productFocusLightingOptions,
   isProductFocusConfigCustomized,
 } from './shotTypeConfigs';
@@ -64,25 +63,11 @@ export function ProductFocusConfigurator({ config, onConfigChange, onReset }: Pr
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="p-4 pt-0 space-y-4">
-            {/* Camera Angle */}
-            <div className="space-y-2">
-              <label className="text-xs text-muted-foreground">Camera Angle</label>
-              <Select 
-                value={config.cameraAngle} 
-                onValueChange={(v) => onConfigChange({ cameraAngle: v as ProductFocusAngle })}
-              >
-                <SelectTrigger className="bg-muted/50 border-0">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {productFocusAngleOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Camera Angle - Visual Selector */}
+            <CameraAngleSelector
+              value={config.cameraAngle}
+              onChange={(v) => onConfigChange({ cameraAngle: v })}
+            />
 
             {/* Lighting */}
             <div className="space-y-2">

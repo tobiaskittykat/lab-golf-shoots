@@ -6,6 +6,7 @@ export { ModelConfigurator } from './ModelConfigurator';
 export { OnFootConfigurator } from './OnFootConfigurator';
 export { LifestyleConfigurator } from './LifestyleConfigurator';
 export { ProductPickerModal } from './ProductPickerModal';
+export { CameraAngleSelector } from './CameraAngleSelector';
 
 export { ProductIntegrityBadge } from './ProductIntegrityBadge';
 export { ProductShootStep2, initialProductShootState } from './ProductShootStep2';
