@@ -94,22 +94,26 @@ export const GeneratedImagesGallery = ({
       {/* Image Grid - 4 columns */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {isGenerating && images.length === 0 ? (
-          // Show skeleton cards while generating
+          // Show skeleton cards while generating (initial state)
           Array.from({ length: imageCount }).map((_, i) => (
             <GeneratedImageCardSkeleton key={`skeleton-${i}`} />
           ))
         ) : (
-          // Show actual images
+          // Show actual images - handle mixed pending/completed states for progressive display
           images.map((image) => (
-            <GeneratedImageCard
-              key={image.id}
-              image={image}
-              onVariation={onVariation}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onSelect={onSelectForEdit}
-              enableDrag={enableDrag}
-            />
+            image.status === 'pending' ? (
+              <GeneratedImageCardSkeleton key={image.id} />
+            ) : (
+              <GeneratedImageCard
+                key={image.id}
+                image={image}
+                onVariation={onVariation}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onSelect={onSelectForEdit}
+                enableDrag={enableDrag}
+              />
+            )
           ))
         )}
       </div>

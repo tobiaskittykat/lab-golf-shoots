@@ -98,7 +98,8 @@ export function useImageGeneration() {
   const generateImages = useCallback(async (
     state: CreativeStudioState,
     logoUrl?: string, // Logo URL for compositing
-    brandId?: string  // Brand ID to associate images with
+    brandId?: string,  // Brand ID to associate images with
+    onImageReady?: (image: GeneratedImage) => void // Progressive callback for sequential mode
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -461,33 +462,84 @@ export function useImageGeneration() {
       let data: any;
       let error: any;
       
-      // Sequential generation: call generate-image once per image with fresh prompts
+      // Sequential generation: generate images in parallel batches with progressive display
       if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
-        console.log(`Sequential mode: generating ${state.imageCount} images with fresh prompts`);
+        console.log(`Sequential mode: generating ${state.imageCount} images with parallel batches`);
         
-        const allImages: any[] = [];
+        const BATCH_SIZE = 2; // Generate 2 images in parallel at a time
+        const allImages: GeneratedImage[] = [];
         
-        for (let i = 0; i < state.imageCount; i++) {
+        // Helper to generate a single image
+        const generateOne = async (index: number): Promise<GeneratedImage | null> => {
           // Build a fresh shot type prompt for each iteration (re-randomizes auto selections)
           const freshShotTypePrompt = buildShotTypePromptForProduct();
-          console.log(`Sequential image ${i + 1}/${state.imageCount} - fresh prompt built`);
+          console.log(`Sequential image ${index + 1}/${state.imageCount} - starting`);
           
-          const { data: singleData, error: singleError } = await supabase.functions.invoke('generate-image', {
-            body: buildRequestBody(freshShotTypePrompt, 1), // Generate 1 image at a time
-          });
-          
-          if (singleError) {
-            console.error(`Sequential image ${i + 1} failed:`, singleError);
-            // Continue with other images even if one fails
-          } else if (singleData?.images) {
-            allImages.push(...singleData.images.map((img: any, idx: number) => ({
-              ...img,
-              index: allImages.length + idx,
-            })));
+          try {
+            const { data: singleData, error: singleError } = await supabase.functions.invoke('generate-image', {
+              body: buildRequestBody(freshShotTypePrompt, 1), // Generate 1 image at a time
+            });
+            
+            if (singleError || !singleData?.images?.[0]) {
+              console.error(`Sequential image ${index + 1} failed:`, singleError);
+              return null;
+            }
+            
+            const img = singleData.images[0];
+            const generatedImage: GeneratedImage = {
+              id: img.id || `seq-${Date.now()}-${index}`,
+              imageUrl: img.imageUrl || '',
+              status: img.status || 'failed',
+              prompt: state.prompt,
+              refinedPrompt: img.refinedPrompt,
+              conceptTitle: productNames[0] || 'Product Shot',
+              index,
+              productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+              productReferenceUrl: productReferenceUrls[0],
+              moodboardId: state.moodboard || undefined,
+              moodboardUrl: moodboardUrl || undefined,
+            };
+            
+            // PROGRESSIVE DISPLAY: Immediately notify caller
+            if (onImageReady && generatedImage.status === 'completed') {
+              console.log(`Sequential image ${index + 1} completed - notifying UI`);
+              onImageReady(generatedImage);
+              
+              // Trigger integrity analysis immediately for this image
+              if (productReferenceUrls.length > 0 && generatedImage.imageUrl) {
+                triggerIntegrityAnalysis(
+                  generatedImage.id,
+                  generatedImage.imageUrl,
+                  productReferenceUrls,
+                  productNames[0]
+                );
+              }
+            }
+            
+            return generatedImage;
+          } catch (err) {
+            console.error(`Sequential image ${index + 1} failed:`, err);
+            return null;
           }
+        };
+        
+        // Process in parallel batches to avoid overwhelming the API
+        for (let batchStart = 0; batchStart < state.imageCount; batchStart += BATCH_SIZE) {
+          const batchEnd = Math.min(batchStart + BATCH_SIZE, state.imageCount);
+          const batchPromises: Promise<GeneratedImage | null>[] = [];
+          
+          console.log(`Processing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}: images ${batchStart + 1}-${batchEnd}`);
+          
+          for (let i = batchStart; i < batchEnd; i++) {
+            batchPromises.push(generateOne(i));
+          }
+          
+          const batchResults = await Promise.all(batchPromises);
+          const successfulImages = batchResults.filter((img): img is GeneratedImage => img !== null);
+          allImages.push(...successfulImages);
         }
         
-        // Combine results
+        // Combine results - integrity analysis already triggered per-image above
         data = { images: allImages };
         error = allImages.length === 0 ? { message: 'All sequential generations failed' } : null;
       } else {

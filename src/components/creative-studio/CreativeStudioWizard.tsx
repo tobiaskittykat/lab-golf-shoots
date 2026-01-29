@@ -316,7 +316,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   const handleGenerate = useCallback(async () => {
     handleUpdate({ isGenerating: true, generatedImages: [] });
     
-    // Generate placeholder images for loading state
+    // Generate placeholder images for loading state (show remaining slots)
     const placeholders: GeneratedImage[] = Array.from({ length: state.imageCount }).map((_, i) => ({
       id: `pending-${i}`,
       imageUrl: '',
@@ -326,14 +326,35 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
     }));
     handleUpdate({ generatedImages: placeholders });
     
-    // Call real AI to generate images (pass logoUrl for server-side compositing, and brandId)
-    const images = await generateImages(state, logoUrl, currentBrand?.id);
+    // Progressive callback: replace placeholder with real image as each completes
+    const onImageReady = (image: GeneratedImage) => {
+      setState(prev => {
+        // Find the first pending placeholder and replace it
+        const newImages = [...prev.generatedImages];
+        const pendingIdx = newImages.findIndex(img => img.status === 'pending');
+        
+        if (pendingIdx >= 0) {
+          newImages[pendingIdx] = image;
+        } else {
+          // No pending placeholder, just add to end
+          newImages.push(image);
+        }
+        
+        return { ...prev, generatedImages: newImages };
+      });
+    };
     
+    // Call real AI to generate images with progressive callback
+    const images = await generateImages(state, logoUrl, currentBrand?.id, onImageReady);
+    
+    // Final update (replaces any remaining placeholders with failed status or final images)
     handleUpdate({ 
       isGenerating: false, 
-      generatedImages: images.length > 0 ? images : placeholders.map(p => ({ ...p, status: 'failed' as const }))
+      generatedImages: images.length > 0 
+        ? images 
+        : placeholders.map(p => ({ ...p, status: 'failed' as const }))
     });
-  }, [state, handleUpdate, generateImages]);
+  }, [state, handleUpdate, generateImages, logoUrl, currentBrand?.id]);
 
   const handleVariation = useCallback(async (image: GeneratedImage) => {
     const newImages = await generateVariations(state, image);
