@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check, Pencil } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -11,6 +11,7 @@ import { ProductSKU } from "./ProductSKUPicker";
 import { ProductPickerModal } from "./ProductPickerModal";
 import { SmartUploadModal } from "./SmartUploadModal";
 import { CreateSKUModal } from "./CreateSKUModal";
+import { EditSKUModal } from "./EditSKUModal";
 import { ShotTypeVisualSelector } from "./ShotTypeVisualSelector";
 import { OnFootConfigurator } from "./OnFootConfigurator";
 import { LifestyleConfigurator } from "./LifestyleConfigurator";
@@ -77,6 +78,8 @@ export const ProductShootStep2 = ({
   const [showProductPickerModal, setShowProductPickerModal] = useState(false);
   const [showSmartUploadModal, setShowSmartUploadModal] = useState(false);
   const [showCreateSKUModal, setShowCreateSKUModal] = useState(false);
+  const [showEditSKUModal, setShowEditSKUModal] = useState(false);
+  const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
   const [selectedSku, setSelectedSku] = useState<ProductSKU | null>(null);
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
   
@@ -305,137 +308,120 @@ export const ProductShootStep2 = ({
           />
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-4">
-              {/* Selected Product Preview */}
-              {(selectedSku || selectedProduct) && currentProductImage ? (
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-muted/50">
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted relative">
-                    <img 
-                      src={currentProductImage}
-                      alt={currentProductName || 'Product'}
-                      className="w-full h-full object-cover"
-                    />
-                    {selectedSku && selectedSku.angles.length > 1 && (
-                      <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-xs">
-                        {selectedSku.angles.length} angles
-                      </div>
-                    )}
+              {/* Always show product grid - no conditional switch */}
+              <div className="space-y-3">
+                {/* Recent Products Grid */}
+                {displayedProducts.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      Your Products
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {displayedProducts.map(sku => {
+                        const isSelected = state.selectedProductId === sku.id;
+                        const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
+                        const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
+                        const attributes = formatSkuAttributes(displayInfo);
+                        
+                        return (
+                          <HoverCard key={sku.id} openDelay={300} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <button
+                                onClick={() => handleSkuSelect({
+                                  id: sku.id,
+                                  name: sku.name,
+                                  sku_code: sku.sku_code,
+                                  composite_image_url: sku.composite_image_url,
+                                  brand_id: sku.brand_id,
+                                  last_used_at: sku.last_used_at,
+                                  angles: [],
+                                }, false)} // Inline click does NOT change display order
+                                className={cn(
+                                  "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                                  isSelected 
+                                    ? "border-accent ring-2 ring-accent/30" 
+                                    : "border-transparent hover:border-muted-foreground/30"
+                                )}
+                              >
+                                {imageUrl ? (
+                                  <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                                    <Package className="w-6 h-6 text-muted-foreground" />
+                                  </div>
+                                )}
+                                {/* Selection indicator */}
+                                {isSelected && (
+                                  <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+                                {/* Name overlay */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                  <span className="text-xs text-white font-medium truncate block">
+                                    {displayInfo.modelName}
+                                  </span>
+                                  {attributes && (
+                                    <span className="text-[10px] text-white/80 truncate block">
+                                      {attributes}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent 
+                              side="top" 
+                              align="center" 
+                              className="w-auto p-3"
+                              sideOffset={8}
+                            >
+                              <ProductAnglePreview skuId={sku.id} skuName={sku.name} />
+                            </HoverCardContent>
+                          </HoverCard>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-foreground">{currentProductName}</div>
-                    {selectedSku?.sku_code && (
-                      <div className="text-xs text-muted-foreground">{selectedSku.sku_code}</div>
-                    )}
-                    {selectedSku?.angles && selectedSku.angles.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        {selectedSku.angles.length} angle{selectedSku.angles.length !== 1 ? 's' : ''}
+                )}
+
+                {/* Selected Product Info Row */}
+                {selectedSku && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-foreground truncate">{selectedSku.name}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {selectedSku.sku_code && <span className="truncate">{selectedSku.sku_code}</span>}
+                        {selectedSku.sku_code && selectedSku.angles?.length > 0 && <span>•</span>}
+                        {selectedSku.angles?.length > 0 && (
+                          <span>{selectedSku.angles.length} angle{selectedSku.angles.length !== 1 ? 's' : ''}</span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowProductPickerModal(true)}
+                      className="gap-1.5"
+                      onClick={() => {
+                        setEditingSkuId(selectedSku.id);
+                        setShowEditSKUModal(true);
+                      }}
                     >
-                      Change
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearProduct}
-                    >
-                      Clear
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
                     </Button>
                   </div>
-                </div>
-              ) : (
-                /* Show recent products inline + browse all */
-                <div className="space-y-3">
-                  {/* Recent Products Grid */}
-                  {displayedProducts.length > 0 && (
-                    <div className="space-y-2">
-                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" />
-                        Your Products
-                      </span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {displayedProducts.map(sku => {
-                          const isSelected = state.selectedProductId === sku.id;
-                          const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
-                          const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
-                          const attributes = formatSkuAttributes(displayInfo);
-                          
-                          return (
-                            <HoverCard key={sku.id} openDelay={300} closeDelay={100}>
-                              <HoverCardTrigger asChild>
-                              <button
-                                  onClick={() => handleSkuSelect({
-                                    id: sku.id,
-                                    name: sku.name,
-                                    sku_code: sku.sku_code,
-                                    composite_image_url: sku.composite_image_url,
-                                    brand_id: sku.brand_id,
-                                    last_used_at: sku.last_used_at,
-                                    angles: [],
-                                  }, false)} // Inline click does NOT change display order
-                                  className={cn(
-                                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                                    isSelected 
-                                      ? "border-accent ring-2 ring-accent/30" 
-                                      : "border-transparent hover:border-muted-foreground/30"
-                                  )}
-                                >
-                                  {imageUrl ? (
-                                    <img src={imageUrl} alt={sku.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                                      <Package className="w-6 h-6 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                  {/* Selection indicator */}
-                                  {isSelected && (
-                                    <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
-                                      <Check className="w-3 h-3 text-white" />
-                                    </div>
-                                  )}
-                                  {/* Name overlay */}
-                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                                    <span className="text-xs text-white font-medium truncate block">
-                                      {displayInfo.modelName}
-                                    </span>
-                                    {attributes && (
-                                      <span className="text-[10px] text-white/80 truncate block">
-                                        {attributes}
-                                      </span>
-                                    )}
-                                  </div>
-                                </button>
-                              </HoverCardTrigger>
-                              <HoverCardContent 
-                                side="top" 
-                                align="center" 
-                                className="w-auto p-3"
-                                sideOffset={8}
-                              >
-                                <ProductAnglePreview skuId={sku.id} skuName={sku.name} />
-                              </HoverCardContent>
-                            </HoverCard>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                )}
 
-                  {/* Browse All Button */}
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setShowProductPickerModal(true)}
-                  >
-                    Browse All Products...
-                  </Button>
-                </div>
-              )}
+                {/* Browse All Button */}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowProductPickerModal(true)}
+                >
+                  Browse All Products...
+                </Button>
+              </div>
             </div>
           </CollapsibleContent>
         </div>
@@ -618,6 +604,30 @@ export const ProductShootStep2 = ({
         onClose={() => setShowCreateSKUModal(false)}
         onCreated={handleSkuCreated}
       />
+
+      {/* Edit SKU Modal */}
+      {editingSkuId && (
+        <EditSKUModal
+          open={showEditSKUModal}
+          onClose={() => {
+            setShowEditSKUModal(false);
+            setEditingSkuId(null);
+          }}
+          skuId={editingSkuId}
+          onUpdated={() => {
+            // Refetch selected SKU if it was the one being edited
+            if (selectedSku?.id === editingSkuId) {
+              setSelectedSku(null); // Will trigger refetch via query
+            }
+          }}
+          onDeleted={() => {
+            if (selectedSku?.id === editingSkuId) {
+              setSelectedSku(null);
+              onStateChange({ selectedProductId: undefined, recoloredProductUrl: undefined });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

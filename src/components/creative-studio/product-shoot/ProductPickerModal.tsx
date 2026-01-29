@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { X, Search, Package, Clock, ChevronRight, Check, Sparkles, Plus, Filter } from 'lucide-react';
+import { X, Search, Package, Clock, ChevronRight, Check, Sparkles, Plus, Filter, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBrands } from '@/hooks/useBrands';
 import { ProductSKU } from './ProductSKUPicker';
 import { parseSkuDisplayInfo, formatSkuSubtitle } from '@/lib/skuDisplayUtils';
+import { EditSKUModal } from './EditSKUModal';
 
 interface ProductPickerModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ export function ProductPickerModal({
   const { currentBrand } = useBrands();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch SKUs with their linked product angles and description
@@ -155,55 +157,69 @@ export function ProductPickerModal({
     const subtitle = formatSkuSubtitle(displayInfo);
     
     return (
-      <button
-        onClick={() => handleSelect(sku)}
-        className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-          isSelected 
-            ? 'bg-accent/10 ring-2 ring-accent' 
-            : 'hover:bg-muted/50'
-        }`}
-      >
-        {/* Thumbnail */}
-        <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-          {sku.composite_image_url ? (
-            <img
-              src={sku.composite_image_url}
-              alt={sku.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : sku.angles[0]?.thumbnail_url ? (
-            <img
-              src={sku.angles[0].thumbnail_url}
-              alt={sku.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-5 h-5 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{displayInfo.modelName}</span>
-            {isSelected && <Check className="w-4 h-4 text-accent flex-shrink-0" />}
-            {showRecent && <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-            {subtitle && <span className="text-foreground/70">{subtitle}</span>}
-            {subtitle && sku.angles.length > 1 && <span>•</span>}
-            {sku.angles.length > 1 && (
-              <span>{sku.angles.length} angles</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => handleSelect(sku)}
+          className={`flex-1 flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+            isSelected 
+              ? 'bg-accent/10 ring-2 ring-accent' 
+              : 'hover:bg-muted/50'
+          }`}
+        >
+          {/* Thumbnail */}
+          <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+            {sku.composite_image_url ? (
+              <img
+                src={sku.composite_image_url}
+                alt={sku.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : sku.angles[0]?.thumbnail_url ? (
+              <img
+                src={sku.angles[0].thumbnail_url}
+                alt={sku.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Package className="w-5 h-5 text-muted-foreground" />
+              </div>
             )}
           </div>
-        </div>
 
-        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-      </button>
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium truncate">{displayInfo.modelName}</span>
+              {isSelected && <Check className="w-4 h-4 text-accent flex-shrink-0" />}
+              {showRecent && <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              {subtitle && <span className="text-foreground/70">{subtitle}</span>}
+              {subtitle && sku.angles.length > 1 && <span>•</span>}
+              {sku.angles.length > 1 && (
+                <span>{sku.angles.length} angles</span>
+              )}
+            </div>
+          </div>
+
+          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        </button>
+        
+        {/* Edit button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditingSkuId(sku.id);
+          }}
+          className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+          title="Edit product"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+      </div>
     );
   };
 
@@ -395,6 +411,15 @@ export function ProductPickerModal({
           </p>
         </div>
       </DialogContent>
+
+      {/* Edit SKU Modal */}
+      {editingSkuId && (
+        <EditSKUModal
+          open={!!editingSkuId}
+          onClose={() => setEditingSkuId(null)}
+          skuId={editingSkuId}
+        />
+      )}
     </Dialog>
   );
 }
