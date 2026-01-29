@@ -1,185 +1,255 @@
 
-# Generate AI Background Thumbnails for Studio & Outdoor Presets
+
+# Enhanced Prompting with AI-Selected Random Options & Gemini 3.0
 
 ## Overview
 
-Replace the CSS gradient placeholders with actual AI-generated thumbnail images for all 22 background presets (10 studio + 12 outdoor). These will give users a much clearer visual preview of what each background setting looks like.
+Transform the current short, generic prompts into rich, evocative e-commerce prompts that match your creative designer's examples. When users leave options on "Auto", the system will **randomly select a specific option** and include that in the prompt with full descriptive language—rather than telling the AI to "pick from this list."
 
 ---
 
-## Approach
+## Core Problem
 
-### Option A: Generate & Store in Supabase Storage (Recommended)
-Generate images using Gemini, upload to the `brand-assets` bucket, and reference via public URLs.
+**Current behavior** (when `auto` is selected):
+```
+POSE DIRECTION:
+- Natural, grounded stance with subtle variation
+- AI may select: feet parallel, one foot forward, heel relaxed...
+```
 
-**Pros:**
-- Images persist across deployments
-- Fast loading via CDN
-- No build-time generation needed
+**Desired behavior** (matching your designer's prompts):
+```
+STYLING & POSE — COMMERCIAL
+The model stands in a natural, relaxed stance:
+– Feet flat or one foot slightly forward
+– Casual, grounded posture
+– No exaggerated movement or editorial posing
 
-**Cons:**
-- Requires edge function to generate
-- One-time setup effort
+Pants are ankle-length or cropped to clearly show the shoe and lining.
+No logos, no graphics, no visual distractions.
+```
 
-### Option B: Generate & Store as Static Assets
-Generate images and save to `src/assets/backgrounds/` or `public/backgrounds/`.
-
-**Pros:**
-- Simple file references
-- No external dependencies
-
-**Cons:**
-- Increases bundle size
-- Must regenerate if presets change
+The fix: When `auto` is selected, **pre-select a random concrete option** and inject that specific choice into the prompt with evocative language—so the output is always specific, not vague.
 
 ---
 
-## Recommended: Option A - Edge Function + Storage
+## Changes Summary
 
-### Step 1: Create Edge Function for Thumbnail Generation
+| Area | Change |
+|------|--------|
+| **Random Option Selection** | New `selectRandomOption()` utility to pick random value when `auto` |
+| **On-Foot Prompt Builder** | Rewrite to match your designer's format exactly |
+| **Lifestyle Prompt Builder** | Rewrite to match your designer's format exactly |
+| **Model Selection** | Already using `google/gemini-3-pro-image-preview` (Gemini 3.0) |
 
-Create `supabase/functions/generate-background-thumbnails/index.ts`:
+---
 
-```typescript
-// Calls Gemini image generation API for each preset
-// Uploads results to brand-assets bucket
-// Returns mapping of background ID -> thumbnail URL
-```
+## Implementation Details
 
-**Prompt Template for Each Background:**
-```text
-Generate a simple, clean background preview image for product photography.
-Setting: [preset.prompt]
-Style: Empty background only, no products or people, soft lighting, 
-       4:3 aspect ratio, suitable as a selection thumbnail.
-```
+### 1. Random Option Selector Utility
 
-### Step 2: Update Presets with Thumbnail URLs
-
-After generation, update `presets.ts` to include actual thumbnail URLs:
+Add to `shotTypeConfigs.ts`:
 
 ```typescript
-{ 
-  id: 'studio-white', 
-  name: 'White Cyclorama', 
-  category: 'studio', 
-  thumbnail: 'https://[supabase-url]/storage/v1/object/public/brand-assets/bg-thumbnails/studio-white.png',
-  prompt: '...',
-  colorHint: 'linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 100%)' // Fallback
+function selectRandomFromOptions<T extends { value: string; prompt?: string | null }>(
+  options: T[], 
+  currentValue: string
+): T {
+  if (currentValue !== 'auto') {
+    return options.find(o => o.value === currentValue) || options[0];
+  }
+  // Filter out 'auto' and pick random
+  const concreteOptions = options.filter(o => o.value !== 'auto' && o.prompt);
+  return concreteOptions[Math.floor(Math.random() * concreteOptions.length)];
 }
 ```
 
-### Step 3: Update BackgroundSelector to Prefer Thumbnails
+### 2. Rewrite `buildOnFootPrompt()` to Match Your Designer's Format
 
-The component already handles this (line 81):
-```typescript
-background: bg.thumbnail || bg.colorHint || 'linear-gradient(...)'
+**New structure** (based on your example):
+
+```text
+A single, high-resolution e-commerce image (one frame only, no collage).
+
+A close-up on-model product shot of a [GENDER] model wearing Birkenstock footwear, 
+photographed against [BACKGROUND - based on selection].
+
+Framing is tight and product-focused, showing the feet, shoes, ankles, and lower legs, 
+cropped roughly from mid-calf down. The shoes fill most of the frame, consistent with 
+official Birkenstock e-commerce photography.
+
+Camera angle is eye-level to slightly low, neutral and undistorted. 
+No top-down angle, no wide-angle distortion.
+
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+[Static locked product section - always identical]
+
+MATERIAL BEHAVIOR — LOCKED
+[Static locked material section - always identical]
+
+STYLING & POSE — COMMERCIAL
+The model stands in [RANDOMLY SELECTED POSE]:
+– [Specific pose description]
+– Casual, grounded posture
+– No exaggerated movement or editorial posing
+
+[RANDOMLY SELECTED LEG STYLING] in [RANDOMLY SELECTED TROUSER COLOR].
+No logos, no graphics, no visual distractions.
+
+Lighting is [LIGHTING based on background selection].
+Shadows are soft and realistic, grounding the shoe to the floor.
+Focus is sharp, color is neutral and accurate.
+
+The final image must be indistinguishable from an official Birkenstock e-commerce product photograph.
 ```
 
-So once thumbnails are populated, they'll automatically be used.
+### 3. Rewrite `buildLifestylePrompt()` to Match Your Designer's Format
 
----
+**New structure** (based on your example):
 
-## Thumbnail Specifications
+```text
+A single, high-resolution e-commerce image (one frame only, no collage).
 
-| Property | Value |
-|----------|-------|
-| **Dimensions** | 400x300px (4:3 aspect ratio) |
-| **Format** | PNG or WebP |
-| **Style** | Empty background, soft lighting, no products/people |
-| **Storage Path** | `brand-assets/bg-thumbnails/{preset-id}.png` |
+A full-body product-on-model shot, framed from upper chest or shoulders down to the feet, 
+with the head cropped out of frame.
 
----
+The [GENDER] model is photographed at a pulled-back distance, allowing full body proportions 
+and clear negative space around the figure, on [BACKGROUND based on selection].
 
-## Backgrounds to Generate (22 total)
+Camera angle is eye-level and neutral, with no wide-angle distortion, matching classic 
+Birkenstock lookbook and e-commerce photography.
 
-### Studio (10)
-1. `studio-white` - White Cyclorama
-2. `studio-black` - Black Void
-3. `studio-gradient-warm` - Warm Gradient
-4. `studio-gradient-cool` - Cool Gradient
-5. `studio-concrete` - Concrete Floor
-6. `studio-marble` - Marble Surface
-7. `studio-fabric` - Textured Fabric
-8. `studio-wood` - Warm Wood
-9. `studio-terrazzo` - Terrazzo
-10. `studio-paper` - Paper Backdrop
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+[Static locked product section - always identical]
 
-### Outdoor (12)
-1. `outdoor-beach` - Sandy Beach
-2. `outdoor-urban` - Urban Street
-3. `outdoor-park` - Park Grass
-4. `outdoor-cafe` - Cafe Terrace
-5. `outdoor-desert` - Desert Dunes
-6. `outdoor-forest` - Forest Path
-7. `outdoor-rooftop` - Rooftop
-8. `outdoor-pool` - Poolside
-9. `outdoor-mountain` - Mountain Trail
-10. `outdoor-vineyard` - Vineyard
-11. `outdoor-boardwalk` - Boardwalk
-12. `outdoor-market` - Street Market
+MATERIAL BEHAVIOR — LOCKED
+[Static locked material section - always identical]
 
----
+CLOTHING — VARIABLE (CONTROLLED)
+The model wears [RANDOMLY SELECTED OUTFIT STYLE]:
+- [RANDOMLY SELECTED TROUSER STYLE]
+- [RANDOMLY SELECTED TOP STYLE] 
+- Colors: [RANDOMLY SELECTED COLOR SCHEME]
 
-## Implementation Steps
+Fabrics are matte and clean.
+No logos, no graphics, no bold textures, no trends.
 
-### 1. Create Edge Function
-- `supabase/functions/generate-background-thumbnails/index.ts`
-- Uses Lovable AI (Gemini image generation)
-- Generates 22 images sequentially (to avoid rate limits)
-- Uploads each to `brand-assets/bg-thumbnails/`
-- Returns JSON with all URLs
+POSE — VARIABLE (LOOKBOOK-REALISTIC)
+[RANDOMLY SELECTED POSE]:
+- [Specific pose description]
+- Pose must feel casual, human, and unstyled—never editorial or exaggerated
 
-### 2. Run Generation Once
-- Call the edge function to generate all thumbnails
-- This is a one-time operation
+Lighting is [LIGHTING based on background selection].
+Focus is sharp, color is neutral and accurate, materials are clearly visible.
 
-### 3. Update Presets File
-- Add generated thumbnail URLs to each preset in `presets.ts`
-- Keep `colorHint` as fallback for loading states
-
-### 4. Update Config
-- Add function to `supabase/config.toml`
-
----
-
-## Edge Function Code Structure
-
-```typescript
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const BACKGROUNDS = [
-  { id: 'studio-white', prompt: 'Pure white seamless studio cyclorama, professional photography backdrop, soft diffused lighting' },
-  { id: 'studio-black', prompt: 'Deep black studio void, dramatic rim lighting, high contrast photography backdrop' },
-  // ... all 22 presets
-];
-
-serve(async (req) => {
-  // 1. For each background preset
-  // 2. Call Gemini image generation with prompt
-  // 3. Upload base64 result to storage
-  // 4. Collect URLs
-  // 5. Return mapping
-});
+The final image must look indistinguishable from an official Birkenstock e-commerce 
+or lookbook photograph.
 ```
 
 ---
 
-## Result
+## What Stays the Same
 
-After implementation:
-- Users will see actual visual previews of each background
-- Studio backgrounds will show realistic studio/surface textures
-- Outdoor backgrounds will show scenic location previews
-- CSS gradients remain as loading fallbacks
+1. **Model for image generation**: Already `google/gemini-3-pro-image-preview` (Gemini 3.0)
+2. **Model for prompt crafting**: `google/gemini-2.5-flash` (appropriate for text)
+3. **Background selection logic**: Works correctly
+4. **Lighting based on background**: Works correctly
 
 ---
 
-## File Changes Summary
+## File Changes
 
-| File | Action |
-|------|--------|
-| `supabase/functions/generate-background-thumbnails/index.ts` | Create |
-| `supabase/config.toml` | Add function config |
-| `src/components/creative-studio/product-shoot/presets.ts` | Update with thumbnail URLs after generation |
+### `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`
+
+1. **Add** `selectRandomFromOptions()` utility function
+2. **Rewrite** `buildOnFootPrompt()` to:
+   - Pre-select random concrete options when `auto` is set
+   - Output evocative, narrative-style prompts matching your designer's format
+   - Include full "LOCKED" sections for product and material integrity
+3. **Rewrite** `buildLifestylePrompt()` to:
+   - Pre-select random concrete options when `auto` is set
+   - Output evocative, narrative-style prompts matching your designer's format
+   - Include full "LOCKED" sections for product and material integrity
+
+---
+
+## Example Output Comparison
+
+### Current (Short):
+```
+=== ON-FOOT SHOE FOCUS SHOT ===
+
+FRAMING & COMPOSITION (MANDATORY):
+- Single, high-resolution e-commerce image
+- Leg-down product shot framed from mid-calf to floor
+...
+
+POSE DIRECTION:
+- Natural, grounded stance with subtle variation
+- AI may select: feet parallel, one foot forward...
+
+LEG STYLING:
+- Cropped trousers or pants ending just above ankle
+- Neutral, matte fabric that complements the product
+```
+*~532 characters*
+
+### New (Rich, matching your designer):
+```
+A single, high-resolution e-commerce image (one frame only, no collage).
+
+A close-up on-model product shot of a female model wearing Birkenstock footwear, 
+photographed against a pure white seamless studio background with a visible floor 
+plane and soft, natural contact shadows.
+
+Framing is tight and product-focused, showing the feet, shoes, ankles, and lower 
+legs, cropped roughly from mid-calf down. The shoes fill most of the frame, 
+consistent with official Birkenstock e-commerce photography.
+
+Camera angle is eye-level to slightly low, neutral and undistorted. 
+No top-down angle, no wide-angle distortion.
+
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+The model is wearing a Birkenstock Boston clog with the following fixed construction:
+– Closed-toe Boston silhouette with rounded toe box
+– Soft suede upper with visible nap and matte texture
+– Single adjustable instep strap with metal buckle
+– Natural cork-latex contoured footbed
+– EVA outsole with accurate thickness and tread
+
+The shoe's geometry, construction, proportions, and hardware placement must remain 
+identical in every generation. Do not redesign, stylize, or reinterpret the product.
+
+MATERIAL BEHAVIOR — LOCKED
+– Suede remains matte, soft, and fibrous (no gloss, no synthetic smoothness)
+– Buckle remains metal, brushed or satin finish
+– Cork remains natural warm brown tone
+– EVA outsole remains matte with subtle rubber texture
+
+STYLING & POSE — COMMERCIAL
+The model stands in a natural, relaxed stance with one foot subtly placed forward:
+– Casual, grounded posture
+– No exaggerated movement or editorial posing
+
+Wide-leg trousers cropped just above the ankle in charcoal grey, showing bare ankle.
+Matte fabric, no logos, no graphics.
+
+Lighting is clean, diffused studio lighting that accurately represents suede texture.
+Shadows are soft and realistic, grounding the shoe to the floor.
+Focus is sharp, color is neutral and accurate.
+
+The final image must be indistinguishable from an official Birkenstock e-commerce 
+product photograph.
+```
+*~1,800 characters*
+
+---
+
+## Gemini 3.0 Confirmation
+
+The system already uses:
+- **Image generation**: `google/gemini-3-pro-image-preview` (Gemini 3.0)
+- **Prompt crafting**: `google/gemini-2.5-flash` (fast text model)
+
+No model changes needed.
+
