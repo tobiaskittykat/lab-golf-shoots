@@ -387,13 +387,14 @@ export const outputFormats = [
   { value: 'ecommerce', label: 'E-commerce', aspectRatio: '1:1', description: 'Product listings' },
 ];
 
-export const aspectRatios = ['1:1', '4:5', '16:9', '9:16', '4:3', '3:4'];
+// Gemini-native aspect ratios only
+export const aspectRatios = ['1:1', '16:9', '9:16', '4:3', '3:4'];
 
+// Gemini-native resolutions only (1K, 2K, 4K)
 export const resolutions = [
-  { value: '512', label: '512px' },
-  { value: '1024', label: '1024px' },
-  { value: '2048', label: '2048px (2K)' },
-  { value: '4096', label: '4096px (4K)' },
+  { value: '1024', label: '1K (1024px)' },
+  { value: '2048', label: '2K (2048px)' },
+  { value: '4096', label: '4K (4096px)' },
 ];
 
 // Updated artistic styles - more visual/cinematic options
