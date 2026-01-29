@@ -13,6 +13,7 @@ import {
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
 import { buildOnFootPrompt, buildLifestylePrompt, buildProductFocusPrompt, initialOnFootConfig, initialLifestyleConfig, initialProductFocusConfig, BackgroundContext } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
 import { updateSkuLastUsed } from '@/components/creative-studio/product-shoot/ProductSKUPicker';
+import { parseSkuDisplayInfo, type SKUDisplayInfo } from '@/lib/skuDisplayUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -184,14 +185,16 @@ export function useImageGeneration() {
         }
       }
 
-      // If we have a selectedProductId (SKU), fetch composite and individual angles
+      // If we have a selectedProductId (SKU), fetch composite, angles, AND description data
+      let productIdentity: SKUDisplayInfo | undefined;
+      
       if (state.productShoot?.selectedProductId && state.useCase === 'product') {
         const skuId = state.productShoot.selectedProductId;
         
-        // Fetch SKU composite image and name
+        // Fetch SKU composite image, name, AND description (for product identity)
         const { data: sku } = await supabase
           .from('product_skus')
-          .select('composite_image_url, name')
+          .select('composite_image_url, name, description')
           .eq('id', skuId)
           .maybeSingle();
         
@@ -200,6 +203,11 @@ export function useImageGeneration() {
         }
         if (sku?.name && !productNames.includes(sku.name)) {
           productNames.unshift(sku.name);
+        }
+        
+        // Parse SKU name + description to extract brand, model, color, material
+        if (sku?.name) {
+          productIdentity = parseSkuDisplayInfo(sku.name, sku.description as any);
         }
         
         // Also fetch individual angles for additional references
@@ -400,6 +408,9 @@ export function useImageGeneration() {
         
         // Custom prompt agent system prompt (from brand settings)
         customPromptAgentSystemPrompt,
+        
+        // Product Identity (brand, model, color, material parsed from SKU)
+        productIdentity: state.useCase === 'product' ? productIdentity : undefined,
         
         extraKeywords: state.extraKeywords,
         negativePrompt: state.negativePrompt,
