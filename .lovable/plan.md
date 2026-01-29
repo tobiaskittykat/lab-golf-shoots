@@ -1,194 +1,134 @@
 
 
-# Update Product Focus Camera Angles with Visual Thumbnails
+# Make Camera Angle Thumbnails Smaller + Add Lifestyle Angle
 
 ## Summary
 
-Replace the current dropdown-based camera angle selector with a visual thumbnail grid that shows EXACTLY the 6 angle types from Birkenstock's e-commerce photography standard. Users will see reference thumbnails of each angle so they know exactly what output to expect.
-
----
-
-## Camera Angle Mapping (from uploaded images)
-
-| Uploaded Image | Angle Name | Description |
-|----------------|------------|-------------|
-| `1022457_top.jpg` | **Top Down** | Overhead view of pair, footbed visible with embossed branding |
-| `1022457.jpg` | **Hero (3/4 Front)** | Classic 45° hero shot, main product image |
-| `1022457_side.jpg` | **Side Profile** | Pure lateral side view, single shoe |
-| `1022457_sole.jpg` | **Sole View** | One shoe showing sole tread pattern + one showing footbed |
-| `1022457_detail-1.jpg` | **Detail Close-up** | Tight crop on buckles, texture, hardware |
-| `1022457_pair.jpg` | **Pair Shot** | Two shoes artfully arranged, showing depth |
+Two changes to the Product Focus camera angle selector:
+1. **Reduce thumbnail size** - Make the visual grid more compact
+2. **Add "Lifestyle" angle** - A new creative option that gives the AI compositional freedom
 
 ---
 
 ## Changes
 
-### 1. Copy Reference Images to Assets
+### 1. Reduce Thumbnail Size
 
-Copy all 6 uploaded images to `src/assets/product-angles/`:
+**File: `src/components/creative-studio/product-shoot/CameraAngleSelector.tsx`**
 
-```text
-src/assets/product-angles/
-├── angle-top-down.jpg
-├── angle-hero.jpg
-├── angle-side-profile.jpg
-├── angle-sole.jpg
-├── angle-detail.jpg
-└── angle-pair.jpg
-```
+Current grid uses `grid-cols-4` which creates ~80px thumbnails on typical screens. We'll make them smaller:
 
-### 2. Update Camera Angle Options
+| Property | Current | New |
+|----------|---------|-----|
+| Grid columns | `grid-cols-4` | `grid-cols-5` |
+| Gap | `gap-2` | `gap-1.5` |
+| Auto icon | `w-6 h-6` | `w-5 h-5` |
+| Label font | `text-[10px]` | `text-[9px]` |
+| Label padding | `px-1.5 py-1.5` | `px-1 py-1` |
+
+This will make each thumbnail approximately 20-25% smaller while maintaining readability.
+
+---
+
+### 2. Add "Lifestyle" Angle Option
 
 **File: `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`**
 
-Replace the current `productFocusAngleOptions` with updated options that include thumbnail paths:
+Add a new angle that encourages creative, dynamic compositions:
 
 ```typescript
 export type ProductFocusAngle = 
   | 'auto'
-  | 'hero'           // was 'three-quarter'
+  | 'hero'
   | 'side-profile'
   | 'top-down'
   | 'sole-view'
   | 'detail-closeup'
-  | 'pair-shot';     // NEW
+  | 'pair-shot'
+  | 'lifestyle';  // NEW
 
-export const productFocusAngleOptions = [
-  { 
-    value: 'auto', 
-    label: 'Auto (AI chooses)', 
-    prompt: null,
-    thumbnail: null,
-  },
-  { 
-    value: 'hero', 
-    label: 'Hero (3/4 Front)', 
-    prompt: 'three-quarter front view at 45-degree angle, classic hero product shot showing depth and dimension, single shoe angled toward camera',
-    thumbnail: 'angle-hero.jpg',
-  },
-  { 
-    value: 'side-profile', 
-    label: 'Side Profile', 
-    prompt: 'pure lateral side profile view, single shoe centered, showing full silhouette from true side angle, product facing left',
-    thumbnail: 'angle-side-profile.jpg',
-  },
-  { 
-    value: 'top-down', 
-    label: 'Top Down', 
-    prompt: 'overhead top-down view of pair, both shoes visible side by side, footbed and straps fully visible from above, embossed branding readable',
-    thumbnail: 'angle-top-down.jpg',
-  },
-  { 
-    value: 'sole-view', 
-    label: 'Sole View', 
-    prompt: 'one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces',
-    thumbnail: 'angle-sole.jpg',
-  },
-  { 
-    value: 'detail-closeup', 
-    label: 'Detail Close-up', 
-    prompt: 'extreme close-up cropped tight on buckle hardware, strap texture, and material details, macro-style product detail shot',
-    thumbnail: 'angle-detail.jpg',
-  },
-  { 
-    value: 'pair-shot', 
-    label: 'Pair Shot', 
-    prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered',
-    thumbnail: 'angle-pair.jpg',
-  },
-];
+// Add to productFocusAngleOptions:
+{ 
+  value: 'lifestyle' as ProductFocusAngle, 
+  label: 'Lifestyle', 
+  prompt: 'dynamic lifestyle composition with creative freedom, product artfully placed in context with props or environmental elements, editorial product photography with mood and atmosphere, AI determines optimal angle and arrangement',
+  thumbnail: null, // No thumbnail - uses icon like "Auto"
+}
 ```
 
-### 3. Create Visual Angle Selector Component
-
-**New File: `src/components/creative-studio/product-shoot/CameraAngleSelector.tsx`**
-
-A visual grid selector that displays thumbnail images for each camera angle:
-
-```typescript
-// Visual grid of camera angles with thumbnails
-// - 3x2 grid layout (or 2x3 on mobile)
-// - Each option shows thumbnail image + label
-// - Selected option has accent border/ring
-// - "Auto" option shows grid icon instead of thumbnail
-```
-
-### 4. Update ProductFocusConfigurator
-
-**File: `src/components/creative-studio/product-shoot/ProductFocusConfigurator.tsx`**
-
-Replace the dropdown Select with the new visual `CameraAngleSelector` component:
-
-```typescript
-// Before: dropdown
-<Select value={config.cameraAngle} onValueChange={...}>
-
-// After: visual grid
-<CameraAngleSelector
-  value={config.cameraAngle}
-  onChange={(v) => onConfigChange({ cameraAngle: v })}
-/>
-```
-
-### 5. Export New Component
-
-**File: `src/components/creative-studio/product-shoot/index.ts`**
-
-Add export for the new component.
+**Key differences from other angles:**
+- No fixed camera position
+- Allows props and environmental context
+- Focus on mood/atmosphere over clinical precision
+- AI has creative latitude on composition
+- Uses a sparkle/wand icon instead of a fixed thumbnail (since the output is dynamic)
 
 ---
 
-## UI Preview
+### 3. Update CameraAngleSelector for Lifestyle Icon
+
+**File: `src/components/creative-studio/product-shoot/CameraAngleSelector.tsx`**
+
+Add a special icon for the "Lifestyle" option (since it doesn't have a fixed thumbnail):
+
+```typescript
+import { Grid3X3, Sparkles } from 'lucide-react';
+
+// In the render:
+{thumbnailSrc ? (
+  <img src={thumbnailSrc} ... />
+) : option.value === 'lifestyle' ? (
+  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+    <Sparkles className="w-5 h-5 text-muted-foreground" />
+  </div>
+) : (
+  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+    <Grid3X3 className="w-5 h-5 text-muted-foreground" />
+  </div>
+)}
+```
+
+---
+
+## Visual Preview
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ Shot Options                          [↻]  [▼]  │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│ Camera Angle                                    │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
-│ │ ▢ Auto   │ │  [img]   │ │  [img]   │         │
-│ │          │ │  Hero    │ │  Side    │         │
-│ └──────────┘ └──────────┘ └──────────┘         │
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
-│ │  [img]   │ │  [img]   │ │  [img]   │         │
-│ │ Top Down │ │  Sole    │ │  Detail  │         │
-│ └──────────┘ └──────────┘ └──────────┘         │
-│ ┌──────────┐                                    │
-│ │  [img]   │                                    │
-│ │  Pair    │                                    │
-│ └──────────┘                                    │
-│                                                 │
-│ Lighting                                        │
-│ ┌─────────────────────────────────────────────┐│
-│ │ Auto (match background)               [▼]   ││
-│ └─────────────────────────────────────────────┘│
-│                                                 │
-└─────────────────────────────────────────────────┘
+Before (4 cols, larger):
+┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│  Auto   │ │  Hero   │ │  Side   │ │Top Down │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│  Sole   │ │ Detail  │ │  Pair   │
+└─────────┘ └─────────┘ └─────────┘
+
+After (5 cols, smaller + Lifestyle):
+┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
+│ Auto  │ │ Hero  │ │ Side  │ │TopDwn │ │ Sole  │
+└───────┘ └───────┘ └───────┘ └───────┘ └───────┘
+┌───────┐ ┌───────┐ ┌───────┐
+│Detail │ │ Pair  │ │Lifestl│
+└───────┘ └───────┘ └───────┘
 ```
 
 ---
 
-## Files to Create/Modify
+## Prompt Output for "Lifestyle" Angle
 
-| File | Action |
-|------|--------|
-| `src/assets/product-angles/*.jpg` | CREATE - Copy 6 reference images |
-| `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` | MODIFY - Update angle options with thumbnails |
-| `src/components/creative-studio/product-shoot/CameraAngleSelector.tsx` | CREATE - New visual selector component |
-| `src/components/creative-studio/product-shoot/ProductFocusConfigurator.tsx` | MODIFY - Use visual selector |
-| `src/components/creative-studio/product-shoot/index.ts` | MODIFY - Export new component |
-
----
-
-## Prompt Output Example
-
-When user selects **"Sole View"**, the prompt will include:
+When user selects **Lifestyle**, the camera angle section becomes:
 
 ```text
 CAMERA ANGLE:
-- one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces
+- dynamic lifestyle composition with creative freedom, product artfully placed in context with props or environmental elements, editorial product photography with mood and atmosphere, AI determines optimal angle and arrangement
 ```
 
-This matches EXACTLY the composition shown in the `1022457_sole.jpg` reference image.
+This gives the prompt agent freedom to create visually interesting compositions rather than strict e-commerce angles.
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/creative-studio/product-shoot/CameraAngleSelector.tsx` | Reduce sizes: 5 cols, smaller gaps, smaller icons/text; add Sparkles icon for lifestyle |
+| `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` | Add `'lifestyle'` to `ProductFocusAngle` type and `productFocusAngleOptions` array |
 
