@@ -599,15 +599,103 @@ export function useImageGeneration() {
     state: CreativeStudioState,
     sourceImage: GeneratedImage
   ): Promise<GeneratedImage[]> => {
-    // Clone state but with 1 image and random seed
-    const variationState = {
-      ...state,
-      imageCount: 1,
-      seed: Math.floor(Math.random() * 1000000),
-    };
+    setIsGeneratingImages(true);
     
-    return generateImages(variationState);
-  }, [generateImages]);
+    try {
+      // Extract original generation data from sourceImage.settings
+      const settings = sourceImage.settings || {};
+      const refs = (settings.references as Record<string, unknown>) || {};
+      
+      // Get product references from original image - check multiple possible locations
+      const productReferenceUrls = (refs.productReferenceUrls as string[]) || 
+        sourceImage.productReferenceUrls || 
+        (sourceImage.productReferenceUrl ? [sourceImage.productReferenceUrl] : []);
+      
+      console.log('[generateVariations] Extracted from source image:', {
+        productReferenceUrls,
+        moodboardId: sourceImage.moodboardId || refs.moodboardId,
+        shotTypePrompt: refs.shotTypePrompt ? 'present' : 'missing',
+        settingsKeys: Object.keys(settings),
+      });
+      
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          // Use refined prompt from original or fallback to prompt
+          prompt: sourceImage.refinedPrompt || sourceImage.prompt || '',
+          conceptTitle: sourceImage.conceptTitle,
+          
+          // CRITICAL: Pass product references from original image
+          productReferenceUrls,
+          
+          // Pass moodboard from original
+          moodboardId: sourceImage.moodboardId || refs.moodboardId,
+          moodboardUrl: refs.moodboardUrl || sourceImage.moodboardUrl,
+          
+          // Pass shot type from original
+          shotTypePrompt: refs.shotTypePrompt,
+          
+          // Technical settings from original (fallback to current state)
+          artisticStyle: settings.artisticStyle || state.artisticStyle,
+          lightingStyle: settings.lightingStyle || state.lightingStyle,
+          cameraAngle: settings.cameraAngle || state.cameraAngle,
+          
+          // Generation settings
+          imageCount: 1,
+          resolution: settings.resolution || state.resolution,
+          aspectRatio: settings.aspectRatio || state.aspectRatio,
+          aiModel: settings.aiModel || state.aiModel,
+          
+          // New random seed for variation
+          seed: Math.floor(Math.random() * 1000000),
+          
+          // Preserve brand association (from settings if available)
+          brandId: settings.brandId,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating variation:', error);
+        toast({
+          title: 'Failed to generate variation',
+          description: error.message || 'Please try again',
+          variant: 'destructive',
+        });
+        return [];
+      }
+
+      const images: GeneratedImage[] = (data.images || []).map((img: Record<string, unknown>, idx: number) => ({
+        id: (img.id as string) || `variation-${Date.now()}-${idx}`,
+        imageUrl: (img.imageUrl as string) || '',
+        status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'failed',
+        prompt: sourceImage.prompt || '',
+        refinedPrompt: img.refinedPrompt as string | undefined,
+        conceptTitle: sourceImage.conceptTitle,
+        productReferenceUrls,
+        moodboardId: sourceImage.moodboardId,
+        index: (img.index as number) ?? idx,
+      }));
+
+      const successCount = images.filter(i => i.status === 'completed').length;
+      if (successCount > 0) {
+        toast({
+          title: 'Variation generated!',
+          description: `Created ${successCount} new variation(s)`,
+        });
+      }
+
+      return images;
+    } catch (err) {
+      console.error('Error generating variation:', err);
+      toast({
+        title: 'Failed to generate variation',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setIsGeneratingImages(false);
+    }
+  }, [toast]);
 
   // Edit an existing image with a description
   const editImage = useCallback(async (
