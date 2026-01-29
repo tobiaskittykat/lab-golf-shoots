@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { X, Search, Package, Clock, ChevronRight, Check, Sparkles, Plus, Filter } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useBrands } from '@/hooks/useBrands';
 import { ProductSKU } from './ProductSKUPicker';
+import { parseSkuDisplayInfo, formatSkuSubtitle } from '@/lib/skuDisplayUtils';
 
 interface ProductPickerModalProps {
   open: boolean;
@@ -37,7 +38,7 @@ export function ProductPickerModal({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch SKUs with their linked product angles
+  // Fetch SKUs with their linked product angles and description
   const { data: skus = [], isLoading } = useQuery({
     queryKey: ['product-skus-modal', user?.id, currentBrand?.id],
     queryFn: async () => {
@@ -66,7 +67,7 @@ export function ProductPickerModal({
 
       if (prodError) throw prodError;
 
-      const skusWithAngles: ProductSKU[] = (skuData || []).map(sku => ({
+      const skusWithAngles: (ProductSKU & { description?: any })[] = (skuData || []).map(sku => ({
         id: sku.id,
         name: sku.name,
         sku_code: sku.sku_code,
@@ -74,6 +75,7 @@ export function ProductPickerModal({
         brand_id: sku.brand_id,
         last_used_at: sku.last_used_at,
         category: sku.category || DEFAULT_CATEGORY,
+        description: sku.description,
         angles: (products || [])
           .filter(p => p.sku_id === sku.id)
           .map(p => ({
@@ -149,6 +151,8 @@ export function ProductPickerModal({
   // Product row component for virtualized list
   const ProductRow = ({ sku, showRecent = false }: { sku: ProductSKU; showRecent?: boolean }) => {
     const isSelected = selectedSkuId === sku.id;
+    const displayInfo = parseSkuDisplayInfo(sku.name, (sku as any).description);
+    const subtitle = formatSkuSubtitle(displayInfo);
     
     return (
       <button
@@ -185,14 +189,16 @@ export function ProductPickerModal({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium truncate">{sku.name}</span>
+            <span className="font-medium truncate">{displayInfo.modelName}</span>
             {isSelected && <Check className="w-4 h-4 text-accent flex-shrink-0" />}
             {showRecent && <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {sku.sku_code && <span>{sku.sku_code}</span>}
-            {sku.sku_code && sku.angles.length > 0 && <span>•</span>}
-            <span>{sku.angles.length} angle{sku.angles.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            {subtitle && <span className="text-foreground/70">{subtitle}</span>}
+            {subtitle && sku.angles.length > 1 && <span>•</span>}
+            {sku.angles.length > 1 && (
+              <span>{sku.angles.length} angles</span>
+            )}
           </div>
         </div>
 

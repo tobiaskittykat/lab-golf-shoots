@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Plus, Sparkles, Clock, Check } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
 import { useQuery } from "@tanstack/react-query";
+import { parseSkuDisplayInfo, formatSkuAttributes } from "@/lib/skuDisplayUtils";
 import { 
   ProductShootState, 
   initialProductShootState,
@@ -365,11 +366,22 @@ export const ProductShootStep2 = ({
                                 </div>
                               )}
                               {/* Name overlay */}
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                                <span className="text-xs text-white font-medium truncate block">
-                                  {sku.name}
-                                </span>
-                              </div>
+                              {(() => {
+                                const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
+                                const attributes = formatSkuAttributes(displayInfo);
+                                return (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                    <span className="text-xs text-white font-medium truncate block">
+                                      {displayInfo.modelName}
+                                    </span>
+                                    {attributes && (
+                                      <span className="text-[10px] text-white/80 truncate block">
+                                        {attributes}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </button>
                           );
                         })}
@@ -385,28 +397,6 @@ export const ProductShootStep2 = ({
                   >
                     Browse All Products...
                   </Button>
-                  
-                  {/* Quick actions */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1 gap-2"
-                      onClick={() => setShowSmartUploadModal(true)}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Smart Upload
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-2"
-                      onClick={() => setShowCreateSKUModal(true)}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create SKU
-                    </Button>
-                  </div>
                 </div>
               )}
             </div>
