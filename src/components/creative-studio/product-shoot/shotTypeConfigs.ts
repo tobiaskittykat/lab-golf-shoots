@@ -20,6 +20,16 @@ export interface BackgroundContext {
  */
 export function buildBackgroundSection(context: BackgroundContext): string[] {
   const sections: string[] = [];
+  
+  // Special case: White Cyclorama - exact hardcoded output
+  if (context.backgroundId === 'studio-white') {
+    sections.push("BACKGROUND (MANDATORY):");
+    sections.push("- Pure white seamless studio background");
+    sections.push("- Visible floor and wall plane");
+    sections.push("- Soft cast shadows grounding the model");
+    return sections;
+  }
+  
   sections.push("BACKGROUND:");
   
   if (context.customBackgroundPrompt) {
@@ -51,6 +61,15 @@ export function buildBackgroundSection(context: BackgroundContext): string[] {
  */
 export function buildLightingSection(context: BackgroundContext): string[] {
   const sections: string[] = [];
+  
+  // Special case: White Cyclorama - exact hardcoded lighting
+  if (context.backgroundId === 'studio-white') {
+    sections.push("LIGHTING & TECHNICAL (MANDATORY):");
+    sections.push("- Clean, diffused studio light");
+    sections.push("- Soft contact shadows under the soles");
+    return sections;
+  }
+  
   sections.push("LIGHTING:");
   
   const isOutdoor = context.settingType === 'outdoor' || context.backgroundId?.startsWith('outdoor-');
