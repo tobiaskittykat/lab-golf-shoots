@@ -11,7 +11,7 @@ import {
   sampleContextReferences
 } from '@/components/creative-studio/types';
 import { visualShotTypes } from '@/components/creative-studio/product-shoot/ShotTypeVisualSelector';
-import { buildOnFootPrompt, buildLifestylePrompt, buildProductFocusPrompt, initialOnFootConfig, initialLifestyleConfig, initialProductFocusConfig } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
+import { buildOnFootPrompt, buildLifestylePrompt, buildProductFocusPrompt, initialOnFootConfig, initialLifestyleConfig, initialProductFocusConfig, BackgroundContext } from '@/components/creative-studio/product-shoot/shotTypeConfigs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -279,18 +279,26 @@ export function useImageGeneration() {
       if (state.useCase === 'product' && state.productShoot?.productShotType) {
         const shotType = state.productShoot.productShotType;
         
+        // Build background context for dynamic lighting/background
+        const bgContext: BackgroundContext = {
+          settingType: state.productShoot.settingType || 'studio',
+          backgroundId: state.productShoot.backgroundId,
+          customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
+          weatherCondition: state.productShoot.weatherCondition,
+        };
+        
         if (shotType === 'on-foot') {
           // Build full structured on-foot prompt with all static/dynamic elements
           const onFootConfig = state.productShoot.onFootConfig || initialOnFootConfig;
-          shotTypePrompt = buildOnFootPrompt(onFootConfig);
+          shotTypePrompt = buildOnFootPrompt(onFootConfig, bgContext);
         } else if (shotType === 'lifestyle') {
           // Build full structured lifestyle (full body) prompt
           const lifestyleConfig = state.productShoot.lifestyleConfig || initialLifestyleConfig;
-          shotTypePrompt = buildLifestylePrompt(lifestyleConfig);
+          shotTypePrompt = buildLifestylePrompt(lifestyleConfig, bgContext);
         } else if (shotType === 'product-focus') {
           // Build full structured product focus prompt
           const productFocusConfig = state.productShoot.productFocusConfig || initialProductFocusConfig;
-          shotTypePrompt = buildProductFocusPrompt(productFocusConfig);
+          shotTypePrompt = buildProductFocusPrompt(productFocusConfig, bgContext);
         } else {
           // Other product shot types - use the simple promptHint
           const selectedShotType = visualShotTypes.find(s => s.id === shotType);
@@ -401,6 +409,7 @@ export function useImageGeneration() {
             settingType: state.productShoot.settingType,
             backgroundId: state.productShoot.backgroundId,
             customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
+            weatherCondition: state.productShoot.weatherCondition,
             modelConfig: state.productShoot.modelConfig,
             onFootConfig: state.productShoot.productShotType === 'on-foot' 
               ? (state.productShoot.onFootConfig || initialOnFootConfig) 

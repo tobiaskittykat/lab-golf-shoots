@@ -1,18 +1,28 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Sparkles, Wand2, RotateCcw, Save, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { ArrowLeft, Sparkles, Wand2, RotateCcw, Save, ChevronDown, ChevronUp, Info, Footprints, User, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 import { useBrands } from "@/hooks/useBrands";
 import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_CONCEPT_AGENT_PROMPT, DEFAULT_PROMPT_AGENT_PROMPT } from "@/lib/defaultPrompts";
+import { 
+  DEFAULT_CONCEPT_AGENT_PROMPT, 
+  DEFAULT_PROMPT_AGENT_PROMPT,
+  DEFAULT_ON_FOOT_SHOT_PROMPT,
+  DEFAULT_LIFESTYLE_SHOT_PROMPT,
+  DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT,
+} from "@/lib/defaultPrompts";
 
 interface AIPrompts {
   conceptAgent?: string;
   promptAgent?: string;
+  onFootShotPrompt?: string;
+  lifestyleShotPrompt?: string;
+  productFocusShotPrompt?: string;
 }
 
 export default function Settings() {
@@ -20,10 +30,22 @@ export default function Settings() {
   const { currentBrand, updateBrand, isLoading } = useBrands();
   const { toast } = useToast();
 
+  // Existing prompts
   const [conceptPrompt, setConceptPrompt] = useState("");
   const [promptAgentPrompt, setPromptAgentPrompt] = useState("");
+  
+  // New shot-type prompts
+  const [onFootPrompt, setOnFootPrompt] = useState("");
+  const [lifestylePrompt, setLifestylePrompt] = useState("");
+  const [productFocusPrompt, setProductFocusPrompt] = useState("");
+  
+  // UI state
   const [conceptOpen, setConceptOpen] = useState(true);
   const [promptAgentOpen, setPromptAgentOpen] = useState(true);
+  const [onFootOpen, setOnFootOpen] = useState(false);
+  const [lifestyleOpen, setLifestyleOpen] = useState(false);
+  const [productFocusOpen, setProductFocusOpen] = useState(false);
+  
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -33,6 +55,9 @@ export default function Settings() {
       const aiPrompts = (currentBrand.brand_context as any)?.aiPrompts as AIPrompts | undefined;
       setConceptPrompt(aiPrompts?.conceptAgent || DEFAULT_CONCEPT_AGENT_PROMPT);
       setPromptAgentPrompt(aiPrompts?.promptAgent || DEFAULT_PROMPT_AGENT_PROMPT);
+      setOnFootPrompt(aiPrompts?.onFootShotPrompt || DEFAULT_ON_FOOT_SHOT_PROMPT);
+      setLifestylePrompt(aiPrompts?.lifestyleShotPrompt || DEFAULT_LIFESTYLE_SHOT_PROMPT);
+      setProductFocusPrompt(aiPrompts?.productFocusShotPrompt || DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT);
       setHasChanges(false);
     }
   }, [currentBrand]);
@@ -47,6 +72,21 @@ export default function Settings() {
     setHasChanges(true);
   };
 
+  const handleOnFootChange = (value: string) => {
+    setOnFootPrompt(value);
+    setHasChanges(true);
+  };
+
+  const handleLifestyleChange = (value: string) => {
+    setLifestylePrompt(value);
+    setHasChanges(true);
+  };
+
+  const handleProductFocusChange = (value: string) => {
+    setProductFocusPrompt(value);
+    setHasChanges(true);
+  };
+
   const handleResetConcept = () => {
     setConceptPrompt(DEFAULT_CONCEPT_AGENT_PROMPT);
     setHasChanges(true);
@@ -54,6 +94,21 @@ export default function Settings() {
 
   const handleResetPromptAgent = () => {
     setPromptAgentPrompt(DEFAULT_PROMPT_AGENT_PROMPT);
+    setHasChanges(true);
+  };
+
+  const handleResetOnFoot = () => {
+    setOnFootPrompt(DEFAULT_ON_FOOT_SHOT_PROMPT);
+    setHasChanges(true);
+  };
+
+  const handleResetLifestyle = () => {
+    setLifestylePrompt(DEFAULT_LIFESTYLE_SHOT_PROMPT);
+    setHasChanges(true);
+  };
+
+  const handleResetProductFocus = () => {
+    setProductFocusPrompt(DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT);
     setHasChanges(true);
   };
 
@@ -76,6 +131,9 @@ export default function Settings() {
         aiPrompts: {
           conceptAgent: conceptPrompt === DEFAULT_CONCEPT_AGENT_PROMPT ? undefined : conceptPrompt,
           promptAgent: promptAgentPrompt === DEFAULT_PROMPT_AGENT_PROMPT ? undefined : promptAgentPrompt,
+          onFootShotPrompt: onFootPrompt === DEFAULT_ON_FOOT_SHOT_PROMPT ? undefined : onFootPrompt,
+          lifestyleShotPrompt: lifestylePrompt === DEFAULT_LIFESTYLE_SHOT_PROMPT ? undefined : lifestylePrompt,
+          productFocusShotPrompt: productFocusPrompt === DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT ? undefined : productFocusPrompt,
         },
       };
 
@@ -273,6 +331,204 @@ export default function Settings() {
             </CollapsibleContent>
           </Card>
         </Collapsible>
+
+        {/* Product Shoot Prompts Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pt-2">
+            <Separator className="flex-1" />
+            <span className="text-sm font-medium text-muted-foreground px-2">Product Shoot Prompts</span>
+            <Separator className="flex-1" />
+          </div>
+
+          {/* On-Foot Shot Prompt */}
+          <Collapsible open={onFootOpen} onOpenChange={setOnFootOpen}>
+            <Card>
+              <CardHeader className="pb-3">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <Footprints className="h-5 w-5 text-accent" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          On-Foot Shot Prompt
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              Controls the prompt structure for leg-down shoe focus shots.
+                              Defines framing, pose options, and product integrity rules.
+                            </TooltipContent>
+                          </Tooltip>
+                        </CardTitle>
+                        <CardDescription>
+                          Leg-down shoe focus shots with model wearing the product
+                        </CardDescription>
+                      </div>
+                    </div>
+                    {onFootOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    value={onFootPrompt}
+                    onChange={(e) => handleOnFootChange(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="Enter custom on-foot shot prompt..."
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {onFootPrompt.length.toLocaleString()} characters
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetOnFoot}
+                      disabled={onFootPrompt === DEFAULT_ON_FOOT_SHOT_PROMPT}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset to Default
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Lifestyle (Full Body) Shot Prompt */}
+          <Collapsible open={lifestyleOpen} onOpenChange={setLifestyleOpen}>
+            <Card>
+              <CardHeader className="pb-3">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <User className="h-5 w-5 text-accent" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          Full Body Shot Prompt
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              Controls the prompt structure for lifestyle/lookbook shots.
+                              Defines full-body framing, clothing options, and composition rules.
+                            </TooltipContent>
+                          </Tooltip>
+                        </CardTitle>
+                        <CardDescription>
+                          Full-body lifestyle shots for lookbook and catalog use
+                        </CardDescription>
+                      </div>
+                    </div>
+                    {lifestyleOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    value={lifestylePrompt}
+                    onChange={(e) => handleLifestyleChange(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="Enter custom lifestyle shot prompt..."
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {lifestylePrompt.length.toLocaleString()} characters
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetLifestyle}
+                      disabled={lifestylePrompt === DEFAULT_LIFESTYLE_SHOT_PROMPT}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset to Default
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Product Focus Shot Prompt */}
+          <Collapsible open={productFocusOpen} onOpenChange={setProductFocusOpen}>
+            <Card>
+              <CardHeader className="pb-3">
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-accent/10">
+                        <Camera className="h-5 w-5 text-accent" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          Product Focus Shot Prompt
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              Controls the prompt structure for product-only photography.
+                              Defines camera angles, lighting options, and product integrity rules.
+                            </TooltipContent>
+                          </Tooltip>
+                        </CardTitle>
+                        <CardDescription>
+                          Product-only shots without models for e-commerce listings
+                        </CardDescription>
+                      </div>
+                    </div>
+                    {productFocusOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    value={productFocusPrompt}
+                    onChange={(e) => handleProductFocusChange(e.target.value)}
+                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="Enter custom product focus shot prompt..."
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {productFocusPrompt.length.toLocaleString()} characters
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetProductFocus}
+                      disabled={productFocusPrompt === DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Reset to Default
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        </div>
 
         {/* Info */}
         <Card className="bg-muted/50">

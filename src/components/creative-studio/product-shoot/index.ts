@@ -21,4 +21,7 @@ export {
   allBackgrounds,
   getBackgroundsByCategory,
   getBackgroundById,
+  weatherConditionOptions,
 } from './presets';
+
+export type { WeatherOption } from './presets';

@@ -259,9 +259,11 @@ export const ProductShootStep2 = ({
                 settingType={state.settingType}
                 selectedBackgroundId={state.backgroundId}
                 customBackgroundPrompt={state.customBackgroundPrompt}
+                weatherCondition={state.weatherCondition}
                 onSettingTypeChange={(type) => onStateChange({ settingType: type })}
                 onBackgroundSelect={(id) => onStateChange({ backgroundId: id })}
                 onCustomPromptChange={(prompt) => onStateChange({ customBackgroundPrompt: prompt })}
+                onWeatherChange={(weather) => onStateChange({ weatherCondition: weather })}
               />
             </div>
           </CollapsibleContent>

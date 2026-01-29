@@ -1,6 +1,53 @@
 // ============= BACKGROUND PRESETS =============
 
-import { BackgroundPreset } from './types';
+import { BackgroundPreset, WeatherCondition } from './types';
+
+// ============= WEATHER OPTIONS =============
+export interface WeatherOption {
+  value: WeatherCondition;
+  label: string;
+  prompt: string | null;
+  lightingPrompt: string;
+}
+
+export const weatherConditionOptions: WeatherOption[] = [
+  { 
+    value: 'auto', 
+    label: 'Auto (AI chooses)', 
+    prompt: null,
+    lightingPrompt: 'natural outdoor lighting appropriate for the setting'
+  },
+  { 
+    value: 'sunny', 
+    label: 'Sunny', 
+    prompt: 'bright sunny day with clear blue sky',
+    lightingPrompt: 'bright direct sunlight with sharp, defined shadows'
+  },
+  { 
+    value: 'overcast', 
+    label: 'Overcast', 
+    prompt: 'overcast sky with soft even lighting',
+    lightingPrompt: 'soft diffused daylight with minimal shadows, even illumination'
+  },
+  { 
+    value: 'golden-hour', 
+    label: 'Golden Hour', 
+    prompt: 'warm golden hour sunlight',
+    lightingPrompt: 'warm golden hour light with long, soft shadows and rich warm tones'
+  },
+  { 
+    value: 'cloudy', 
+    label: 'Cloudy', 
+    prompt: 'cloudy day with soft lighting',
+    lightingPrompt: 'soft even lighting with no harsh shadows, gentle ambient glow'
+  },
+  { 
+    value: 'dappled', 
+    label: 'Dappled Light', 
+    prompt: 'dappled light filtered through trees or structures',
+    lightingPrompt: 'dappled light filtered through foliage or architecture, creating soft patterns'
+  },
+];
 
 // Studio backgrounds (8-12 options)
 export const studioBackgrounds: BackgroundPreset[] = [

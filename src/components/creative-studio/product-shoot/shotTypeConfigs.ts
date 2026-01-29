@@ -1,8 +1,80 @@
 // ============= SHOT TYPE CONFIGURATIONS =============
 // Each shot type has static (always used) and dynamic (configurable) elements
 
+import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from './presets';
+import type { SettingType, WeatherCondition } from './types';
+
 // Note: ProductShotType is used by other files, avoid circular imports
 export type ProductShotType = 'product-focus' | 'on-foot' | 'lifestyle';
+
+// ===== BACKGROUND CONTEXT =====
+export interface BackgroundContext {
+  settingType: SettingType;
+  backgroundId?: string;
+  customBackgroundPrompt?: string;
+  weatherCondition?: WeatherCondition;
+}
+
+/**
+ * Build background section for prompts based on user selection
+ */
+export function buildBackgroundSection(context: BackgroundContext): string[] {
+  const sections: string[] = [];
+  sections.push("BACKGROUND:");
+  
+  if (context.customBackgroundPrompt) {
+    // Custom prompt overrides everything
+    sections.push(`- ${context.customBackgroundPrompt}`);
+  } else if (context.backgroundId) {
+    // Find the preset
+    const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
+    const preset = allBackgrounds.find(bg => bg.id === context.backgroundId);
+    if (preset) {
+      sections.push(`- ${preset.prompt}`);
+    }
+  } else if (context.settingType === 'auto') {
+    sections.push("- AI selects appropriate background for the product");
+  } else if (context.settingType === 'studio') {
+    // Default studio
+    sections.push("- Clean professional studio environment");
+    sections.push("- Seamless backdrop with soft shadows");
+  } else {
+    // Default outdoor
+    sections.push("- Natural outdoor setting");
+  }
+  
+  return sections;
+}
+
+/**
+ * Build lighting section for prompts based on background type
+ */
+export function buildLightingSection(context: BackgroundContext): string[] {
+  const sections: string[] = [];
+  sections.push("LIGHTING:");
+  
+  const isOutdoor = context.settingType === 'outdoor' || context.backgroundId?.startsWith('outdoor-');
+  const isStudio = context.settingType === 'studio' || context.backgroundId?.startsWith('studio-');
+  
+  if (isOutdoor) {
+    // Natural lighting with weather condition
+    const weatherOpt = weatherConditionOptions.find(w => w.value === (context.weatherCondition || 'auto'));
+    if (weatherOpt) {
+      sections.push(`- ${weatherOpt.lightingPrompt}`);
+    } else {
+      sections.push("- Natural outdoor lighting");
+    }
+  } else if (isStudio) {
+    // Studio lighting
+    sections.push("- Professional studio lighting, softbox diffusion");
+    sections.push("- Controlled even illumination with soft shadows");
+  } else {
+    // Auto - let AI decide
+    sections.push("- Lighting appropriate to the setting");
+  }
+  
+  return sections;
+}
 
 // ===== POSE VARIATIONS =====
 export type PoseVariation = 
@@ -137,7 +209,7 @@ export const initialOnFootConfig: OnFootShotConfig = {
  * Build the complete prompt for "On Foot - Shoe Focus" shot type.
  * Balances static (essential) and dynamic (configurable) elements.
  */
-export function buildOnFootPrompt(config: OnFootShotConfig): string {
+export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: BackgroundContext): string {
   const sections: string[] = [];
   
   // === STATIC: Always included ===
@@ -161,6 +233,12 @@ export function buildOnFootPrompt(config: OnFootShotConfig): string {
   sections.push("- No reinterpretation, no added elements, no modifications");
   sections.push("- Capture visible texture: suede nap, leather grain, cork texture, sole grooves");
   sections.push("");
+  
+  // Background (DYNAMIC)
+  if (bgContext) {
+    sections.push(...buildBackgroundSection(bgContext));
+    sections.push("");
+  }
   
   // Pose (DYNAMIC with auto fallback)
   sections.push("POSE DIRECTION:");
@@ -215,10 +293,15 @@ export function buildOnFootPrompt(config: OnFootShotConfig): string {
     sections.push("");
   }
   
-  // Lighting & Technical (STATIC)
-  sections.push("LIGHTING & TECHNICAL (MANDATORY):");
-  sections.push("- Clean, diffused studio light");
-  sections.push("- Soft contact shadows under the soles");
+  // Lighting & Technical (DYNAMIC based on background)
+  if (bgContext) {
+    sections.push(...buildLightingSection(bgContext));
+  } else {
+    // Default to studio lighting when no background context
+    sections.push("LIGHTING:");
+    sections.push("- Professional studio lighting, softbox diffusion");
+    sections.push("- Controlled even illumination with soft shadows");
+  }
   sections.push("- Accurately reveal material textures: suede, cork grain, buckle finish, outsole depth");
   sections.push("- Ultra-sharp focus on the footwear");
   sections.push("- Neutral color balance, no color cast");
@@ -339,7 +422,7 @@ export const initialProductFocusConfig: ProductFocusShotConfig = {
  * Build the complete prompt for "Product Focus" shot type.
  * Product-only photography without models.
  */
-export function buildProductFocusPrompt(config: ProductFocusShotConfig): string {
+export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContext?: BackgroundContext): string {
   const sections: string[] = [];
   
   // === STATIC: Always included ===
@@ -363,6 +446,12 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig): string 
   sections.push("- NO reinterpretation, NO modifications, NO creative liberties with the product");
   sections.push("");
   
+  // Background (DYNAMIC)
+  if (bgContext) {
+    sections.push(...buildBackgroundSection(bgContext));
+    sections.push("");
+  }
+  
   // Camera Angle (DYNAMIC)
   sections.push("CAMERA ANGLE:");
   if (config.cameraAngle === 'auto') {
@@ -376,17 +465,22 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig): string 
   }
   sections.push("");
   
-  // Lighting (DYNAMIC)
-  sections.push("LIGHTING:");
-  if (config.lighting === 'auto') {
-    sections.push("- Lighting matched to background setting");
-    sections.push("- Studio backgrounds: controlled softbox lighting with minimal shadows");
-    sections.push("- Outdoor settings: soft natural daylight with gentle ambient shadows");
-  } else {
+  // Lighting (DYNAMIC based on background or explicit choice)
+  if (config.lighting !== 'auto') {
+    // Explicit lighting choice overrides background-based lighting
+    sections.push("LIGHTING:");
     const lightOpt = productFocusLightingOptions.find(l => l.value === config.lighting);
     if (lightOpt?.prompt) {
       sections.push(`- ${lightOpt.prompt}`);
     }
+  } else if (bgContext) {
+    // Use background-based lighting
+    sections.push(...buildLightingSection(bgContext));
+  } else {
+    // Default fallback
+    sections.push("LIGHTING:");
+    sections.push("- Professional studio lighting, softbox diffusion");
+    sections.push("- Controlled even illumination with soft shadows");
   }
   sections.push("- Accurately reveal material textures and finishes");
   sections.push("- Soft shadows that ground the product");
@@ -506,7 +600,7 @@ export const initialLifestyleConfig: LifestyleShotConfig = {
  * Build the complete prompt for "Full Body on Model" shot type.
  * Balances static (essential) and dynamic (configurable) elements.
  */
-export function buildLifestylePrompt(config: LifestyleShotConfig): string {
+export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: BackgroundContext): string {
   const sections: string[] = [];
   
   // === STATIC: Always included ===
@@ -522,10 +616,15 @@ export function buildLifestylePrompt(config: LifestyleShotConfig): string {
   sections.push("- Similar to classic Birkenstock lookbook imagery");
   sections.push("");
   
-  // Background (STATIC)
-  sections.push("BACKGROUND (MANDATORY):");
-  sections.push("- Pure white seamless studio background");
-  sections.push("- Visible floor and wall plane");
+  // Background (DYNAMIC based on user selection)
+  if (bgContext) {
+    sections.push(...buildBackgroundSection(bgContext));
+  } else {
+    // Default to studio white background for backward compatibility
+    sections.push("BACKGROUND:");
+    sections.push("- Pure white seamless studio background");
+    sections.push("- Visible floor and wall plane");
+  }
   sections.push("- Soft cast shadows grounding the model");
   sections.push("- Camera angle: eye-level, neutral, no compression or wide-angle distortion");
   sections.push("");
@@ -606,10 +705,15 @@ export function buildLifestylePrompt(config: LifestyleShotConfig): string {
   sections.push("- NO logos, NO graphics, NO bold textures, NO trends");
   sections.push("");
   
-  // Lighting & Technical (STATIC)
-  sections.push("LIGHTING & TECHNICAL (MANDATORY):");
-  sections.push("- Clean, diffused studio lighting");
-  sections.push("- Soft shadows that ground the model");
+  // Lighting & Technical (DYNAMIC based on background)
+  if (bgContext) {
+    sections.push(...buildLightingSection(bgContext));
+  } else {
+    // Default to studio lighting for backward compatibility
+    sections.push("LIGHTING:");
+    sections.push("- Professional studio lighting, softbox diffusion");
+    sections.push("- Controlled even illumination with soft shadows");
+  }
   sections.push("- Materials clearly visible: suede texture, cork grain, buckle finish");
   sections.push("- Sharp focus, neutral and accurate color");
   sections.push("");

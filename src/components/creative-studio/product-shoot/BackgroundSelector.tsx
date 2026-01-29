@@ -1,38 +1,65 @@
-import { useState } from "react";
-import { Check, Wand2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Wand2, Cloud } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { SettingType, BackgroundPreset } from "./types";
-import { studioBackgrounds, outdoorBackgrounds } from "./presets";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
+import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
 
 interface BackgroundSelectorProps {
   settingType: SettingType;
   selectedBackgroundId?: string;
   customBackgroundPrompt?: string;
+  weatherCondition?: WeatherCondition;
   onSettingTypeChange: (type: SettingType) => void;
   onBackgroundSelect: (id: string) => void;
   onCustomPromptChange: (prompt: string) => void;
+  onWeatherChange?: (weather: WeatherCondition) => void;
 }
 
 export const BackgroundSelector = ({
   settingType,
   selectedBackgroundId,
   customBackgroundPrompt,
+  weatherCondition = 'auto',
   onSettingTypeChange,
   onBackgroundSelect,
   onCustomPromptChange,
+  onWeatherChange,
 }: BackgroundSelectorProps) => {
-  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor'>(
-    settingType === 'outdoor' ? 'outdoor' : 'studio'
-  );
+  // Determine initial tab from current selection
+  const getInitialTab = () => {
+    if (selectedBackgroundId?.startsWith('outdoor-')) return 'outdoor';
+    if (selectedBackgroundId?.startsWith('studio-') || settingType === 'studio') return 'studio';
+    if (settingType === 'outdoor') return 'outdoor';
+    return 'studio';
+  };
+  
+  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor'>(getInitialTab());
+
+  // Sync tab when background selection changes externally
+  useEffect(() => {
+    if (selectedBackgroundId?.startsWith('outdoor-')) {
+      setActiveTab('outdoor');
+    } else if (selectedBackgroundId?.startsWith('studio-')) {
+      setActiveTab('studio');
+    }
+  }, [selectedBackgroundId]);
 
   const handleTabChange = (value: string) => {
     const tab = value as 'studio' | 'outdoor';
     setActiveTab(tab);
     onSettingTypeChange(tab);
+    // If switching to outdoor and no outdoor background selected, select first one
+    if (tab === 'outdoor' && !selectedBackgroundId?.startsWith('outdoor-')) {
+      onBackgroundSelect(outdoorBackgrounds[0].id);
+    } else if (tab === 'studio' && !selectedBackgroundId?.startsWith('studio-')) {
+      onBackgroundSelect(studioBackgrounds[0].id);
+    }
   };
 
   const backgrounds = activeTab === 'studio' ? studioBackgrounds : outdoorBackgrounds;
+  const isOutdoorBackground = selectedBackgroundId?.startsWith('outdoor-') || settingType === 'outdoor';
 
   const renderBackgroundCard = (bg: BackgroundPreset) => {
     const isSelected = selectedBackgroundId === bg.id;
@@ -116,6 +143,32 @@ export const BackgroundSelector = ({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Weather condition dropdown (only for outdoor backgrounds) */}
+      {isOutdoorBackground && onWeatherChange && (
+        <div className="pt-2">
+          <label className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+            <Cloud className="w-4 h-4" />
+            Weather / Lighting
+          </label>
+          <Select 
+            value={weatherCondition} 
+            onValueChange={(v) => onWeatherChange(v as WeatherCondition)}
+          >
+            <SelectTrigger className="bg-muted/50 border-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {weatherConditionOptions.map(w => (
+                <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Controls natural lighting conditions for outdoor shots
+          </p>
+        </div>
+      )}
 
       {/* Custom background prompt */}
       <div className="pt-2">

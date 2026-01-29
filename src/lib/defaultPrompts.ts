@@ -105,3 +105,64 @@ QUALITY STANDARDS:
 - Clean, intentional composition
 
 OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, no placeholders, no section headers. Describe products visually, not by name. Start directly with the scene description.`;
+
+// ===== PRODUCT SHOOT PROMPTS =====
+
+export const DEFAULT_ON_FOOT_SHOT_PROMPT = `You are generating a professional "On Foot - Shoe Focus" product shot for footwear e-commerce.
+
+CORE REQUIREMENTS:
+- Frame from mid-calf to floor, three-quarter side view
+- Both feet fully visible and grounded on surface
+- Product must match reference EXACTLY (silhouette, buckle, sole, hardware)
+- Clean background with soft contact shadows
+
+CONFIGURABLE ELEMENTS (provided by user):
+- Pose variation: feet parallel, one forward, heel relaxed, toe-out, or soft asymmetry
+- Leg styling: trouser type and color
+- Model gender and ethnicity
+- Background type (studio/outdoor) and lighting
+
+QUALITY STANDARDS:
+- Ultra-sharp focus on footwear
+- Accurately reveal textures: suede, cork grain, buckle finish
+- Neutral color balance, no distortion
+- Premium footwear e-commerce standards`;
+
+export const DEFAULT_LIFESTYLE_SHOT_PROMPT = `You are generating a professional "Full Body on Model" lifestyle shot for footwear e-commerce/lookbook.
+
+CORE REQUIREMENTS:
+- Full-body shot framed from upper chest/shoulders to feet
+- Head intentionally cropped out of frame
+- Product must match reference EXACTLY (silhouette, buckle, sole, hardware)
+- Clothing is minimal, classic, timeless - no logos, graphics, or trends
+
+CONFIGURABLE ELEMENTS (provided by user):
+- Model pose: front-facing, three-quarter, side profile, walking pause
+- Clothing style: trouser type, top type, color scheme
+- Model gender and ethnicity
+- Background type and lighting
+
+QUALITY STANDARDS:
+- Materials clearly visible: suede, cork grain, buckle finish
+- Sharp focus, neutral accurate color
+- Timeless, calm, brand-safe composition
+- Suitable for lookbook and product listing use`;
+
+export const DEFAULT_PRODUCT_FOCUS_SHOT_PROMPT = `You are generating a professional "Product Focus" shot for footwear e-commerce.
+
+CORE REQUIREMENTS:
+- Product only - NO hands, NO models, NO body parts
+- Product centered in frame with balanced negative space
+- Product must match reference EXACTLY (silhouette, buckle, sole, hardware)
+- Clean, professional product photography composition
+
+CONFIGURABLE ELEMENTS (provided by user):
+- Camera angle: side profile, three-quarter, top-down, detail close-up, sole view
+- Lighting: studio or natural
+- Background type
+
+QUALITY STANDARDS:
+- Ultra-sharp focus on product details
+- Accurately reveal textures: suede, leather grain, cork, sole grooves
+- Soft shadows that ground the product
+- Premium retail product photography standards`;

@@ -9,6 +9,9 @@ export type RecolorOption = 'none' | 'pre-generation' | 'during-generation';
 // Setting type for backgrounds
 export type SettingType = 'studio' | 'outdoor' | 'auto';
 
+// Weather condition for outdoor backgrounds
+export type WeatherCondition = 'auto' | 'sunny' | 'overcast' | 'golden-hour' | 'cloudy' | 'dappled';
+
 // Model configuration options
 // ModelGender is now defined in shotTypeConfigs.ts
 export type ModelClothing = 'casual' | 'smart-casual' | 'formal' | 'athletic' | 'bohemian' | 'auto';
@@ -34,7 +37,7 @@ export interface ModelConfig {
   useOnBrandDefaults: boolean;
 }
 
-// Re-export shot type configs including ModelGender
+// Re-export shot type configs including ModelGender and BackgroundContext
 export { 
   type OnFootShotConfig,
   type PoseVariation,
@@ -49,12 +52,15 @@ export {
   type ProductFocusShotConfig,
   type ProductFocusAngle,
   type ProductFocusLighting,
+  type BackgroundContext,
   initialOnFootConfig,
   initialLifestyleConfig,
   initialProductFocusConfig,
   buildOnFootPrompt,
   buildLifestylePrompt,
   buildProductFocusPrompt,
+  buildBackgroundSection,
+  buildLightingSection,
   shotTypeHasConfig,
   genderOptions,
 } from './shotTypeConfigs';
@@ -97,6 +103,7 @@ export interface ProductShootState {
   settingType: SettingType;
   backgroundId?: string;
   customBackgroundPrompt?: string;
+  weatherCondition?: WeatherCondition;
   
   // Model
   modelConfig: ModelConfig;
@@ -136,7 +143,9 @@ export const initialProductShootState: ProductShootState = {
   shootMode: 'new',
   remixChanges: {},
   productRecolorOption: 'none',
-  settingType: 'auto',
+  settingType: 'studio', // Default to studio with white cyclorama
+  backgroundId: 'studio-white', // White cyclorama as default
+  weatherCondition: 'auto',
   modelConfig: {
     gender: 'auto',
     ethnicity: 'auto',
