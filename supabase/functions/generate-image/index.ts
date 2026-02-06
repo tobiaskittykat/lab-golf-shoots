@@ -960,10 +960,12 @@ Deno.serve(async (req) => {
         }
         
         // Add product references as visual inputs (up to 10, skip GIFs which aren't supported)
+        // BUT: Only attach if attachReferenceImages is not explicitly false
+        const shouldAttachProductRefs = body.attachReferenceImages !== false;
         const productUrls = (body.productReferenceUrls || [])
           .filter(url => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
         
-        if (productUrls.length > 0) {
+        if (shouldAttachProductRefs && productUrls.length > 0) {
           // Attach up to 10 product reference images for maximum fidelity - Gemini supports many images
           const attachCount = Math.min(productUrls.length, 10);
           for (let i = 0; i < attachCount; i++) {
@@ -984,6 +986,13 @@ MANDATORY REQUIREMENTS:
 - Do NOT simplify, reimagine, or take creative liberties with these products
 - The products should look like they were photographed, not illustrated or reinterpreted
 - If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
+          });
+        } else if (!shouldAttachProductRefs && productUrls.length > 0) {
+          console.log("⚠️ SKIPPING PRODUCT IMAGE ATTACHMENTS - user toggled off reference images");
+          // Add a note to the prompt that we're relying on text descriptions only
+          messageContent.push({
+            type: "text",
+            text: `⚠️ NOTE: Reference images are disabled for this generation. Create the product based on the text descriptions provided in the prompt. Use the component overrides and product identity descriptions to guide the rendering.`
           });
         }
         

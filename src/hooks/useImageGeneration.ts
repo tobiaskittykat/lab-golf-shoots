@@ -187,16 +187,17 @@ export function useImageGeneration() {
         }
       }
 
-      // If we have a selectedProductId (SKU), fetch composite, angles, AND description data
+      // If we have a selectedProductId (SKU), fetch composite, angles, description, AND components
       let productIdentity: SKUDisplayInfo | undefined;
+      let originalComponents: Record<string, any> | undefined;
       
       if (state.productShoot?.selectedProductId && state.useCase === 'product') {
         const skuId = state.productShoot.selectedProductId;
         
-        // Fetch SKU composite image, name, AND description (for product identity)
+        // Fetch SKU composite image, name, description, AND components (for overrides comparison)
         const { data: sku } = await supabase
           .from('product_skus')
-          .select('composite_image_url, name, description')
+          .select('composite_image_url, name, description, components')
           .eq('id', skuId)
           .maybeSingle();
         
@@ -210,6 +211,11 @@ export function useImageGeneration() {
         // Parse SKU name + description to extract brand, model, color, material
         if (sku?.name) {
           productIdentity = parseSkuDisplayInfo(sku.name, sku.description as any);
+        }
+        
+        // Store original components for override comparison
+        if (sku?.components) {
+          originalComponents = sku.components as Record<string, any>;
         }
         
         // Also fetch individual angles for additional references
@@ -456,6 +462,15 @@ export function useImageGeneration() {
             ? (state.productShoot.productFocusConfig || initialProductFocusConfig)
             : undefined,
         } : undefined,
+        
+        // Component overrides for shoe customization (e.g., blue suede upper)
+        componentOverrides: state.productShoot?.componentOverrides || undefined,
+        
+        // Original analyzed components (for comparison in prompt)
+        originalComponents: originalComponents || undefined,
+        
+        // Toggle to attach reference images (default: true)
+        attachReferenceImages: state.productShoot?.attachReferenceImages ?? true,
         };
       };
 
