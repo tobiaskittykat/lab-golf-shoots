@@ -1,169 +1,115 @@
 
-# Fix: Hot Pink Color Override Not Working
+
+# Fix: Only Show Actually-Attached References in Metadata
 
 ## Problem Summary
 
-When you selected "Hot Pink" via hex color picker (`#FF69B4`), the override was correctly stored with `colorHex: "#FF69B4"`, but the prompt sent to the AI just said:
-
-```
-UPPER: Suede in Custom (was: Suede in Taupe)
-```
-
-The AI doesn't know what "Custom" means, so it ignores the instruction and uses the original Taupe color from the reference images.
+The database metadata (`settings.references`) always stores `productReferenceUrls` and `moodboardUrl` from the request body, even when the user toggled off "Attach Reference Images". This causes the Image Detail Modal to display references that were never actually sent to the AI.
 
 ---
 
 ## Root Cause
 
-The `colorHex` field is captured in the override data but **never used** when building the prompt text:
+Lines 1187-1193 in `generate-image/index.ts` unconditionally save all reference URLs:
 
 ```typescript
-// Current code (line 516-517 in generate-image/index.ts)
-changedComponents.push(
-  `${type.toUpperCase()}: ${override.material} in ${override.color} (was: ...)`
-  //                                                 ^^^^^^^^^^^ Just "Custom"
-);
+references: {
+  moodboardId: body.moodboardId || null,
+  moodboardUrl: body.moodboardUrl || null,                    // ❌ Always saved
+  productReferenceUrls: body.productReferenceUrls || [],      // ❌ Always saved
+  ...
+},
 ```
 
-Same issue exists in the client-side helper (`birkenstockMaterials.ts` line 171).
+But the actual image attachment logic (lines 993-1026) respects `attachReferenceImages`:
+
+```typescript
+const shouldAttachProductRefs = body.attachReferenceImages !== false;
+
+if (shouldAttachProductRefs && productUrls.length > 0) {
+  // Attach images...
+} else if (!shouldAttachProductRefs) {
+  // Skip attachments, add text note...
+}
+```
 
 ---
 
 ## Fix Overview
 
-Update both the edge function and client helper to include the hex code when the color name is "Custom" or when `colorHex` is available:
+Conditionally save reference URLs in metadata based on whether they were actually attached:
 
 ```text
-BEFORE:  UPPER: Suede in Custom (was: Suede in Taupe)
-AFTER:   UPPER: Suede in Hot Pink (#FF69B4) (was: Suede in Taupe)
+BEFORE: Always save productReferenceUrls/moodboardUrl in metadata
+AFTER:  Only save them if attachReferenceImages !== false
 ```
 
 ---
 
 ## Technical Changes
 
-### 1. Edge Function: `supabase/functions/generate-image/index.ts`
+### File: `supabase/functions/generate-image/index.ts`
 
-**Location:** Lines 510-523
+**Location:** Lines 1175-1198 (database insert)
 
-**Add hex color name resolution helper (near top of file):**
+**Change:** Conditionally populate the `references` object based on `shouldAttachProductRefs`:
+
 ```typescript
-// Helper to get a descriptive color name from override data
-function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.color !== 'Custom' && override.color !== 'custom') {
-    return override.color;
-  }
-  if (!override.colorHex) {
-    return override.color;
-  }
-  // Try to find a matching named color, otherwise describe the hex
-  const hex = override.colorHex.toUpperCase();
-  // Common color name mapping for hex values
-  const colorNames: Record<string, string> = {
-    '#FF69B4': 'Hot Pink',
-    '#FF1493': 'Deep Pink',
-    '#FFC0CB': 'Pink',
-    '#FFB6C1': 'Light Pink',
-    '#FF0000': 'Red',
-    '#00FF00': 'Lime Green',
-    '#0000FF': 'Blue',
-    '#FFFF00': 'Yellow',
-    '#FFA500': 'Orange',
-    '#800080': 'Purple',
-    '#00FFFF': 'Cyan',
-    '#000000': 'Black',
-    '#FFFFFF': 'White',
-  };
-  const namedColor = colorNames[hex];
-  return namedColor ? `${namedColor} (${hex})` : hex;
-}
-```
+// Determine if references were actually attached
+const attachedProductRefs = body.attachReferenceImages !== false;
 
-**Update the override loop (lines 510-523):**
-```typescript
-for (const type of componentTypes) {
-  const override = overrides[type];
-  const orig = original[type];
+settings: {
+  aiModel: selectedModel,
+  artisticStyle: body.artisticStyle,
+  // ... other fields stay the same ...
   
-  if (override && orig) {
-    // Get descriptive color (resolves "Custom" to actual hex/name)
-    const colorDisplay = getColorDescription(override);
-    
-    if (override.material !== orig.material || override.color !== orig.color) {
-      changedComponents.push(
-        `${type.toUpperCase()}: ${override.material} in ${colorDisplay} (was: ${orig.material} in ${orig.color})`
-      );
-    }
-  } else if (override && !orig) {
-    const colorDisplay = getColorDescription(override);
-    changedComponents.push(`${type.toUpperCase()}: ${override.material} in ${colorDisplay}`);
-  }
-}
-```
-
-### 2. Client Helper: `src/lib/birkenstockMaterials.ts`
-
-**Location:** `buildComponentOverridePrompt` function (lines 146-183)
-
-**Add the same helper and update the function:**
-```typescript
-// Helper to get a descriptive color name from override data
-function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.color !== 'Custom' && override.color !== 'custom') {
-    return override.color;
-  }
-  if (!override.colorHex) {
-    return override.color;
-  }
-  const hex = override.colorHex.toUpperCase();
-  const colorNames: Record<string, string> = {
-    '#FF69B4': 'Hot Pink',
-    '#FF1493': 'Deep Pink',
-    '#FFC0CB': 'Pink',
-    '#FFB6C1': 'Light Pink',
-    '#FF0000': 'Red',
-    '#00FF00': 'Lime Green',
-    '#0000FF': 'Blue',
-    '#FFFF00': 'Yellow',
-    '#FFA500': 'Orange',
-    '#800080': 'Purple',
-    '#00FFFF': 'Cyan',
-    '#000000': 'Black',
-    '#FFFFFF': 'White',
-  };
-  const namedColor = colorNames[hex];
-  return namedColor ? `${namedColor} (${hex})` : hex;
-}
-
-// In buildComponentOverridePrompt, update line 171:
-if (isChanged) {
-  const colorDisplay = getColorDescription(override);
-  lines.push(`${type.toUpperCase()}: ${override.material} in ${colorDisplay}`);
-  // ...
-}
+  // Only store references that were ACTUALLY attached to the generation
+  references: {
+    moodboardId: body.moodboardId || null,
+    // Only include moodboard URL if it exists (moodboard is always attached when present)
+    moodboardUrl: moodboardUrl || null,
+    moodboardDescription: body.moodboardDescription || null,
+    // Only include product refs if they were actually attached
+    productReferenceUrls: attachedProductRefs ? (body.productReferenceUrls || []) : [],
+    shotTypePrompt: body.shotTypePrompt || null,
+    sourceImageUrl: body.sourceImageUrl || null,
+    // NEW: Track whether references were attached for clarity
+    referencesAttached: attachedProductRefs,
+  },
+  // ... rest stays the same ...
+},
 ```
 
 ---
 
-## Expected Result After Fix
+## Data Flow After Fix
 
-When you select Hot Pink (#FF69B4) for the upper:
-
-**Prompt sent to AI:**
+```text
+User toggles OFF reference images
+        │
+        ▼
+attachReferenceImages = false (in request body)
+        │
+        ▼
+shouldAttachProductRefs = false (line 993)
+        │
+        ├── Skip attaching images to AI payload ✓ (already works)
+        │
+        └── Save empty productReferenceUrls in metadata ✓ (NEW)
+              │
+              ▼
+        Image Detail Modal shows NO product references
 ```
-=== PRODUCT COMPONENT OVERRIDES ===
-⚠️ IMPORTANT: The user has customized specific shoe components.
-Generate the product with THESE modifications while maintaining
-the original silhouette and proportions from reference images:
 
-UPPER: Suede in Hot Pink (#FF69B4) (was: Suede in Taupe)
-SOLE: EVA in Hot Pink (#FF69B4) (was: EVA in Dark Brown)
+---
 
-Keep all OTHER components exactly as shown in reference images.
-The overall shoe silhouette/shape must remain unchanged.
-```
+## Expected Result
 
-The AI now receives a clear, unambiguous color instruction it can act on.
+| Scenario | Product Refs in Metadata | Displayed in Modal |
+|----------|--------------------------|---------------------|
+| Toggle ON + refs exist | `["url1", "url2", ...]` | Yes - shows thumbnails |
+| Toggle OFF + refs exist | `[]` (empty array) | No - section hidden |
+| Toggle ON + no refs | `[]` | No - section hidden |
 
 ---
 
@@ -171,5 +117,5 @@ The AI now receives a clear, unambiguous color instruction it can act on.
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-image/index.ts` | Add `getColorDescription()` helper and use it in override loop |
-| `src/lib/birkenstockMaterials.ts` | Add same helper and update `buildComponentOverridePrompt()` |
+| `supabase/functions/generate-image/index.ts` | Conditionally populate `references.productReferenceUrls` based on `attachReferenceImages` flag |
+
