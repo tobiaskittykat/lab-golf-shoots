@@ -271,6 +271,7 @@ export type Database = {
         Row: {
           brand_id: string | null
           category: string | null
+          components: Json | null
           composite_image_url: string | null
           created_at: string | null
           description: Json | null
@@ -284,6 +285,7 @@ export type Database = {
         Insert: {
           brand_id?: string | null
           category?: string | null
+          components?: Json | null
           composite_image_url?: string | null
           created_at?: string | null
           description?: Json | null
@@ -297,6 +299,7 @@ export type Database = {
         Update: {
           brand_id?: string | null
           category?: string | null
+          components?: Json | null
           composite_image_url?: string | null
           created_at?: string | null
           description?: Json | null

@@ -176,6 +176,29 @@ interface GenerateImageRequest {
       trouserColor?: string;
     };
   };
+  
+  // Component overrides for shoe customization
+  componentOverrides?: {
+    upper?: { material: string; color: string; colorHex?: string };
+    footbed?: { material: string; color: string; colorHex?: string };
+    sole?: { material: string; color: string; colorHex?: string };
+    buckles?: { material: string; color: string; colorHex?: string };
+    heelstrap?: { material: string; color: string; colorHex?: string };
+    lining?: { material: string; color: string; colorHex?: string };
+  };
+  
+  // Original analyzed components (for comparison)
+  originalComponents?: {
+    upper?: { material: string; color: string };
+    footbed?: { material: string; color: string };
+    sole?: { material: string; color: string };
+    buckles?: { material: string; color: string } | null;
+    heelstrap?: { material: string; color: string } | null;
+    lining?: { material: string; color: string } | null;
+  };
+  
+  // Toggle to attach reference images (default: true)
+  attachReferenceImages?: boolean;
 }
 
 // AI model mapping
@@ -475,6 +498,45 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       }
     }
     
+    // === COMPONENT OVERRIDES (only when user has customized) ===
+    if (request.componentOverrides && request.originalComponents) {
+      const overrides = request.componentOverrides;
+      const original = request.originalComponents;
+      
+      // Check if any overrides are different from original
+      const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'] as const;
+      const changedComponents: string[] = [];
+      
+      for (const type of componentTypes) {
+        const override = overrides[type];
+        const orig = original[type];
+        
+        if (override && orig) {
+          if (override.material !== orig.material || override.color !== orig.color) {
+            changedComponents.push(
+              `${type.toUpperCase()}: ${override.material} in ${override.color} (was: ${orig.material} in ${orig.color})`
+            );
+          }
+        } else if (override && !orig) {
+          // New component added
+          changedComponents.push(`${type.toUpperCase()}: ${override.material} in ${override.color}`);
+        }
+      }
+      
+      if (changedComponents.length > 0) {
+        sections.push("=== PRODUCT COMPONENT OVERRIDES ===");
+        sections.push("⚠️ IMPORTANT: The user has customized specific shoe components.");
+        sections.push("Generate the product with THESE modifications while maintaining");
+        sections.push("the original silhouette and proportions from reference images:");
+        sections.push("");
+        changedComponents.forEach(c => sections.push(c));
+        sections.push("");
+        sections.push("Keep all OTHER components exactly as shown in reference images.");
+        sections.push("The overall shoe silhouette/shape must remain unchanged.");
+        sections.push("");
+      }
+    }
+    
     const creativeBrief = sections.join("\n");
     
     // Log the full creative brief for transparency
@@ -557,7 +619,10 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
     
     // Add product images AFTER brief so the agent can SEE them and describe them accurately
     // Gemini supports many images - send up to 10 for comprehensive product analysis
-    if (productUrls.length > 0) {
+    // BUT: Only attach if attachReferenceImages is not explicitly false
+    const shouldAttachReferences = request.attachReferenceImages !== false;
+    
+    if (shouldAttachReferences && productUrls.length > 0) {
       const attachCount = Math.min(productUrls.length, 10);
       console.log(`Adding ${attachCount} product images to prompt agent for visual analysis`);
       for (const url of productUrls.slice(0, attachCount)) {
@@ -592,6 +657,12 @@ This reference-linking applies to ALL visual features:
 - Silhouette: "...maintaining the exact proportions and shape shown in the attached product photos"
 
 Your prompt MUST include at least 2-3 explicit references to "the reference images" or "attached photos" when describing product details. This ensures the image generator knows to prioritize visual accuracy over interpretation.`
+      });
+    } else if (!shouldAttachReferences) {
+      console.log("Reference images disabled by user - prompt-only generation");
+      promptAgentContent.push({
+        type: "text",
+        text: "NOTE: No product reference images are attached. Generate based purely on the text description and component specifications provided in the brief."
       });
     }
     

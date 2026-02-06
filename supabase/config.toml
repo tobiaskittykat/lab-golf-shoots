@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.analyze-product-integrity]
 verify_jwt = false
+
+[functions.analyze-shoe-components]
+verify_jwt = false

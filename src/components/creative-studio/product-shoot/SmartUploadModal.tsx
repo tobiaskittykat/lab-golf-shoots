@@ -276,17 +276,23 @@ export function SmartUploadModal({ open, onOpenChange }: SmartUploadModalProps) 
           });
         }
 
-        // Generate composite image
+        // Generate composite image and trigger component analysis in background
         try {
-          await supabase.functions.invoke('composite-product-images', {
+          // Composite image generation
+          supabase.functions.invoke('composite-product-images', {
             body: {
               skuId: sku.id,
               imageUrls: group.images.map(i => i.url),
               layout: group.images.length <= 4 ? '2x2' : '1x4',
             }
           });
+          
+          // Background component analysis (for shoe material/color detection)
+          supabase.functions.invoke('analyze-shoe-components', {
+            body: { skuId: sku.id }
+          });
         } catch (e) {
-          console.warn('Composite generation failed:', e);
+          console.warn('Background tasks failed:', e);
         }
       }
 

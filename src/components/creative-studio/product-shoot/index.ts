@@ -7,6 +7,8 @@ export { OnFootConfigurator } from './OnFootConfigurator';
 export { LifestyleConfigurator } from './LifestyleConfigurator';
 export { ProductPickerModal } from './ProductPickerModal';
 export { CameraAngleSelector } from './CameraAngleSelector';
+export { ShoeComponentsPanel } from './ShoeComponentsPanel';
+export { ComponentOverridePopover } from './ComponentOverridePopover';
 
 export { ProductIntegrityBadge } from './ProductIntegrityBadge';
 export { ProductShootStep2, initialProductShootState } from './ProductShootStep2';

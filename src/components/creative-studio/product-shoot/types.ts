@@ -82,6 +82,9 @@ export interface ProductSKUData {
 // Import config types for the state
 import type { OnFootShotConfig, LifestyleShotConfig, ProductFocusShotConfig } from './shotTypeConfigs';
 
+// Re-export component types from materials lib
+export type { ShoeComponents, ComponentOverrides, ComponentType, ShoeComponent, ComponentOverride } from '@/lib/birkenstockMaterials';
+
 // Product Shoot State - extends creative studio state
 export interface ProductShootState {
   // Mode
@@ -118,6 +121,12 @@ export interface ProductShootState {
   
   // Post-generation integrity check
   integrityResults?: Record<string, ProductIntegrityResult>;
+  
+  // Component overrides for shoe customization
+  componentOverrides?: import('@/lib/birkenstockMaterials').ComponentOverrides;
+  
+  // Reference image toggle (default: true)
+  attachReferenceImages: boolean;
 }
 
 // Background preset for selection
@@ -184,6 +193,9 @@ export const initialProductShootState: ProductShootState = {
     cameraAngle: 'auto',
     lighting: 'auto',
   },
+  // Component customization defaults
+  componentOverrides: undefined,
+  attachReferenceImages: true, // Default: attach reference images
 };
 
 // LEGACY: Old shot types with emojis (kept for reference)
