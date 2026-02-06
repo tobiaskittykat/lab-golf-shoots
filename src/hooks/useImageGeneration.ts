@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { triggerIntegrityAnalysis } from '@/hooks/useIntegrityResults';
+import { pollForPendingImages, invokeAndPollGeneration } from '@/lib/imagePolling';
 
 export function useImageGeneration() {
   const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
@@ -349,8 +350,7 @@ export function useImageGeneration() {
         productShootConfig: state.productShoot
       });
 
-      // Track when we started to find newly generated images if timeout occurs
-      const generationStartTime = new Date().toISOString();
+      // Generation start tracking (used for audit/debugging)
       
       // Use concept description as the primary prompt (not the raw brief)
       const primaryPrompt = selectedConcept?.description || selectedConcept?.coreIdea || selectedConcept?.title || state.prompt;
@@ -474,184 +474,127 @@ export function useImageGeneration() {
         };
       };
 
-      let data: any;
-      let error: any;
-      
-      // Sequential generation: generate images in parallel batches with progressive display
+      // === ASYNC IMAGE GENERATION: Edge function returns pendingIds, we poll for results ===
+      let allPendingIds: string[] = [];
+
+      // Sequential generation: multiple requests with different shot type prompts
       if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
-        console.log(`Sequential mode: generating ${state.imageCount} images with parallel batches`);
-        
-        const BATCH_SIZE = 2; // Generate 2 images in parallel at a time
-        const allImages: GeneratedImage[] = [];
-        
-        // Helper to generate a single image
-        const generateOne = async (index: number): Promise<GeneratedImage | null> => {
-          // Build a fresh shot type prompt for each iteration (re-randomizes auto selections)
-          const freshShotTypePrompt = buildShotTypePromptForProduct();
-          console.log(`Sequential image ${index + 1}/${state.imageCount} - starting`);
-          
-          try {
-            const { data: singleData, error: singleError } = await supabase.functions.invoke('generate-image', {
-              body: buildRequestBody(freshShotTypePrompt, 1), // Generate 1 image at a time
-            });
-            
-            if (singleError || !singleData?.images?.[0]) {
-              console.error(`Sequential image ${index + 1} failed:`, singleError);
-              return null;
-            }
-            
-            const img = singleData.images[0];
-            const generatedImage: GeneratedImage = {
-              id: img.id || `seq-${Date.now()}-${index}`,
-              imageUrl: img.imageUrl || '',
-              status: img.status || 'failed',
-              prompt: state.prompt,
-              refinedPrompt: img.refinedPrompt,
-              conceptTitle: productNames[0] || 'Product Shot',
-              index,
-              productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
-              productReferenceUrl: productReferenceUrls[0],
-              moodboardId: state.moodboard || undefined,
-              moodboardUrl: moodboardUrl || undefined,
-            };
-            
-            // PROGRESSIVE DISPLAY: Immediately notify caller
-            if (onImageReady && generatedImage.status === 'completed') {
-              console.log(`Sequential image ${index + 1} completed - notifying UI`);
-              onImageReady(generatedImage);
-              
-              // Trigger integrity analysis immediately for this image
-              if (productReferenceUrls.length > 0 && generatedImage.imageUrl) {
-                triggerIntegrityAnalysis(
-                  generatedImage.id,
-                  generatedImage.imageUrl,
-                  productReferenceUrls,
-                  productNames[0]
-                );
-              }
-            }
-            
-            return generatedImage;
-          } catch (err) {
-            console.error(`Sequential image ${index + 1} failed:`, err);
-            return null;
-          }
-        };
-        
-        // Process in parallel batches to avoid overwhelming the API
+        console.log(`Sequential mode: sending ${state.imageCount} async requests in batches`);
+        const BATCH_SIZE = 2;
         for (let batchStart = 0; batchStart < state.imageCount; batchStart += BATCH_SIZE) {
           const batchEnd = Math.min(batchStart + BATCH_SIZE, state.imageCount);
-          const batchPromises: Promise<GeneratedImage | null>[] = [];
-          
-          console.log(`Processing batch ${Math.floor(batchStart / BATCH_SIZE) + 1}: images ${batchStart + 1}-${batchEnd}`);
-          
+          const batchPromises: Promise<any>[] = [];
           for (let i = batchStart; i < batchEnd; i++) {
-            batchPromises.push(generateOne(i));
+            const freshShotTypePrompt = buildShotTypePromptForProduct();
+            batchPromises.push(
+              supabase.functions.invoke('generate-image', {
+                body: buildRequestBody(freshShotTypePrompt, 1),
+              })
+            );
           }
-          
           const batchResults = await Promise.all(batchPromises);
-          const successfulImages = batchResults.filter((img): img is GeneratedImage => img !== null);
-          allImages.push(...successfulImages);
+          for (const result of batchResults) {
+            if (result.data?.pendingIds) {
+              allPendingIds.push(...result.data.pendingIds);
+            } else if (result.error) {
+              console.error('Sequential request failed:', result.error);
+            }
+          }
         }
-        
-        // Combine results - integrity analysis already triggered per-image above
-        data = { images: allImages };
-        error = allImages.length === 0 ? { message: 'All sequential generations failed' } : null;
       } else {
-        // Standard batch generation: single call with all images
-        const result = await supabase.functions.invoke('generate-image', {
+        // Standard batch generation: single async call
+        const { data, error } = await supabase.functions.invoke('generate-image', {
           body: buildRequestBody(),
         });
-        data = result.data;
-        error = result.error;
+        if (data?.pendingIds) {
+          allPendingIds = data.pendingIds;
+        } else if (error) {
+          console.error('Error starting image generation:', error);
+          toast({
+            title: 'Failed to start generation',
+            description: error.message || 'Please try again',
+            variant: 'destructive',
+          });
+          return [];
+        }
       }
-      
+
       // Update last_used_at for the selected SKU (fire-and-forget)
       if (state.productShoot?.selectedProductId) {
         updateSkuLastUsed(state.productShoot.selectedProductId);
       }
 
-      // Handle timeout/connection errors by checking if images were actually created
-      if (error) {
-        console.error('Error generating images:', error);
-        
-        // Check if images were actually generated despite the error (e.g., timeout)
-        // Wait a moment then check the database for recently created images
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const { data: recentImages } = await supabase
-          .from('generated_images')
-          .select('*')
-          .gte('created_at', generationStartTime)
-          .order('created_at', { ascending: false })
-          .limit(state.imageCount);
-        
-        if (recentImages && recentImages.length > 0) {
-          // Images were generated successfully despite connection error
-          toast({
-            title: 'Images generated!',
-            description: `Generated ${recentImages.length} image(s) - connection recovered`,
-          });
-          
-          const recoveredConcept = state.concepts.find(c => c.id === state.selectedConcept);
-          return recentImages.map((img: any, idx: number) => ({
-            id: img.id,
-            imageUrl: img.image_url,
-            status: 'completed' as const,
-            prompt: img.prompt,
-            refinedPrompt: img.refined_prompt,
-            conceptTitle: recoveredConcept?.title || img.concept_title || undefined,
-            index: idx,
-            moodboardId: state.moodboard || undefined,
-            moodboardUrl: moodboardUrl || undefined,
-            productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
-            productReferenceUrl: productReferenceUrls[0],
-          }));
-        }
-        
+      if (allPendingIds.length === 0) {
         toast({
-          title: 'Failed to generate images',
-          description: error.message || 'Please try again',
+          title: 'Failed to start generation',
+          description: 'No image jobs were created. Please try again.',
           variant: 'destructive',
         });
         return [];
       }
 
-      const images: GeneratedImage[] = (data.images || []).map((img: any) => ({
-        id: img.id || `temp-${img.index}`,
-        imageUrl: img.imageUrl || '',
-        status: img.status || 'failed',
-        prompt: state.prompt,
-        refinedPrompt: img.refinedPrompt,
-        conceptTitle: selectedConcept?.title || undefined,
-        error: img.error,
-        index: img.index,
-        // Attach resolved references so the modal shows them immediately
+      console.log(`Polling for ${allPendingIds.length} images...`, allPendingIds);
+
+      // Poll for completed images with progressive display
+      const notifiedIds = new Set<string>();
+      const rows = await pollForPendingImages(allPendingIds, {
+        maxWaitMs: 150000,
+        intervalMs: 4000,
+        onRowReady: (row) => {
+          if (row.status === 'completed' && onImageReady && !notifiedIds.has(row.id)) {
+            notifiedIds.add(row.id);
+            const image: GeneratedImage = {
+              id: row.id,
+              imageUrl: row.image_url || '',
+              status: 'completed',
+              prompt: row.prompt || state.prompt,
+              refinedPrompt: row.refined_prompt,
+              conceptTitle: row.concept_title || selectedConcept?.title,
+              index: notifiedIds.size - 1,
+              moodboardId: state.moodboard || undefined,
+              moodboardUrl: moodboardUrl || undefined,
+              productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
+              productReferenceUrl: productReferenceUrls[0],
+            };
+            onImageReady(image);
+            // Trigger integrity analysis immediately
+            if (productReferenceUrls.length > 0 && image.imageUrl) {
+              triggerIntegrityAnalysis(image.id, image.imageUrl, productReferenceUrls, productNames[0]);
+            }
+          }
+        },
+      });
+
+      // Map polled rows to GeneratedImage objects
+      const images: GeneratedImage[] = rows.map((row, idx) => ({
+        id: row.id,
+        imageUrl: row.image_url || '',
+        status: (row.status || 'failed') as any,
+        prompt: row.prompt || state.prompt,
+        refinedPrompt: row.refined_prompt,
+        conceptTitle: row.concept_title || selectedConcept?.title,
+        index: idx,
         moodboardId: state.moodboard || undefined,
         moodboardUrl: moodboardUrl || undefined,
         productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
-        productReferenceUrl: productReferenceUrls[0], // Keep first for backwards compat
+        productReferenceUrl: productReferenceUrls[0],
+        error: row.error_message,
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;
-      
+
       if (successCount > 0) {
         toast({
           title: 'Images generated!',
           description: `Successfully generated ${successCount} of ${state.imageCount} images`,
         });
-        
-        // Trigger background product integrity analysis for images with product references
+        // Trigger integrity for any not yet notified (batch mode)
         if (productReferenceUrls.length > 0) {
-          const successfulImages = images.filter(i => i.status === 'completed' && i.imageUrl);
-          successfulImages.forEach(img => {
-            triggerIntegrityAnalysis(
-              img.id,
-              img.imageUrl,
-              productReferenceUrls,
-              productNames[0] // Use first product name
-            );
-          });
+          images
+            .filter(i => i.status === 'completed' && i.imageUrl && !notifiedIds.has(i.id))
+            .forEach(img => {
+              triggerIntegrityAnalysis(img.id, img.imageUrl, productReferenceUrls, productNames[0]);
+            });
         }
       } else {
         toast({
@@ -800,54 +743,46 @@ export function useImageGeneration() {
     setIsGeneratingImages(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: {
-          prompt: editDescription,
-          
-          // Pass the source image URL for image-to-image editing
-          sourceImageUrl: sourceImage.imageUrl,
-          editMode: true,
-          
-          // Keep other settings
-          artisticStyle: state.artisticStyle,
-          lightingStyle: state.lightingStyle,
-          cameraAngle: state.cameraAngle,
-          
-          imageCount: state.imageCount,
-          resolution: state.resolution,
-          aspectRatio: state.aspectRatio,
-          
-          aiModel: state.aiModel,
-          guidanceScale: state.guidanceScale,
-        },
+      const { rows, error: genError } = await invokeAndPollGeneration({
+        prompt: editDescription,
+        sourceImageUrl: sourceImage.imageUrl,
+        editMode: true,
+        artisticStyle: state.artisticStyle,
+        lightingStyle: state.lightingStyle,
+        cameraAngle: state.cameraAngle,
+        imageCount: state.imageCount,
+        resolution: state.resolution,
+        aspectRatio: state.aspectRatio,
+        aiModel: state.aiModel,
+        guidanceScale: state.guidanceScale,
       });
 
-      if (error) {
-        console.error('Error editing image:', error);
+      if (genError || rows.length === 0) {
+        console.error('Error editing image:', genError);
         toast({
           title: 'Failed to edit image',
-          description: error.message || 'Please try again',
+          description: genError || 'Please try again',
           variant: 'destructive',
         });
         return [];
       }
 
-      const images: GeneratedImage[] = (data.images || []).map((img: any) => ({
-        id: img.id || `temp-${img.index}`,
-        imageUrl: img.imageUrl || '',
-        status: img.status || 'failed',
-        prompt: editDescription,
-        refinedPrompt: img.refinedPrompt,
-        error: img.error,
-        index: img.index,
-      }));
+      const images: GeneratedImage[] = rows
+        .filter(r => r.status === 'completed')
+        .map((row, idx) => ({
+          id: row.id,
+          imageUrl: row.image_url || '',
+          status: 'completed' as const,
+          prompt: editDescription,
+          refinedPrompt: row.refined_prompt,
+          error: row.error_message,
+          index: idx,
+        }));
 
-      const successCount = images.filter(i => i.status === 'completed').length;
-      
-      if (successCount > 0) {
+      if (images.length > 0) {
         toast({
           title: 'Image edited!',
-          description: `Successfully created ${successCount} edited image(s)`,
+          description: `Successfully created ${images.length} edited image(s)`,
         });
       }
 
@@ -976,67 +911,64 @@ export function useImageGeneration() {
             imageCount: 1,
           };
           
-          const { data, error } = await supabase.functions.invoke('generate-image', {
-            body: {
-              prompt: concept.description || concept.coreIdea || concept.title,
-              conceptTitle: concept.title,
-              conceptDescription: concept.description,
-              coreIdea: concept.coreIdea,
-              tonality: concept.tonality,
-              visualWorld: concept.visualWorld,
-              contentPillars: concept.contentPillars,
-              targetAudience: concept.targetAudience,
-              consumerInsight: concept.consumerInsight,
-              productFocus: concept.productFocus,
-              taglines: concept.taglines,
-              moodboardId: moodboardInfo?.moodboardId,
-              moodboardUrl: moodboardInfo?.moodboardUrl,
-              productReferenceUrls,
-              productNames,
-              shotTypePrompt: shot.shotPrompt,
-              artisticStyle: state.artisticStyle,
-              lightingStyle: state.lightingStyle,
-              cameraAngle: state.cameraAngle,
-              extraKeywords: state.extraKeywords,
-              negativePrompt: state.negativePrompt,
-              imageCount: 1,
-              resolution: '512',
-              aspectRatio: state.aspectRatio,
-              aiModel: state.aiModel,
-              logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
-                enabled: true,
-                position: state.logoPlacement.position,
-                sizePercent: state.logoPlacement.sizePercent,
-                opacity: state.logoPlacement.opacity,
-                paddingPx: state.logoPlacement.paddingPx,
-                logoUrl,
-              } : null,
-            },
+          const { rows, error: genError } = await invokeAndPollGeneration({
+            prompt: concept.description || concept.coreIdea || concept.title,
+            conceptTitle: concept.title,
+            conceptDescription: concept.description,
+            coreIdea: concept.coreIdea,
+            tonality: concept.tonality,
+            visualWorld: concept.visualWorld,
+            contentPillars: concept.contentPillars,
+            targetAudience: concept.targetAudience,
+            consumerInsight: concept.consumerInsight,
+            productFocus: concept.productFocus,
+            taglines: concept.taglines,
+            moodboardId: moodboardInfo?.moodboardId,
+            moodboardUrl: moodboardInfo?.moodboardUrl,
+            productReferenceUrls,
+            productNames,
+            shotTypePrompt: shot.shotPrompt,
+            artisticStyle: state.artisticStyle,
+            lightingStyle: state.lightingStyle,
+            cameraAngle: state.cameraAngle,
+            extraKeywords: state.extraKeywords,
+            negativePrompt: state.negativePrompt,
+            imageCount: 1,
+            resolution: '512',
+            aspectRatio: state.aspectRatio,
+            aiModel: state.aiModel,
+            logoPlacement: state.logoPlacement?.enabled && logoUrl ? {
+              enabled: true,
+              position: state.logoPlacement.position,
+              sizePercent: state.logoPlacement.sizePercent,
+              opacity: state.logoPlacement.opacity,
+              paddingPx: state.logoPlacement.paddingPx,
+              logoUrl,
+            } : null,
           });
           
-          if (error) {
-            console.error(`Error generating ${concept.title} - ${shot.name}:`, error);
+          if (genError) {
+            console.error(`Error generating ${concept.title} - ${shot.name}:`, genError);
             return null;
           }
           
-          const images = data.images || [];
-          if (images.length > 0) {
-            const img = images[0];
+          const successRow = rows.find(r => r.status === 'completed');
+          if (successRow) {
             const generatedImage: GeneratedImage = {
-              id: img.id || `discovery-${concept.id}-${shot.id}`,
-              imageUrl: img.imageUrl || '',
-              status: img.status || 'failed',
+              id: successRow.id,
+              imageUrl: successRow.image_url || '',
+              status: 'completed',
               prompt: concept.description || '',
-              refinedPrompt: img.refinedPrompt,
+              refinedPrompt: successRow.refined_prompt,
               conceptTitle: concept.title,
               conceptId: concept.id,
               index: conceptIdx * shotTypes.length + shotTypes.indexOf(shot),
               moodboardId: moodboardInfo?.moodboardId,
               moodboardUrl: moodboardInfo?.moodboardUrl,
               productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
-              productIds: productIdsToUse, // Store the product IDs used
+              productIds: productIdsToUse,
               shotType: shot.id,
-              liked: null, // Not rated yet
+              liked: null,
             };
             
             if (onImageReady) {
