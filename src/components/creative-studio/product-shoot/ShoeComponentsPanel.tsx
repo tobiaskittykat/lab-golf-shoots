@@ -50,11 +50,15 @@ function ComponentRow({
   component,
   override,
   onOverrideChange,
+  upperColor,
+  upperColorHex,
 }: {
   type: ComponentType;
   component: ShoeComponent | null | undefined;
   override?: { material: string; color: string; colorHex?: string };
   onOverrideChange: (override: { material: string; color: string; colorHex?: string } | null) => void;
+  upperColor?: string;
+  upperColorHex?: string;
 }) {
   const displayMaterial = override?.material || component?.material || 'Unknown';
   const displayColor = override?.color || component?.color || 'Unknown';
@@ -96,6 +100,8 @@ function ComponentRow({
         currentColorHex={component?.colorHex}
         override={override}
         onApply={onOverrideChange}
+        upperColor={upperColor}
+        upperColorHex={upperColorHex}
       />
     </div>
   );
@@ -205,15 +211,27 @@ export function ShoeComponentsPanel({
 
       {/* Component rows */}
       <div className="space-y-2">
-        {existingComponents.map(type => (
-          <ComponentRow
-            key={type}
-            type={type}
-            component={components[type]}
-            override={overrides[type]}
-            onOverrideChange={(override) => onOverrideChange(type, override)}
-          />
-        ))}
+        {existingComponents.map(type => {
+          // For buckles, pass upper color for color-matched materials
+          const upperColor = type === 'buckles' 
+            ? (overrides.upper?.color || components.upper?.color)
+            : undefined;
+          const upperColorHex = type === 'buckles'
+            ? (overrides.upper?.colorHex || components.upper?.colorHex)
+            : undefined;
+          
+          return (
+            <ComponentRow
+              key={type}
+              type={type}
+              component={components[type]}
+              override={overrides[type]}
+              onOverrideChange={(override) => onOverrideChange(type, override)}
+              upperColor={upperColor}
+              upperColorHex={upperColorHex}
+            />
+          );
+        })}
       </div>
 
       {/* Info text */}

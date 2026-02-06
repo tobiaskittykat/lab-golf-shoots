@@ -20,6 +20,9 @@ interface ComponentOverridePopoverProps {
   currentColorHex?: string;
   override?: { material: string; color: string; colorHex?: string };
   onApply: (override: { material: string; color: string; colorHex?: string } | null) => void;
+  // For color-matched materials (buckles inherit upper color)
+  upperColor?: string;
+  upperColorHex?: string;
 }
 
 export function ComponentOverridePopover({
@@ -29,6 +32,8 @@ export function ComponentOverridePopover({
   currentColorHex,
   override,
   onApply,
+  upperColor,
+  upperColorHex,
 }: ComponentOverridePopoverProps) {
   const [open, setOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(override?.material || currentMaterial);
@@ -38,6 +43,9 @@ export function ComponentOverridePopover({
 
   const materials = getMaterialsForComponent(componentType);
   const isModified = selectedMaterial !== currentMaterial || selectedColor !== currentColor;
+  
+  // Check if this material is color-matched (inherits from upper)
+  const isColorMatched = selectedMaterial === 'Matte Plastic (Coordinated)';
 
   // Reset local state when popover opens
   useEffect(() => {
@@ -48,6 +56,14 @@ export function ComponentOverridePopover({
       setCustomHex('');
     }
   }, [open, override, currentMaterial, currentColor, currentColorHex]);
+  
+  // Auto-sync color when color-matched material is selected
+  useEffect(() => {
+    if (isColorMatched && upperColor) {
+      setSelectedColor(upperColor);
+      setSelectedHex(upperColorHex || '');
+    }
+  }, [isColorMatched, upperColor, upperColorHex]);
 
   const handleColorPresetClick = (preset: typeof COLOR_PRESETS[number]) => {
     setSelectedColor(preset.name);
@@ -144,81 +160,104 @@ export function ComponentOverridePopover({
               Color
             </Label>
             
-            {/* Color swatches */}
-            <div className="grid grid-cols-5 gap-1.5">
-              {COLOR_PRESETS.slice(0, 10).map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handleColorPresetClick(preset)}
-                  className={cn(
-                    'relative w-full aspect-square rounded-md border-2 transition-all',
-                    selectedColor === preset.name
-                      ? 'border-accent ring-1 ring-accent/30 scale-105'
-                      : 'border-transparent hover:border-border'
+            {isColorMatched ? (
+              /* Color-matched: show locked state with upper color */
+              <div className="p-3 rounded-lg border border-accent/30 bg-accent/5">
+                <div className="flex items-center gap-2">
+                  {upperColorHex && (
+                    <div
+                      className="w-5 h-5 rounded border border-border/50 flex-shrink-0"
+                      style={{ backgroundColor: upperColorHex }}
+                    />
                   )}
-                  style={{ backgroundColor: preset.hex }}
-                  title={preset.name}
-                >
-                  {selectedColor === preset.name && (
-                    <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                  <span className="text-sm">
+                    Matches Upper: <strong>{upperColor || 'Unknown'}</strong>
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Color automatically synced with upper component
+                </p>
+              </div>
+            ) : (
+              /* Normal color picker */
+              <>
+                {/* Color swatches */}
+                <div className="grid grid-cols-5 gap-1.5">
+                  {COLOR_PRESETS.slice(0, 10).map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => handleColorPresetClick(preset)}
+                      className={cn(
+                        'relative w-full aspect-square rounded-md border-2 transition-all',
+                        selectedColor === preset.name
+                          ? 'border-accent ring-1 ring-accent/30 scale-105'
+                          : 'border-transparent hover:border-border'
+                      )}
+                      style={{ backgroundColor: preset.hex }}
+                      title={preset.name}
+                    >
+                      {selectedColor === preset.name && (
+                        <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Show more colors */}
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    More colors...
+                  </summary>
+                  <div className="grid grid-cols-5 gap-1.5 mt-2">
+                    {COLOR_PRESETS.slice(10).map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => handleColorPresetClick(preset)}
+                        className={cn(
+                          'relative w-full aspect-square rounded-md border-2 transition-all',
+                          selectedColor === preset.name
+                            ? 'border-accent ring-1 ring-accent/30 scale-105'
+                            : 'border-transparent hover:border-border'
+                        )}
+                        style={{ backgroundColor: preset.hex }}
+                        title={preset.name}
+                      >
+                        {selectedColor === preset.name && (
+                          <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+
+                {/* Custom hex input */}
+                <div className="flex items-center gap-2 pt-2">
+                  <div className="relative flex-1">
+                    <Pipette className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="#FFFFFF"
+                      value={customHex}
+                      onChange={(e) => handleCustomHexChange(e.target.value)}
+                      className="pl-8 h-8 text-xs font-mono"
+                      maxLength={7}
+                    />
+                  </div>
+                  {selectedHex && (
+                    <div
+                      className="w-8 h-8 rounded-md border border-border"
+                      style={{ backgroundColor: selectedHex }}
+                    />
                   )}
-                </button>
-              ))}
-            </div>
-
-            {/* Show more colors */}
-            <details className="text-xs">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                More colors...
-              </summary>
-              <div className="grid grid-cols-5 gap-1.5 mt-2">
-                {COLOR_PRESETS.slice(10).map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => handleColorPresetClick(preset)}
-                    className={cn(
-                      'relative w-full aspect-square rounded-md border-2 transition-all',
-                      selectedColor === preset.name
-                        ? 'border-accent ring-1 ring-accent/30 scale-105'
-                        : 'border-transparent hover:border-border'
-                    )}
-                    style={{ backgroundColor: preset.hex }}
-                    title={preset.name}
-                  >
-                    {selectedColor === preset.name && (
-                      <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </details>
-
-            {/* Custom hex input */}
-            <div className="flex items-center gap-2 pt-2">
-              <div className="relative flex-1">
-                <Pipette className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="#FFFFFF"
-                  value={customHex}
-                  onChange={(e) => handleCustomHexChange(e.target.value)}
-                  className="pl-8 h-8 text-xs font-mono"
-                  maxLength={7}
-                />
-              </div>
-              {selectedHex && (
-                <div
-                  className="w-8 h-8 rounded-md border border-border"
-                  style={{ backgroundColor: selectedHex }}
-                />
-              )}
-            </div>
-            
-            <p className="text-[10px] text-muted-foreground">
-              Selected: {selectedColor} {selectedHex && `(${selectedHex})`}
-            </p>
+                </div>
+                
+                <p className="text-[10px] text-muted-foreground">
+                  Selected: {selectedColor} {selectedHex && `(${selectedHex})`}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Actions */}

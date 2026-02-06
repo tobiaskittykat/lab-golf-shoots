@@ -118,6 +118,25 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
     setOverrides({});
   }, [initialComponents?.analyzedAt]);
 
+  // Auto-sync color-matched buckles when upper color changes
+  useEffect(() => {
+    if (overrides.buckles?.material === 'Matte Plastic (Coordinated)') {
+      const upperColor = overrides.upper?.color || initialComponents?.upper?.color;
+      const upperHex = overrides.upper?.colorHex || initialComponents?.upper?.colorHex;
+
+      if (upperColor && overrides.buckles.color !== upperColor) {
+        setOverrides(prev => ({
+          ...prev,
+          buckles: {
+            ...prev.buckles!,
+            color: upperColor,
+            colorHex: upperHex,
+          }
+        }));
+      }
+    }
+  }, [overrides.upper, overrides.buckles?.material, initialComponents?.upper]);
+
   const setComponentOverride = useCallback(
     (
       componentType: keyof ComponentOverrides,
