@@ -1,119 +1,79 @@
 
 
-# Fix AI Quick Customization: Handle Model Names + All Material/Color Patterns
+# Fix "All [Material]" to Include Footbed for EVA
 
-## Issues Identified
+## Problem
+When user says "all eva version in baby blue", footbed and buckles stay unchanged because the current rules limit "all [material]" to only upper/sole/heelstrap.
 
-1. **Product model names confuse AI** - "bston", "boston", "arizona" are being interpreted as instructions
-2. **"All [material] in [color]" pattern** isn't explicitly covered
-3. **Custom hex code generation** needs stronger emphasis - AI should ALWAYS provide hex codes, generating accurate ones for any color name
+For EVA specifically, footbed IS valid (molded EVA sandals like Boston exist), so "all EVA" should include it.
 
----
+## Solution
 
-## Changes
+Update the edge function prompt to be **material-aware**:
 
-### Update Edge Function System Prompt
+### Rule Updates
 
-**File: `supabase/functions/interpret-shoe-customization/index.ts`**
-
-Add these rules and examples to the system prompt:
-
-```typescript
-CRITICAL RULES:
-...
-// NEW RULES:
-11. IGNORE shoe model names in the request - these are just product names, not instructions:
-    "boston", "arizona", "madrid", "gizeh", "mayari", "milano", "kyoto", "zurich", etc.
-    Focus ONLY on material/color/customization instructions.
-
-12. "all [material] in [color]" or "[material] in [color]" for the whole shoe:
-    - Change upper, sole, and heelstrap to specified material AND color
-    - Example: "all EVA in dusty blue" → upper: EVA/Dusty Blue, sole: EVA/Dusty Blue, heelstrap: EVA/Dusty Blue
-    - Example: "all leather in cognac" → upper: Smooth Leather/Cognac, sole: keep, heelstrap: Smooth Leather/Cognac
-
-13. ALWAYS generate accurate hex codes for ANY color name, even if not in the reference list!
-    - Look up or calculate the correct hex code for the color mentioned
-    - Example: "lavender" → #E6E6FA
-    - Example: "sage green" → #9DC183
-    - Example: "dusty rose" → #DCAE96
-    - Example: "terracotta" → #E2725B
-    - NEVER leave colorHex empty or null when changing a color
-
-14. When user specifies BOTH material AND color, apply BOTH together - don't just change one.
-
-15. EVA is a valid material for: upper (molded sandals), sole, footbed. Apply it where mentioned.
-
-EXAMPLES:
-...
-// NEW EXAMPLES:
-- "boston all eva in dusty blue" → upper: EVA/Dusty Blue/#8CA9BC, sole: EVA/Dusty Blue/#8CA9BC, heelstrap: EVA/Dusty Blue/#8CA9BC
-- "all eva bright orange" → upper: EVA/Bright Orange/#FF6B00, sole: EVA/Bright Orange/#FF6B00, heelstrap: EVA/Bright Orange/#FF6B00
-- "arizona in olive leather" → upper: Oiled Leather/Olive/#808000, heelstrap: Oiled Leather/Olive/#808000
-- "make it lavender" → upper: (keep material)/Lavender/#E6E6FA
-- "all sage green" → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183
+**Update Rule 7:**
+```
+Footbed stays cork UNLESS:
+- User explicitly mentions footbed
+- User says "all [material]" where material is valid for footbed (EVA, Soft Footbed)
 ```
 
----
+**Update Rule 12:**
+```
+"all [material] in [color]" applies to ALL components where that material is valid:
 
-## Visual Flow After Fix
+EVA (valid for upper, sole, footbed, heelstrap):
+→ "all EVA in baby blue" changes all 4 + buckles become coordinated plastic
 
-```text
-User Input: "bston all eva in dusty blue"
-                    ↓
-    ┌───────────────────────────────┐
-    │  PARSE & FILTER               │
-    │  • "bston" → IGNORE (model)   │
-    │  • Extract: "all eva in       │
-    │    dusty blue"                │
-    └───────────────────────────────┘
-                    ↓
-    ┌───────────────────────────────┐
-    │  APPLY "all [mat] in [col]"   │
-    │  RULE                         │
-    │  Material: EVA                │
-    │  Color: Dusty Blue            │
-    │  Hex: #8CA9BC (looked up)     │
-    └───────────────────────────────┘
-                    ↓
-    ┌───────────────────────────────┐
-    │  RETURN OVERRIDES             │
-    │  upper: EVA/Dusty Blue/#8CA9BC│
-    │  sole: EVA/Dusty Blue/#8CA9BC │
-    │  heelstrap: EVA/Dusty Blue... │
-    │  footbed: null (keep cork)    │
-    │  buckles: null                │
-    └───────────────────────────────┘
+Leather/Suede/Birko-Flor (valid for upper, heelstrap only):
+→ "all leather in cognac" changes upper + heelstrap only
+→ sole stays EVA/rubber, footbed stays cork
 ```
 
----
+**Add buckle coordination rule:**
+```
+For "all [color]" or "all [material] in [color]" requests, 
+buckles should switch to "Matte Plastic (Coordinated)" with matching color
+```
 
-## Files to Modify
+### Updated Examples
+
+```
+- "all eva version in baby blue" → 
+    upper: EVA/Baby Blue/#89CFF0
+    sole: EVA/Baby Blue/#89CFF0
+    footbed: EVA/Baby Blue/#89CFF0
+    heelstrap: EVA/Baby Blue/#89CFF0
+    buckles: Matte Plastic (Coordinated)/Baby Blue/#89CFF0
+
+- "all leather in cognac" →
+    upper: Smooth Leather/Cognac/#834C24
+    heelstrap: Smooth Leather/Cognac/#834C24
+    (sole, footbed, buckles: null - unchanged)
+```
+
+## File to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/interpret-shoe-customization/index.ts` | Add rules 11-15, add new examples for model name filtering, all-material patterns, and hex code generation |
+| `supabase/functions/interpret-shoe-customization/index.ts` | Update rules 7 and 12, add material validity table, add EVA footbed examples |
 
----
+## Expected Result
 
-## Expected Results
+**Input:** "all eva version in baby blue"
 
-**Input:** "bston all eva in dusty blue"
+**Response:**
 ```json
 {
-  "upper": { "material": "EVA", "color": "Dusty Blue", "colorHex": "#8CA9BC" },
-  "sole": { "material": "EVA", "color": "Dusty Blue", "colorHex": "#8CA9BC" },
-  "heelstrap": { "material": "EVA", "color": "Dusty Blue", "colorHex": "#8CA9BC" }
+  "upper": { "material": "EVA", "color": "Baby Blue", "colorHex": "#89CFF0" },
+  "sole": { "material": "EVA", "color": "Baby Blue", "colorHex": "#89CFF0" },
+  "footbed": { "material": "EVA", "color": "Baby Blue", "colorHex": "#89CFF0" },
+  "heelstrap": { "material": "EVA", "color": "Baby Blue", "colorHex": "#89CFF0" },
+  "buckles": { "material": "Matte Plastic (Coordinated)", "color": "Baby Blue", "colorHex": "#89CFF0" }
 }
 ```
-**Result:** Toast shows "Applied 3 component changes"
 
----
-
-**Input:** "make it sage green"
-```json
-{
-  "upper": { "material": "Suede", "color": "Sage Green", "colorHex": "#9DC183" }
-}
-```
-**Result:** Upper changes to Sage Green (hex generated by AI since not in palette)
+**Toast:** "Applied 5 component changes"
 
