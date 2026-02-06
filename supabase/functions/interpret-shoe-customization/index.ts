@@ -73,12 +73,12 @@ const TOOL_DEFINITION = {
   type: "function",
   function: {
     name: "apply_customizations",
-    description: "Apply shoe component customizations based on user request. Return only the components that should be CHANGED. Use null for components that should stay the same as the original.",
+    description: "Apply shoe component customizations based on user request. Return ONLY the components that need to change. Do NOT include components that stay the same -- simply omit them from the response.",
     parameters: {
       type: "object",
       properties: {
         upper: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string", description: "Material name from available options" },
             color: { type: "string", description: "Color name" },
@@ -87,7 +87,7 @@ const TOOL_DEFINITION = {
           required: ["material", "color", "colorHex"],
         },
         footbed: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string" },
             color: { type: "string" },
@@ -96,7 +96,7 @@ const TOOL_DEFINITION = {
           required: ["material", "color", "colorHex"],
         },
         sole: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string" },
             color: { type: "string" },
@@ -105,7 +105,7 @@ const TOOL_DEFINITION = {
           required: ["material", "color", "colorHex"],
         },
         buckles: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string" },
             color: { type: "string" },
@@ -114,7 +114,7 @@ const TOOL_DEFINITION = {
           required: ["material", "color", "colorHex"],
         },
         heelstrap: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string" },
             color: { type: "string" },
@@ -123,7 +123,7 @@ const TOOL_DEFINITION = {
           required: ["material", "color", "colorHex"],
         },
         lining: {
-          type: ["object", "null"],
+          type: "object",
           properties: {
             material: { type: "string" },
             color: { type: "string" },
@@ -178,7 +178,7 @@ REFERENCE COLORS (common names and hex codes):
 ${COLOR_PALETTE.map(c => `${c.name}: ${c.hex}`).join("\n")}
 
 CRITICAL RULES:
-1. Only return components that should CHANGE. Use null for unchanged components.
+1. Only return components that should CHANGE. Omit unchanged components entirely from the response.
 2. When user says "[color] version" or "make it [color]" or "all [color]" - ALWAYS change the UPPER component at minimum.
 3. You CAN and SHOULD create custom colors not in the reference list! Just provide a descriptive name and accurate hex code.
    - Example: "baby blue" → { color: "Baby Blue", colorHex: "#89CFF0" }
