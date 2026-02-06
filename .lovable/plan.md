@@ -1,84 +1,73 @@
 
 
-# Fix: Only Show Actually-Attached References in Metadata
+# Fix: Toggle State Reset Bug in Product Shoot Grid
 
 ## Problem Summary
 
-The database metadata (`settings.references`) always stores `productReferenceUrls` and `moodboardUrl` from the request body, even when the user toggled off "Attach Reference Images". This causes the Image Detail Modal to display references that were never actually sent to the AI.
+When you toggle OFF "Attach Reference Images" and then click any product in the grid (even the one already selected), the system secretly resets the toggle back to `true`. The UI switch stays in the "off" position, but the actual state sent to the generation engine is `true` - causing reference images to be attached against your intention.
 
 ---
 
 ## Root Cause
 
-Lines 1187-1193 in `generate-image/index.ts` unconditionally save all reference URLs:
+In `ProductShootStep2.tsx`, the `handleSkuSelect` function has two issues:
+
+1. **Variable Shadowing**: The function parameter `attachReferenceImages` shadows the local state variable of the same name
+2. **Default to True**: When clicking the grid, the function is called with `undefined` for this parameter, which then defaults to `true`:
 
 ```typescript
-references: {
-  moodboardId: body.moodboardId || null,
-  moodboardUrl: body.moodboardUrl || null,                    // ❌ Always saved
-  productReferenceUrls: body.productReferenceUrls || [],      // ❌ Always saved
-  ...
-},
-```
+// Line 290 in handleSkuSelect
+onStateChange({
+  attachReferenceImages: attachReferenceImages ?? true, // ❌ Resets to true if undefined!
+});
 
-But the actual image attachment logic (lines 993-1026) respects `attachReferenceImages`:
-
-```typescript
-const shouldAttachProductRefs = body.attachReferenceImages !== false;
-
-if (shouldAttachProductRefs && productUrls.length > 0) {
-  // Attach images...
-} else if (!shouldAttachProductRefs) {
-  // Skip attachments, add text note...
-}
+// Line 405: Grid click passes undefined
+<button onClick={() => handleSkuSelect(sku, null, undefined, undefined, false)}>
 ```
 
 ---
 
 ## Fix Overview
 
-Conditionally save reference URLs in metadata based on whether they were actually attached:
+Change the default behavior to **preserve existing state** instead of resetting to `true`:
 
 ```text
-BEFORE: Always save productReferenceUrls/moodboardUrl in metadata
-AFTER:  Only save them if attachReferenceImages !== false
+BEFORE: attachReferenceImages ?? true        // Resets to true when undefined
+AFTER:  attachReferenceImages ?? state.attachReferenceImages ?? true  // Preserves current state
 ```
 
 ---
 
 ## Technical Changes
 
-### File: `supabase/functions/generate-image/index.ts`
+### File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`
 
-**Location:** Lines 1175-1198 (database insert)
-
-**Change:** Conditionally populate the `references` object based on `shouldAttachProductRefs`:
+**Change 1:** Update `handleSkuSelect` to preserve the current toggle state (around line 290):
 
 ```typescript
-// Determine if references were actually attached
-const attachedProductRefs = body.attachReferenceImages !== false;
-
-settings: {
-  aiModel: selectedModel,
-  artisticStyle: body.artisticStyle,
-  // ... other fields stay the same ...
-  
-  // Only store references that were ACTUALLY attached to the generation
-  references: {
-    moodboardId: body.moodboardId || null,
-    // Only include moodboard URL if it exists (moodboard is always attached when present)
-    moodboardUrl: moodboardUrl || null,
-    moodboardDescription: body.moodboardDescription || null,
-    // Only include product refs if they were actually attached
-    productReferenceUrls: attachedProductRefs ? (body.productReferenceUrls || []) : [],
-    shotTypePrompt: body.shotTypePrompt || null,
-    sourceImageUrl: body.sourceImageUrl || null,
-    // NEW: Track whether references were attached for clarity
-    referencesAttached: attachedProductRefs,
-  },
-  // ... rest stays the same ...
-},
+const handleSkuSelect = (
+  sku: ProductSKU, 
+  components?: ShoeComponents | null,
+  overrides?: ComponentOverrides,
+  attachReferenceImages?: boolean,
+  fromModal: boolean = false
+) => {
+  setSelectedSku(sku);
+  onStateChange({
+    selectedProductId: sku.id,
+    recoloredProductUrl: sku.composite_image_url || sku.angles[0]?.thumbnail_url,
+    // Preserve existing overrides if none provided (don't wipe them out)
+    componentOverrides: overrides !== undefined ? overrides : state.componentOverrides,
+    // Preserve current toggle state if not explicitly provided
+    attachReferenceImages: attachReferenceImages ?? state.attachReferenceImages ?? true,
+  });
+  // ...
+};
 ```
+
+**Change 2:** Also preserve component overrides when clicking grid products (prevents losing hot pink changes):
+
+The same pattern applies - when `overrides` is `undefined`, preserve the current state instead of wiping it out.
 
 ---
 
@@ -88,28 +77,33 @@ settings: {
 User toggles OFF reference images
         │
         ▼
-attachReferenceImages = false (in request body)
+state.attachReferenceImages = false
         │
         ▼
-shouldAttachProductRefs = false (line 993)
+User clicks product in grid
         │
-        ├── Skip attaching images to AI payload ✓ (already works)
+        ▼
+handleSkuSelect called with attachReferenceImages = undefined
         │
-        └── Save empty productReferenceUrls in metadata ✓ (NEW)
-              │
-              ▼
-        Image Detail Modal shows NO product references
+        ▼
+Uses: attachReferenceImages ?? state.attachReferenceImages ?? true
+        │
+        ▼
+Resolves to: false (preserves current state) ✓
+        │
+        ▼
+Generation correctly skips reference images
 ```
 
 ---
 
 ## Expected Result
 
-| Scenario | Product Refs in Metadata | Displayed in Modal |
-|----------|--------------------------|---------------------|
-| Toggle ON + refs exist | `["url1", "url2", ...]` | Yes - shows thumbnails |
-| Toggle OFF + refs exist | `[]` (empty array) | No - section hidden |
-| Toggle ON + no refs | `[]` | No - section hidden |
+| Action | Before Fix | After Fix |
+|--------|-----------|-----------|
+| Toggle OFF, then click product | Secretly resets to ON | Stays OFF |
+| Toggle OFF, then generate | Attaches refs anyway | Correctly skips refs |
+| Set color override, click product | Loses override | Preserves override |
 
 ---
 
@@ -117,5 +111,5 @@ shouldAttachProductRefs = false (line 993)
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-image/index.ts` | Conditionally populate `references.productReferenceUrls` based on `attachReferenceImages` flag |
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Preserve `attachReferenceImages` and `componentOverrides` state when not explicitly provided |
 
