@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.analyze-shoe-components]
 verify_jwt = false
+
+[functions.interpret-shoe-customization]
+verify_jwt = false

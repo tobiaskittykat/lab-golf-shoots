@@ -11,6 +11,8 @@ import {
   ShoeComponent,
 } from '@/lib/birkenstockMaterials';
 import { ComponentOverridePopover } from './ComponentOverridePopover';
+import { QuickCustomizationInput } from './QuickCustomizationInput';
+import { useQuickCustomization } from '@/hooks/useQuickCustomization';
 import { cn } from '@/lib/utils';
 
 interface ShoeComponentsPanelProps {
@@ -181,6 +183,20 @@ export function ShoeComponentsPanel({
     return comp && comp.material;
   });
 
+  // Quick customization hook
+  const {
+    input: quickInput,
+    setInput: setQuickInput,
+    isProcessing: isQuickProcessing,
+    error: quickError,
+    applyWithAI,
+    clearInput,
+  } = useQuickCustomization({
+    currentComponents: components,
+    existingOverrides: overrides,
+    onApplyOverrides: onOverrideChange,
+  });
+
   return (
     <div className="space-y-4">
       {/* Header with reference toggle */}
@@ -209,6 +225,16 @@ export function ShoeComponentsPanel({
         </div>
       </div>
 
+      {/* Quick Customization Input */}
+      <QuickCustomizationInput
+        input={quickInput}
+        onInputChange={setQuickInput}
+        onApply={applyWithAI}
+        onClear={clearInput}
+        isProcessing={isQuickProcessing}
+        error={quickError}
+      />
+
       {/* Component rows */}
       <div className="space-y-2">
         {existingComponents.map(type => {
@@ -233,13 +259,6 @@ export function ShoeComponentsPanel({
           );
         })}
       </div>
-
-      {/* Info text */}
-      <p className="text-xs text-muted-foreground text-center pt-2">
-        💡 Override any component to customize before generation
-        <br />
-        <span className="text-muted-foreground/70">No overrides = exact product reproduction</span>
-      </p>
 
       {/* Re-analyze button */}
       {onTriggerAnalysis && (
