@@ -198,7 +198,7 @@ export const ProductShootStep2 = ({
         brand_id: mostRecent.brand_id,
         last_used_at: mostRecent.last_used_at,
         angles: [],
-      }, false); // Auto-select doesn't change display order
+      }, null, undefined, undefined, false); // Auto-select doesn't change display order
       setHasAutoSelected(true);
     }
   }, [recentSkus, state.selectedProductId, hasAutoSelected]);
@@ -240,11 +240,21 @@ export const ProductShootStep2 = ({
   // Check if shot type needs a model
   const needsModel = !['flat-lay', 'product-focus'].includes(state.productShotType);
 
-  const handleSkuSelect = (sku: ProductSKU, fromModal: boolean = false) => {
+  const handleSkuSelect = (
+    sku: ProductSKU, 
+    components?: import('@/lib/birkenstockMaterials').ShoeComponents | null,
+    overrides?: import('@/lib/birkenstockMaterials').ComponentOverrides,
+    attachReferenceImages?: boolean,
+    fromModal: boolean = false
+  ) => {
     setSelectedSku(sku);
     onStateChange({
       selectedProductId: sku.id,
       recoloredProductUrl: sku.composite_image_url || sku.angles[0]?.thumbnail_url,
+      // Pass component overrides to state for generation
+      componentOverrides: overrides,
+      // Pass reference image toggle (default true)
+      attachReferenceImages: attachReferenceImages ?? true,
     });
     
     // Only update display order if selecting from modal (Browse More)
@@ -367,7 +377,7 @@ export const ProductShootStep2 = ({
                                   brand_id: sku.brand_id,
                                   last_used_at: sku.last_used_at,
                                   angles: [],
-                                }, false)} // Inline click does NOT change display order
+                                }, null, undefined, undefined, false)} // Inline click does NOT change display order
                                 className={cn(
                                   "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
                                   isSelected 
@@ -593,7 +603,9 @@ export const ProductShootStep2 = ({
         open={showProductPickerModal}
         onOpenChange={setShowProductPickerModal}
         selectedSkuId={selectedSku?.id || null}
-        onSelectSku={(sku) => handleSkuSelect(sku, true)} // Modal selection DOES update display order
+        onSelectSku={(sku, components, overrides, attachRef) => 
+          handleSkuSelect(sku, components, overrides, attachRef, true)
+        } // Modal selection DOES update display order
         onCreateNew={() => setShowCreateSKUModal(true)}
         onSmartUpload={() => setShowSmartUploadModal(true)}
       />
