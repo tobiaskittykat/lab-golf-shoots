@@ -646,23 +646,26 @@ OUTPUT: Return ONLY the crafted prompt text. No explanations, no bullet points, 
       text: creativeBrief
     });
     
-    // Add product images AFTER brief so the agent can SEE them and describe them accurately
-    // Gemini supports many images - send up to 10 for comprehensive product analysis
-    // BUT: Only attach if attachReferenceImages is not explicitly false
-    const shouldAttachReferences = request.attachReferenceImages !== false;
-    
-    if (shouldAttachReferences && productUrls.length > 0) {
+    // ALWAYS attach product images to Prompt Agent for accurate description
+    // The agent needs to SEE the product to describe unchanged features accurately
+    // The toggle only controls whether the IMAGE GENERATOR sees them (not the agent)
+    if (productUrls.length > 0) {
       const attachCount = Math.min(productUrls.length, 10);
-      console.log(`Adding ${attachCount} product images to prompt agent for visual analysis`);
+      console.log(`Adding ${attachCount} product images to prompt agent for visual analysis (ALWAYS attached to agent)`);
       for (const url of productUrls.slice(0, attachCount)) {
         promptAgentContent.push({
           type: "image_url",
           image_url: { url }
         });
       }
-      promptAgentContent.push({
-        type: "text",
-        text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
+      
+      // Determine if user has overrides or disabled reference attachment for image generator
+      const hasOverrides = request.componentOverrides && 
+        Object.keys(request.componentOverrides).length > 0;
+      const refImagesDisabled = request.attachReferenceImages === false;
+      
+      // Build contextual fidelity instruction based on state
+      let fidelityInstruction = `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
 
 MANDATORY REQUIREMENTS:
 - Preserve EXACT visual details: materials, textures, colors, hardware finishes
@@ -676,23 +679,59 @@ When describing ANY product feature in your prompt, explicitly tie it to the ref
 - Instead of "tobacco brown suede" → "tobacco brown suede exactly as shown in the reference images"
 - Instead of "gold buckle hardware" → "gold buckle hardware matching the attached reference photos precisely"
 - Instead of "cork footbed" → "signature cork footbed identical to the reference images in color and texture"
-- Instead of "shearling lining" → "warm shearling lining exactly as visible in the product reference images"
 
 This reference-linking applies to ALL visual features:
-- Color: "...in the exact shade of taupe visible in the reference images"
-- Material: "...genuine suede with the precise nap and texture shown in the attached photos"
-- Hardware: "...adjustable buckle in the same brushed silver finish as the reference"
-- Interior: "...wool lining matching the cream color and pile height from the reference images"
-- Silhouette: "...maintaining the exact proportions and shape shown in the attached product photos"
+- Color: "...in the exact shade visible in the reference images"
+- Material: "...with the precise texture shown in the attached photos"
+- Hardware: "...in the same finish as the reference"
+- Silhouette: "...maintaining the exact proportions shown in the attached product photos"
 
-Your prompt MUST include at least 2-3 explicit references to "the reference images" or "attached photos" when describing product details. This ensures the image generator knows to prioritize visual accuracy over interpretation.`
-      });
-    } else if (!shouldAttachReferences) {
-      console.log("Reference images disabled by user - prompt-only generation");
-      promptAgentContent.push({
-        type: "text",
-        text: "NOTE: No product reference images are attached. Generate based purely on the text description and component specifications provided in the brief."
-      });
+Your prompt MUST include at least 2-3 explicit references to "the reference images" or "attached photos" when describing product details.`;
+
+      // Add COMPONENT OVERRIDE MODE instructions if overrides are present
+      if (hasOverrides) {
+        const overrideEntries = Object.entries(request.componentOverrides || {});
+        const overrideList = overrideEntries.map(([component, details]: [string, any]) => 
+          `  - ${component}: ${details.color} ${details.material}`
+        ).join('\n');
+        
+        fidelityInstruction += `
+
+⚠️ COMPONENT OVERRIDE MODE (CRITICAL):
+The user has CHANGED specific components from what's shown in the photos:
+${overrideList}
+
+OVERRIDE RULES:
+- For CHANGED components listed above: Describe the NEW color/material specified, NOT what's in the photos
+- For UNCHANGED components: Describe EXACTLY as shown in the reference photos
+- Use EXPLICIT CONTRAST LANGUAGE to make changes crystal clear. Examples:
+  - "Hot Pink suede upper (instead of the Taupe shown in the reference photos)"
+  - "Midnight Blue leather (replacing the original Brown visible in the attached images)"
+  - "...while keeping the silver buckle hardware exactly as shown in the reference photos"
+- Make it UNMISTAKABLY CLEAR what differs from the reference photos vs what matches them
+- The Image Generator needs this explicit contrast to know what to change vs preserve`;
+      }
+      
+      // Add PROMPT-ONLY MODE instructions if reference images disabled for generator
+      if (refImagesDisabled) {
+        fidelityInstruction += `
+
+⚠️ PROMPT-ONLY GENERATION MODE (CRITICAL):
+The Image Generator will NOT receive these reference images - only your text prompt.
+Your descriptions must be EXCEPTIONALLY detailed and precise because the image model will rely 100% on your text.
+
+EXTRA DETAIL REQUIREMENTS:
+- Include EVERY visual detail: exact colors (not just "brown", but "warm tobacco brown with subtle orange undertones")
+- Describe textures precisely: "soft napped suede with visible grain", "smooth full-grain leather with subtle sheen"
+- Specify hardware finishes: "brushed antique brass with matte finish", "polished silver with mirror-like reflection"
+- Detail proportions: "chunky 1.5-inch platform sole", "wide rounded toe box"
+- Describe branding elements: "embossed BIRKENSTOCK wordmark in classic serif typography on the cork footbed"
+- Include construction details: "double-stitched welt", "contoured cork-latex footbed with anatomical arch support"
+
+The more specific your descriptions, the better the image generator can recreate this product without visual reference.`;
+      }
+      
+      promptAgentContent.push({ type: "text", text: fidelityInstruction });
     }
     
     // Add final instruction to craft the prompt
