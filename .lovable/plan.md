@@ -1,71 +1,99 @@
 
 
-# Fix Quick Customization Returning "No Changes Needed"
+# Pass Full Product Components and Summary to Prompt Agent
 
-## Problem
+## What's Changing
 
-The AI (Gemini 2.5 Flash) returns all nulls for every shoe component, even when the user clearly requests changes like "white version without shearling." The client-side code then filters out all nulls, finds zero changes, and shows "No changes needed."
+Two gaps are being fixed so the AI prompt agent always knows about your product's materials (shearling lining, cork footbed, metal buckles, heel strap, etc.) and description -- not just when you've made customizations.
 
-## Root Cause
+## Changes
 
-The tool definition in the edge function uses `type: ["object", "null"]` for each component:
+### 1. Always include product components in the creative brief
 
-```json
-"upper": {
-  "type": ["object", "null"],   // <-- Gemini treats null as the "safe default"
-  ...
-}
-```
+Currently, the analyzed shoe components (upper, footbed, sole, buckles, heelstrap, lining with their materials and colors) are only sent to the prompt agent when you've made customizations. When everything is left "as-is," the agent gets zero component info.
 
-Gemini Flash interprets this union type poorly and defaults to `null` for all components rather than only including the ones that need changing.
+**Fix:** Add a new `=== PRODUCT COMPONENTS ===` section in the edge function that always appears when original components exist, regardless of overrides. This tells the agent things like "LINING: Shearling in Cream" or "HEELSTRAP: Leather in Dark Brown."
 
-## Solution
+**File:** `supabase/functions/generate-image/index.ts`
+- Insert a new block before the existing override section (before line 501)
+- When `originalComponents` exists, emit each component's material and color
+- The existing override section continues to work on top of this for customized components
 
-Change the tool schema so each component is simply `type: "object"` (not nullable). Components the AI does not want to change will simply be **omitted** from the response rather than set to `null`. The existing server-side and client-side filtering already handles this correctly.
+### 2. Pass the product description summary to the prompt agent
 
-## File to Change
+The database stores a natural language summary (e.g., "A classic Birkenstock Boston clog, updated with a cozy shearling lining for warmth") but it is never forwarded to generation.
+
+**Fix (3 files):**
 
 | File | Change |
 |------|--------|
-| `supabase/functions/interpret-shoe-customization/index.ts` | Replace `type: ["object", "null"]` with `type: "object"` for all 6 component properties in the tool definition, and update the tool description to say "Only include components that should change -- omit components that stay the same" |
+| `src/lib/skuDisplayUtils.ts` | Add `summary?: string` field to `SKUDisplayInfo` and populate it from the description |
+| `src/hooks/useImageGeneration.ts` | Already fetches `description` -- no query changes needed. Just ensure the summary flows through `productIdentity` |
+| `supabase/functions/generate-image/index.ts` | Add `Description: ...` line inside the existing PRODUCT IDENTITY section when summary is present |
 
-## Detailed Change
+### 3. Send `originalComponents` unconditionally
 
-In the `TOOL_DEFINITION` object (lines 72-138), for each of the 6 components (upper, footbed, sole, buckles, heelstrap, lining):
+Currently in `useImageGeneration.ts` line 470, `originalComponents` is already sent when present (not gated by overrides). The gate is actually in the edge function (line 502) which only reads them inside the override block. The fix in step 1 above addresses this by adding a separate block that reads `originalComponents` independently.
 
-**Before:**
-```javascript
-upper: {
-  type: ["object", "null"],
-  properties: { ... },
-  required: ["material", "color", "colorHex"],
-},
+## Technical Details
+
+### `skuDisplayUtils.ts` -- Add summary to SKUDisplayInfo
+
+```typescript
+export interface SKUDisplayInfo {
+  brandName: string;
+  modelName: string;
+  material: string;
+  color: string;
+  productType: string;
+  fullName: string;
+  summary?: string;  // NEW
+}
 ```
 
-**After:**
-```javascript
-upper: {
-  type: "object",
-  properties: { ... },
-  required: ["material", "color", "colorHex"],
-},
+In `parseSkuDisplayInfo`, after the description parsing block:
+```typescript
+if (description?.summary) {
+  result.summary = description.summary;
+}
 ```
 
-Also update the function description from:
-> "Return only the components that should be CHANGED. Use null for components that should stay the same as the original."
+### `generate-image/index.ts` -- New PRODUCT COMPONENTS section (before line 501)
 
-To:
-> "Return ONLY the components that need to change. Do NOT include components that stay the same -- simply omit them from the response."
+```typescript
+// === PRODUCT COMPONENTS (always include when available) ===
+if (request.originalComponents) {
+  const orig = request.originalComponents;
+  const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'];
+  const componentLines: string[] = [];
 
-This aligns the schema with how Gemini naturally handles tool calls (include or omit properties) rather than forcing it to reason about null vs object union types.
+  for (const type of componentTypes) {
+    const comp = orig[type];
+    if (comp && comp.material) {
+      componentLines.push(
+        `${type.toUpperCase()}: ${comp.material} in ${comp.color || 'N/A'}`
+      );
+    }
+  }
 
-## Why This Fixes It
+  if (componentLines.length > 0) {
+    sections.push("=== PRODUCT COMPONENTS (from analysis) ===");
+    sections.push("Accurately describe these materials and features in your prompt:");
+    componentLines.forEach(line => sections.push(line));
+    sections.push("");
+  }
+}
+```
 
-- Gemini won't have a `null` option to default to
-- Components the AI wants unchanged are simply absent from the JSON response
-- The existing filter logic (`if (value !== null)`) already handles missing keys correctly
-- The system prompt's rule #8 ("NEVER return all nulls") will now work as intended since null isn't an option
+### `generate-image/index.ts` -- Add summary to PRODUCT IDENTITY section (after line 420)
 
-## Risk: None
+```typescript
+if (pi.summary) sections.push(`Description: ${pi.summary}`);
+```
 
-The server-side filtering (`value !== null`) and client-side filtering (`value && typeof value === 'object'`) both correctly handle missing keys. No other code changes needed.
+## No Changes Needed
+
+- The `analyze-shoe-components` function is left as-is (heel strap rule is correct -- Bostons don't have them, Tokyos do)
+- The `useImageGeneration.ts` hook already sends `originalComponents` unconditionally (line 470) -- no change needed there
+- The existing override/contrast section stays unchanged and continues to layer on top
+
