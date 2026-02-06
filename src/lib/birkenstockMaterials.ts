@@ -3,72 +3,80 @@
  * Curated options for shoe component customization
  */
 
-// Materials organized by component type
-export const COMPONENT_MATERIALS = {
+// Material option interface with category support
+export interface MaterialOption {
+  value: string;
+  label: string;
+  category?: string;
+}
+
+// Materials organized by component type with categories for UI grouping
+export const COMPONENT_MATERIALS: Record<string, MaterialOption[]> = {
   upper: [
     // Natural Leathers
-    { value: 'Oiled Leather', label: 'Oiled Leather' },
-    { value: 'Smooth Leather', label: 'Smooth Leather' },
-    { value: 'Nubuck', label: 'Nubuck (Leather)' },
-    { value: 'Suede', label: 'Suede' },
-    { value: 'Patent Leather', label: 'Patent Leather' },
-    { value: 'Shearling', label: 'Shearling' },
+    { value: 'Oiled Leather', label: 'Oiled Leather', category: 'Natural Leathers' },
+    { value: 'Smooth Leather', label: 'Smooth Leather', category: 'Natural Leathers' },
+    { value: 'Nubuck', label: 'Nubuck (Leather)', category: 'Natural Leathers' },
+    { value: 'Suede', label: 'Suede', category: 'Natural Leathers' },
+    { value: 'Patent Leather', label: 'Patent Leather', category: 'Natural Leathers' },
+    { value: 'Shearling', label: 'Shearling', category: 'Natural Leathers' },
     // Birkenstock Synthetics
-    { value: 'Birko-Flor', label: 'Birko-Flor (Smooth)' },
-    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' },
-    { value: 'Birko-Flor Patent', label: 'Birko-Flor Patent' },
-    { value: 'Birkibuc', label: 'Birkibuc' },
-    { value: 'EVA', label: 'EVA (Molded)' },
+    { value: 'Birko-Flor', label: 'Birko-Flor (Smooth)', category: 'Synthetics' },
+    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck', category: 'Synthetics' },
+    { value: 'Birko-Flor Patent', label: 'Birko-Flor Patent', category: 'Synthetics' },
+    { value: 'Birkibuc', label: 'Birkibuc', category: 'Synthetics' },
+    { value: 'EVA', label: 'EVA (Molded)', category: 'Synthetics' },
     // Textiles
-    { value: 'Wool Felt', label: 'Wool Felt' },
-    { value: 'Canvas', label: 'Canvas' },
-    { value: 'Fabric', label: 'Fabric (Woven)' },
-    { value: 'Mesh', label: 'Mesh (Breathable)' },
-    { value: 'Recycled PET', label: 'Recycled PET (Eco)' },
+    { value: 'Wool Felt', label: 'Wool Felt', category: 'Textiles' },
+    { value: 'Canvas', label: 'Canvas', category: 'Textiles' },
+    { value: 'Fabric', label: 'Fabric (Woven)', category: 'Textiles' },
+    { value: 'Mesh', label: 'Mesh (Breathable)', category: 'Textiles' },
+    { value: 'Recycled PET', label: 'Recycled PET (Eco)', category: 'Textiles' },
   ],
   footbed: [
-    { value: 'Cork-Latex', label: 'Cork-Latex (Original)' },
-    { value: 'Soft Footbed', label: 'Soft Footbed (Blue Label)' },
-    { value: 'EVA', label: 'EVA' },
-    { value: 'Exquisite', label: 'Exquisite (Leather-Wrapped)' },
+    { value: 'Cork-Latex', label: 'Cork-Latex (Original)', category: 'Standard' },
+    { value: 'Soft Footbed', label: 'Soft Footbed (Blue Label)', category: 'Standard' },
+    { value: 'EVA', label: 'EVA', category: 'Standard' },
+    { value: 'Exquisite', label: 'Exquisite (Leather-Wrapped)', category: 'Premium' },
   ],
   sole: [
-    { value: 'EVA', label: 'EVA (Standard)' },
-    { value: 'Rubber', label: 'Rubber' },
-    { value: 'Polyurethane', label: 'Polyurethane (PU)' },
-    { value: 'Cork', label: 'Cork' },
+    { value: 'EVA', label: 'EVA (Standard)', category: 'Standard' },
+    { value: 'Rubber', label: 'Rubber', category: 'Standard' },
+    { value: 'Polyurethane', label: 'Polyurethane (PU)', category: 'Standard' },
+    { value: 'Cork', label: 'Cork', category: 'Premium' },
   ],
   buckles: [
     // Metal finishes
-    { value: 'Metal (Brass)', label: 'Metal (Brass/Gold)' },
-    { value: 'Metal (Silver)', label: 'Metal (Silver)' },
-    { value: 'Metal (Copper)', label: 'Metal (Copper)' },
-    { value: 'Metal (Rose Gold)', label: 'Metal (Rose Gold)' },
-    { value: 'Antique Brass', label: 'Antique Brass' },
+    { value: 'Metal (Brass)', label: 'Metal (Brass/Gold)', category: 'Metal' },
+    { value: 'Metal (Silver)', label: 'Metal (Silver)', category: 'Metal' },
+    { value: 'Metal (Copper)', label: 'Metal (Copper)', category: 'Metal' },
+    { value: 'Metal (Rose Gold)', label: 'Metal (Rose Gold)', category: 'Metal' },
+    { value: 'Antique Brass', label: 'Antique Brass', category: 'Metal' },
     // Plastic finishes
-    { value: 'Matte Plastic', label: 'Matte Plastic' },
-    { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)' },
+    { value: 'Matte Plastic', label: 'Matte Plastic', category: 'Plastic' },
+    { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)', category: 'Plastic' },
     // Translucent/Big Buckle options
-    { value: 'Translucent', label: 'Translucent (Clear)' },
-    { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)' },
-    { value: 'Metallic Rose Gold', label: 'Metallic (Rose Gold Big Buckle)' },
+    { value: 'Translucent', label: 'Translucent (Clear)', category: 'Special' },
+    { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)', category: 'Special' },
+    { value: 'Metallic Rose Gold', label: 'Metallic (Rose Gold Big Buckle)', category: 'Special' },
   ],
   heelstrap: [
-    { value: 'Suede', label: 'Suede' },
-    { value: 'Oiled Leather', label: 'Oiled Leather' },
-    { value: 'Smooth Leather', label: 'Smooth Leather' },
-    { value: 'Nubuck', label: 'Nubuck' },
-    { value: 'Birko-Flor', label: 'Birko-Flor' },
-    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' },
+    { value: 'Suede', label: 'Suede', category: 'Natural Leathers' },
+    { value: 'Oiled Leather', label: 'Oiled Leather', category: 'Natural Leathers' },
+    { value: 'Smooth Leather', label: 'Smooth Leather', category: 'Natural Leathers' },
+    { value: 'Nubuck', label: 'Nubuck', category: 'Natural Leathers' },
+    { value: 'Birko-Flor', label: 'Birko-Flor', category: 'Synthetics' },
+    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck', category: 'Synthetics' },
   ],
   lining: [
-    { value: 'Shearling (Cream)', label: 'Shearling (Cream)' },
-    { value: 'Shearling (Black)', label: 'Shearling (Black)' },
-    { value: 'Suede', label: 'Suede' },
-    { value: 'Wool Felt', label: 'Wool Felt' },
-    { value: 'Microfiber', label: 'Microfiber' },
+    { value: 'Shearling (Cream)', label: 'Shearling (Cream)', category: 'Shearling' },
+    { value: 'Shearling (Black)', label: 'Shearling (Black)', category: 'Shearling' },
+    { value: 'Suede', label: 'Suede', category: 'Standard' },
+    { value: 'Wool Felt', label: 'Wool Felt', category: 'Standard' },
+    { value: 'Microfiber', label: 'Microfiber', category: 'Standard' },
+    { value: 'EVA', label: 'EVA (Molded)', category: 'Standard' },
   ],
-} as const;
+};
 
 // Color presets based on Birkenstock's actual color palette
 export const COLOR_PRESETS = [
@@ -132,7 +140,7 @@ export interface ComponentOverride {
 export type ComponentOverrides = Partial<Record<ComponentType, ComponentOverride>>;
 
 // Helper to get materials for a component type
-export function getMaterialsForComponent(type: ComponentType) {
+export function getMaterialsForComponent(type: ComponentType): MaterialOption[] {
   return COMPONENT_MATERIALS[type] || [];
 }
 

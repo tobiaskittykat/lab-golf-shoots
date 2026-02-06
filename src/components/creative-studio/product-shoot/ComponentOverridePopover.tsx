@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Check, RotateCcw, Pipette } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import {
   getMaterialsForComponent, 
   COLOR_PRESETS,
   findColorPreset,
+  MaterialOption,
 } from '@/lib/birkenstockMaterials';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +47,17 @@ export function ComponentOverridePopover({
   
   // Check if this material is color-matched (inherits from upper)
   const isColorMatched = selectedMaterial === 'Matte Plastic (Coordinated)';
+
+  // Group materials by category
+  const groupedMaterials = useMemo(() => {
+    const groups: Record<string, MaterialOption[]> = {};
+    materials.forEach(mat => {
+      const cat = mat.category || 'Other';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(mat);
+    });
+    return groups;
+  }, [materials]);
 
   // Reset local state when popover opens
   useEffect(() => {
@@ -118,40 +130,49 @@ export function ComponentOverridePopover({
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4 pointer-events-auto" align="end">
         <div className="space-y-4">
-          {/* Material Selection */}
+          {/* Material Selection - Grouped by Category */}
           <div className="space-y-2">
             <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Material
             </Label>
-            <RadioGroup
-              value={selectedMaterial}
-              onValueChange={setSelectedMaterial}
-              className="grid grid-cols-2 gap-1.5"
-            >
-              {materials.map((mat) => (
-                <div key={mat.value} className="flex items-center">
-                  <RadioGroupItem
-                    value={mat.value}
-                    id={`${componentType}-mat-${mat.value}`}
-                    className="peer sr-only"
-                  />
-                  <Label
-                    htmlFor={`${componentType}-mat-${mat.value}`}
-                    className={cn(
-                      'flex items-center justify-between w-full px-2.5 py-1.5 rounded-md border text-xs cursor-pointer transition-colors',
-                      selectedMaterial === mat.value
-                        ? 'border-accent bg-accent/10 text-foreground'
-                        : 'border-border/50 hover:border-border hover:bg-muted/30 text-muted-foreground'
-                    )}
+            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+              {Object.entries(groupedMaterials).map(([category, mats]) => (
+                <div key={category} className="space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                    {category}
+                  </p>
+                  <RadioGroup
+                    value={selectedMaterial}
+                    onValueChange={setSelectedMaterial}
+                    className="grid grid-cols-2 gap-1.5"
                   >
-                    <span className="truncate">{mat.label}</span>
-                    {mat.value === currentMaterial && (
-                      <span className="text-[9px] text-muted-foreground ml-1">(current)</span>
-                    )}
-                  </Label>
+                    {mats.map((mat) => (
+                      <div key={mat.value} className="flex items-center">
+                        <RadioGroupItem
+                          value={mat.value}
+                          id={`${componentType}-mat-${mat.value}`}
+                          className="peer sr-only"
+                        />
+                        <Label
+                          htmlFor={`${componentType}-mat-${mat.value}`}
+                          className={cn(
+                            'flex items-center justify-between w-full px-2.5 py-1.5 rounded-md border text-xs cursor-pointer transition-colors',
+                            selectedMaterial === mat.value
+                              ? 'border-accent bg-accent/10 text-foreground'
+                              : 'border-border/50 hover:border-border hover:bg-muted/30 text-muted-foreground'
+                          )}
+                        >
+                          <span className="truncate">{mat.label}</span>
+                          {mat.value === currentMaterial && (
+                            <span className="text-[9px] text-muted-foreground ml-1">(current)</span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
                 </div>
               ))}
-            </RadioGroup>
+            </div>
           </div>
 
           {/* Color Selection */}
