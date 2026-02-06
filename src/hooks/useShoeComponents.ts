@@ -137,6 +137,40 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
     }
   }, [overrides.upper, overrides.buckles?.material, initialComponents?.upper]);
 
+  // Auto-sync heelstrap with upper (e.g. Tokyo: heelstrap is same piece as upper)
+  useEffect(() => {
+    // Only sync if the shoe actually has a heelstrap component
+    if (!initialComponents?.heelstrap) return;
+
+    const upperOverride = overrides.upper;
+    const heelstrapOverride = overrides.heelstrap;
+
+    if (upperOverride) {
+      // Upper is overridden → mirror to heelstrap
+      if (
+        heelstrapOverride?.material !== upperOverride.material ||
+        heelstrapOverride?.color !== upperOverride.color ||
+        heelstrapOverride?.colorHex !== upperOverride.colorHex
+      ) {
+        setOverrides(prev => ({
+          ...prev,
+          heelstrap: {
+            material: upperOverride.material,
+            color: upperOverride.color,
+            colorHex: upperOverride.colorHex,
+          },
+        }));
+      }
+    } else if (heelstrapOverride) {
+      // Upper override removed → also remove heelstrap override
+      setOverrides(prev => {
+        const next = { ...prev };
+        delete next.heelstrap;
+        return next;
+      });
+    }
+  }, [overrides.upper, initialComponents?.heelstrap]);
+
   const setComponentOverride = useCallback(
     (
       componentType: keyof ComponentOverrides,

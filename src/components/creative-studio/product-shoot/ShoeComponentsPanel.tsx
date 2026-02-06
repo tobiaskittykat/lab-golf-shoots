@@ -121,7 +121,8 @@ export function ShoeComponentsPanel({
   onTriggerAnalysis,
   error,
 }: ShoeComponentsPanelProps) {
-  const componentTypes: ComponentType[] = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'];
+  // Heelstrap is hidden from UI — it auto-syncs with upper via useComponentOverrides
+  const componentTypes: ComponentType[] = ['upper', 'footbed', 'sole', 'buckles', 'lining'];
   const hasOverrides = Object.keys(overrides).length > 0;
 
   // Filter to only show components that exist (safe with null components)
