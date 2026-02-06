@@ -124,6 +124,28 @@ export function ShoeComponentsPanel({
   const componentTypes: ComponentType[] = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'];
   const hasOverrides = Object.keys(overrides).length > 0;
 
+  // Filter to only show components that exist (safe with null components)
+  const existingComponents = components
+    ? componentTypes.filter(type => {
+        const comp = components[type];
+        return comp && comp.material;
+      })
+    : [];
+
+  // Quick customization hook — MUST be called before any early returns (Rules of Hooks)
+  const {
+    input: quickInput,
+    setInput: setQuickInput,
+    isProcessing: isQuickProcessing,
+    error: quickError,
+    applyWithAI,
+    clearInput,
+  } = useQuickCustomization({
+    currentComponents: components,
+    existingOverrides: overrides,
+    onApplyOverrides: onOverrideChange,
+  });
+
   // Loading state
   if (isLoading) {
     return (
@@ -176,26 +198,6 @@ export function ShoeComponentsPanel({
       </div>
     );
   }
-
-  // Filter to only show components that exist
-  const existingComponents = componentTypes.filter(type => {
-    const comp = components[type];
-    return comp && comp.material;
-  });
-
-  // Quick customization hook
-  const {
-    input: quickInput,
-    setInput: setQuickInput,
-    isProcessing: isQuickProcessing,
-    error: quickError,
-    applyWithAI,
-    clearInput,
-  } = useQuickCustomization({
-    currentComponents: components,
-    existingOverrides: overrides,
-    onApplyOverrides: onOverrideChange,
-  });
 
   return (
     <div className="space-y-4">

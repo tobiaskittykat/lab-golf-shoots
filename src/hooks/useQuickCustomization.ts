@@ -9,6 +9,43 @@ interface UseQuickCustomizationOptions {
   onApplyOverrides: (type: ComponentType, override: { material: string; color: string; colorHex?: string } | null) => void;
 }
 
+const MAX_RETRIES = 1;
+
+async function invokeCustomization(
+  userRequest: string,
+  currentState: Record<string, any>,
+): Promise<Record<string, any>> {
+  const { data, error: fnError } = await supabase.functions.invoke('interpret-shoe-customization', {
+    body: {
+      userRequest,
+      currentComponents: currentState,
+    },
+  });
+
+  if (fnError) {
+    throw new Error(fnError.message || 'Failed to interpret customization');
+  }
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  const overrides = data?.overrides;
+  if (!overrides || typeof overrides !== 'object') {
+    throw new Error('No customization changes detected');
+  }
+
+  // Filter out null values
+  const validOverrides: Record<string, any> = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value && typeof value === 'object') {
+      validOverrides[key] = value;
+    }
+  }
+
+  return validOverrides;
+}
+
 export function useQuickCustomization({
   currentComponents,
   existingOverrides,
@@ -44,44 +81,41 @@ export function useQuickCustomization({
         }
       }
 
-      const { data, error: fnError } = await supabase.functions.invoke('interpret-shoe-customization', {
-        body: {
-          userRequest: input.trim(),
-          currentComponents: currentState,
-        },
-      });
+      console.log('[QuickCustomization] Request:', input.trim());
+      console.log('[QuickCustomization] Current state:', currentState);
 
-      if (fnError) {
-        throw new Error(fnError.message || 'Failed to interpret customization');
+      let validOverrides: Record<string, any> = {};
+
+      // Retry loop: AI model sometimes returns all nulls (non-deterministic)
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        if (attempt > 0) {
+          console.warn(`[QuickCustomization] Retry attempt ${attempt} — AI returned empty on first try`);
+        }
+
+        validOverrides = await invokeCustomization(input.trim(), currentState);
+        
+        console.log(`[QuickCustomization] Attempt ${attempt + 1} result:`, validOverrides);
+
+        if (Object.keys(validOverrides).length > 0) {
+          break; // Got valid overrides, stop retrying
+        }
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      const overrides = data?.overrides;
-      if (!overrides || typeof overrides !== 'object') {
-        throw new Error('No customization changes detected');
-      }
-
-      // Count changes
-      const changedComponents = Object.keys(overrides);
+      const changedComponents = Object.keys(validOverrides);
       if (changedComponents.length === 0) {
-        toast.info('No changes needed - the shoe already matches your description');
+        toast.info('No changes needed — the shoe already matches your description');
         return;
       }
 
       // Apply each override
-      for (const [type, override] of Object.entries(overrides)) {
-        if (override && typeof override === 'object') {
-          onApplyOverrides(type as ComponentType, override as { material: string; color: string; colorHex?: string });
-        }
+      for (const [type, override] of Object.entries(validOverrides)) {
+        onApplyOverrides(type as ComponentType, override as { material: string; color: string; colorHex?: string });
       }
 
       toast.success(`Applied ${changedComponents.length} component change${changedComponents.length > 1 ? 's' : ''}`);
       setInput(''); // Clear input on success
     } catch (err) {
-      console.error('Quick customization error:', err);
+      console.error('[QuickCustomization] Error:', err);
       const message = err instanceof Error ? err.message : 'Failed to apply customization';
       setError(message);
       toast.error(message);
