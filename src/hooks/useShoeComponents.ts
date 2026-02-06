@@ -120,7 +120,7 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
 
   // Auto-sync color-matched buckles when upper color changes
   useEffect(() => {
-    if (overrides.buckles?.material === 'Matte Plastic (Coordinated)') {
+    if (overrides.buckles?.material === 'Matte Plastic (Coordinated)' || overrides.buckles?.material === 'Metal (Coordinated)') {
       const upperColor = overrides.upper?.color || initialComponents?.upper?.color;
       const upperHex = overrides.upper?.colorHex || initialComponents?.upper?.colorHex;
 

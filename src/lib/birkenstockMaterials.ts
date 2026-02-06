@@ -55,6 +55,8 @@ export const COMPONENT_MATERIALS: Record<string, MaterialOption[]> = {
     // Plastic finishes
     { value: 'Matte Plastic', label: 'Matte Plastic', category: 'Plastic' },
     { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)', category: 'Plastic' },
+    // Metal color-matched
+    { value: 'Metal (Coordinated)', label: 'Metal (Color-Matched)', category: 'Metal' },
     // Translucent/Big Buckle options
     { value: 'Translucent', label: 'Translucent (Clear)', category: 'Special' },
     { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)', category: 'Special' },
