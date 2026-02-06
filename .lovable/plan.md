@@ -1,48 +1,46 @@
 
-# Add "Metal (Color-Matched)" Buckle Option
 
-## What This Does
+# Add "Translucent Plastic (Color-Matched)" Buckle Option
 
-Adds a new buckle material called **"Metal (Color-Matched)"** that behaves identically to the existing "Matte Plastic (Color-Matched)" option: when selected, the buckle color automatically syncs with the upper's color and the manual color picker is locked.
+## What's Missing
+
+There are currently two translucent buckle options — "Translucent (Clear)" and "Translucent (Rose Gold)" — but neither auto-syncs with the upper's color. A color-matched translucent plastic option should exist alongside the existing Matte Plastic and Metal color-matched variants.
 
 ## Changes
 
 ### 1. `src/lib/birkenstockMaterials.ts` -- Add new material entry
 
-Add a new buckle material in the **Metal** category:
+Add a new buckle material in the **Plastic** or **Special** category:
+
 ```
-{ value: 'Metal (Coordinated)', label: 'Metal (Color-Matched)', category: 'Metal' }
+{ value: 'Translucent (Coordinated)', label: 'Translucent Plastic (Color-Matched)', category: 'Special' }
 ```
+
+This sits alongside the existing translucent options.
 
 ### 2. `src/hooks/useShoeComponents.ts` -- Extend sync logic
 
-Update the buckle auto-sync `useEffect` (line 123) to trigger for **both** coordinated materials:
+Update the buckle auto-sync condition to also trigger for `Translucent (Coordinated)`:
 
 ```
-Before: overrides.buckles?.material === 'Matte Plastic (Coordinated)'
-After:  overrides.buckles?.material === 'Matte Plastic (Coordinated)' ||
-        overrides.buckles?.material === 'Metal (Coordinated)'
+Before: material === 'Matte Plastic (Coordinated)' || material === 'Metal (Coordinated)'
+After:  material === 'Matte Plastic (Coordinated)' || material === 'Metal (Coordinated)' || material === 'Translucent (Coordinated)'
 ```
 
 ### 3. `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx` -- Extend locked-color detection
 
-Update the `isColorMatched` check (line 51) to recognize both coordinated materials:
+Update the `isColorMatched` check to include the new translucent option so the color picker locks and shows "Matches Upper: [color]" when selected.
 
-```
-Before: selectedMaterial === 'Matte Plastic (Coordinated)'
-After:  selectedMaterial === 'Matte Plastic (Coordinated)' ||
-        selectedMaterial === 'Metal (Coordinated)'
-```
+## Behavior
 
-## How It Works
-
-When a user selects "Metal (Color-Matched)" for buckles:
-- The color picker locks and shows "Matches Upper: [Color]"
-- The buckle color auto-syncs with the upper (checking overrides first, then original)
-- The prompt will describe it as e.g. "Metal (Coordinated) in Moss Green" so the AI generates a color-matched metal buckle
+When a user selects "Translucent Plastic (Color-Matched)" for buckles:
+- The color picker locks and displays "Matches Upper: [Color]"
+- The buckle color auto-syncs with the upper
+- The prompt describes it as e.g. "Translucent (Coordinated) in Moss Green" so the AI generates a tinted translucent buckle matching the upper
 
 ## Files Changed
 
 - `src/lib/birkenstockMaterials.ts` (1 line added)
 - `src/hooks/useShoeComponents.ts` (1 condition expanded)
 - `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx` (1 condition expanded)
+
