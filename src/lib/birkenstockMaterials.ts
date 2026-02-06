@@ -16,6 +16,11 @@ export const COMPONENT_MATERIALS = {
     { value: 'EVA', label: 'EVA' },
     { value: 'Patent Leather', label: 'Patent Leather' },
     { value: 'Shearling', label: 'Shearling' },
+    // Fabric/textile options
+    { value: 'Fabric', label: 'Fabric (Woven)' },
+    { value: 'Canvas', label: 'Canvas' },
+    { value: 'Mesh', label: 'Mesh (Breathable)' },
+    { value: 'Recycled PET', label: 'Recycled PET (Eco)' },
   ],
   footbed: [
     { value: 'Cork-Latex', label: 'Cork-Latex (Original)' },
@@ -35,6 +40,7 @@ export const COMPONENT_MATERIALS = {
     { value: 'Metal (Copper)', label: 'Metal (Copper)' },
     { value: 'Antique Brass', label: 'Antique Brass' },
     { value: 'Matte Plastic', label: 'Matte Plastic' },
+    { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)' },
   ],
   heelstrap: [
     { value: 'Suede', label: 'Suede' },
@@ -74,6 +80,10 @@ export const COLOR_PRESETS = [
   { name: 'Mink', hex: '#81715E', category: 'neutral' },
   { name: 'Port', hex: '#6C3461', category: 'color' },
   { name: 'Thyme', hex: '#6B8E4E', category: 'color' },
+  // Summer/fabric colorways
+  { name: 'Apricot', hex: '#E6A57E', category: 'color' },
+  { name: 'Coral', hex: '#FF7F50', category: 'color' },
+  { name: 'Peach', hex: '#FFDAB9', category: 'color' },
 ] as const;
 
 // Component type definitions
