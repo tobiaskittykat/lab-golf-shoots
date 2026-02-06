@@ -173,7 +173,7 @@ ${COLOR_PALETTE.map(c => `${c.name}: ${c.hex}`).join("\n")}
 CRITICAL RULES:
 1. Only return components that should CHANGE. Use null for unchanged components.
 2. When user says "[color] version" or "make it [color]" or "all [color]" - ALWAYS change the UPPER component at minimum.
-3. You CAN create custom colors not in the reference list! Just provide a descriptive name and accurate hex code.
+3. You CAN and SHOULD create custom colors not in the reference list! Just provide a descriptive name and accurate hex code.
    - Example: "baby blue" → { color: "Baby Blue", colorHex: "#89CFF0" }
    - Example: "bright orange" → { color: "Bright Orange", colorHex: "#FF6B00" }
    - Example: "forest green" → { color: "Forest Green", colorHex: "#228B22" }
@@ -184,14 +184,37 @@ CRITICAL RULES:
 8. NEVER return all nulls if the user clearly wants a color/material change. At minimum, change the UPPER.
 9. For vegan/synthetic requests, use Birko-Flor or EVA materials.
 10. For metal buckles, use metallic colors (Gold, Silver, Rose Gold, Copper).
+11. IGNORE shoe model names in the request - these are just product names, not instructions:
+    "boston", "bston", "arizona", "madrid", "gizeh", "mayari", "milano", "kyoto", "zurich", etc.
+    Focus ONLY on material/color/customization instructions.
+12. "all [material] in [color]" or "[material] in [color]" for the whole shoe:
+    - Change upper, sole, and heelstrap to the specified material AND color
+    - Example: "all EVA in dusty blue" → upper: EVA/Dusty Blue, sole: EVA/Dusty Blue, heelstrap: EVA/Dusty Blue
+    - Example: "all leather in cognac" → upper: Smooth Leather/Cognac, sole: (keep), heelstrap: Smooth Leather/Cognac
+13. ALWAYS generate accurate hex codes for ANY color name, even if not in the reference list!
+    - Look up or estimate the correct hex code for the color mentioned
+    - Example: "lavender" → #E6E6FA
+    - Example: "sage green" → #9DC183
+    - Example: "dusty rose" → #DCAE96
+    - Example: "terracotta" → #E2725B
+    - Example: "mint" → #98FF98
+    - Example: "burgundy" → #800020
+    - NEVER leave colorHex empty or null when changing a color
+14. When user specifies BOTH material AND color, apply BOTH together - don't just change one.
+15. EVA is a valid material for: upper (molded sandals), sole, footbed. Apply it where mentioned.
 
 EXAMPLES:
 - "baby blue version" → upper: { material: (keep original), color: "Baby Blue", colorHex: "#89CFF0" }
-- "all black leather" → upper: Smooth Leather/Black, sole: EVA/Black, heelstrap: Smooth Leather/Black
+- "all black leather" → upper: Smooth Leather/Black/#1C1C1C, sole: EVA/Black/#1C1C1C, heelstrap: Smooth Leather/Black/#1C1C1C
 - "white sole" → sole: { material: (keep original), color: "White", colorHex: "#FFFFFF" }
-- "hot pink upper with silver buckles" → upper: (keep material)/Hot Pink, buckles: Metal (Silver)/Silver
-- "vegan taupe" → upper: Birko-Flor/Taupe, heelstrap: Birko-Flor/Taupe
-- "make it coral" → upper: { material: (keep original), color: "Coral", colorHex: "#FF7F50" }`;
+- "hot pink upper with silver buckles" → upper: (keep material)/Hot Pink/#FF69B4, buckles: Metal (Silver)/Silver/#C0C0C0
+- "vegan taupe" → upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A
+- "make it coral" → upper: { material: (keep original), color: "Coral", colorHex: "#FF7F50" }
+- "boston all eva in dusty blue" → upper: EVA/Dusty Blue/#8CA9BC, sole: EVA/Dusty Blue/#8CA9BC, heelstrap: EVA/Dusty Blue/#8CA9BC
+- "all eva bright orange" → upper: EVA/Bright Orange/#FF6B00, sole: EVA/Bright Orange/#FF6B00, heelstrap: EVA/Bright Orange/#FF6B00
+- "arizona in olive leather" → upper: Oiled Leather/Olive/#808000, heelstrap: Oiled Leather/Olive/#808000
+- "make it lavender" → upper: { material: (keep original), color: "Lavender", colorHex: "#E6E6FA" }
+- "all sage green" → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
