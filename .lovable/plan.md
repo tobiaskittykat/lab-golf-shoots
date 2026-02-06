@@ -1,99 +1,55 @@
 
 
-# Pass Full Product Components and Summary to Prompt Agent
+# Rename "Boston" to "Tokyo" and Re-analyze Components
 
 ## What's Changing
 
-Two gaps are being fixed so the AI prompt agent always knows about your product's materials (shearling lining, cork footbed, metal buckles, heel strap, etc.) and description -- not just when you've made customizations.
+The shearling-lined clog currently labeled as a "Boston" is actually a **Tokyo** (same silhouette but with a heel strap). We'll rename it, fix the analysis rules, and re-analyze so the heel strap gets properly detected.
 
-## Changes
+## Steps
 
-### 1. Always include product components in the creative brief
+### 1. Rename the SKU in the database
 
-Currently, the analyzed shoe components (upper, footbed, sole, buckles, heelstrap, lining with their materials and colors) are only sent to the prompt agent when you've made customizations. When everything is left "as-is," the agent gets zero component info.
+Update the product_skus record (`d07360eb`) with corrected metadata:
 
-**Fix:** Add a new `=== PRODUCT COMPONENTS ===` section in the edge function that always appears when original components exist, regardless of overrides. This tells the agent things like "LINING: Shearling in Cream" or "HEELSTRAP: Leather in Dark Brown."
+| Field | Current | New |
+|-------|---------|-----|
+| name | Birkenstock Boston Shearling Lined Clog in Tobacco Suede | Birkenstock Tokyo Shearling Lined Clog in Tobacco Suede |
+| sku_code | BIRK-BOSTON-SHEAR-TOB | BIRK-TOKYO-SHEAR-TOB |
+| description.summary | "A classic Birkenstock Boston clog..." | "A classic Birkenstock Tokyo clog..." |
 
-**File:** `supabase/functions/generate-image/index.ts`
-- Insert a new block before the existing override section (before line 501)
-- When `originalComponents` exists, emit each component's material and color
-- The existing override section continues to work on top of this for customized components
+This will be done via a SQL migration that updates the name, sku_code, and the summary inside the description JSONB field.
 
-### 2. Pass the product description summary to the prompt agent
+### 2. Update the heelstrap analysis rule
 
-The database stores a natural language summary (e.g., "A classic Birkenstock Boston clog, updated with a cozy shearling lining for warmth") but it is never forwarded to generation.
+**File:** `supabase/functions/analyze-shoe-components/index.ts`
 
-**Fix (3 files):**
+The current rule on line 41 says:
+> "Clogs (Boston, Kyoto) do NOT have heelstraps."
 
-| File | Change |
-|------|--------|
-| `src/lib/skuDisplayUtils.ts` | Add `summary?: string` field to `SKUDisplayInfo` and populate it from the description |
-| `src/hooks/useImageGeneration.ts` | Already fetches `description` -- no query changes needed. Just ensure the summary flows through `productIdentity` |
-| `supabase/functions/generate-image/index.ts` | Add `Description: ...` line inside the existing PRODUCT IDENTITY section when summary is present |
+Update to explicitly mention that the Tokyo **does** have a heel strap:
+> "Clogs like the Boston and Kyoto do NOT have heelstraps. However, the Tokyo (a Boston-style clog with a back strap) DOES have a heelstrap. Analyze the images to determine if one is present."
 
-### 3. Send `originalComponents` unconditionally
+This keeps the Boston/Kyoto rule intact while teaching the AI about the Tokyo model.
 
-Currently in `useImageGeneration.ts` line 470, `originalComponents` is already sent when present (not gated by overrides). The gate is actually in the edge function (line 502) which only reads them inside the override block. The fix in step 1 above addresses this by adding a separate block that reads `originalComponents` independently.
+### 3. Re-analyze the SKU's components
 
-## Technical Details
+After deploying the updated analysis function, clear the existing `components` data for this SKU so it gets re-analyzed fresh. The next time you select the product in the studio, the "Analyze Components" flow will run and should now correctly detect:
+- Upper: Suede in Tobacco Brown
+- Footbed: Cork-latex
+- Sole: EVA in Dark Brown
+- Buckles: Metal in Antique Brass
+- **Heelstrap: Suede in Tobacco Brown** (newly detected)
+- Lining: Shearling in Cream
 
-### `skuDisplayUtils.ts` -- Add summary to SKUDisplayInfo
+### Files Changed
 
-```typescript
-export interface SKUDisplayInfo {
-  brandName: string;
-  modelName: string;
-  material: string;
-  color: string;
-  productType: string;
-  fullName: string;
-  summary?: string;  // NEW
-}
-```
+| File / Target | Change |
+|---------------|--------|
+| Database migration | Rename SKU name, code, and description summary from "Boston" to "Tokyo" |
+| `supabase/functions/analyze-shoe-components/index.ts` | Update heelstrap rule to recognize Tokyo as having a heelstrap |
 
-In `parseSkuDisplayInfo`, after the description parsing block:
-```typescript
-if (description?.summary) {
-  result.summary = description.summary;
-}
-```
+### After Implementation
 
-### `generate-image/index.ts` -- New PRODUCT COMPONENTS section (before line 501)
-
-```typescript
-// === PRODUCT COMPONENTS (always include when available) ===
-if (request.originalComponents) {
-  const orig = request.originalComponents;
-  const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'];
-  const componentLines: string[] = [];
-
-  for (const type of componentTypes) {
-    const comp = orig[type];
-    if (comp && comp.material) {
-      componentLines.push(
-        `${type.toUpperCase()}: ${comp.material} in ${comp.color || 'N/A'}`
-      );
-    }
-  }
-
-  if (componentLines.length > 0) {
-    sections.push("=== PRODUCT COMPONENTS (from analysis) ===");
-    sections.push("Accurately describe these materials and features in your prompt:");
-    componentLines.forEach(line => sections.push(line));
-    sections.push("");
-  }
-}
-```
-
-### `generate-image/index.ts` -- Add summary to PRODUCT IDENTITY section (after line 420)
-
-```typescript
-if (pi.summary) sections.push(`Description: ${pi.summary}`);
-```
-
-## No Changes Needed
-
-- The `analyze-shoe-components` function is left as-is (heel strap rule is correct -- Bostons don't have them, Tokyos do)
-- The `useImageGeneration.ts` hook already sends `originalComponents` unconditionally (line 470) -- no change needed there
-- The existing override/contrast section stays unchanged and continues to layer on top
+Once the changes are deployed, select the Tokyo in the product picker and click **"Re-analyze Components"** -- the heel strap should now appear in the component list, and future generations will include it in the prompt.
 
