@@ -152,6 +152,7 @@ interface GenerateImageRequest {
     color?: string;
     productType?: string;
     fullName?: string;
+    summary?: string;
   };
   
   // Logo placement for compositing
@@ -418,6 +419,7 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       if (pi.color) sections.push(`Color: ${pi.color}`);
       if (pi.material) sections.push(`Material: ${pi.material}`);
       if (pi.productType) sections.push(`Type: ${pi.productType}`);
+      if (pi.summary) sections.push(`Description: ${pi.summary}`);
       sections.push("");
     }
     
@@ -495,6 +497,29 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
           sections.push(`Feature a ${modelParts.join(', ')}`);
           sections.push("");
         }
+      }
+    }
+    
+    // === PRODUCT COMPONENTS (always include when available) ===
+    if (request.originalComponents) {
+      const orig = request.originalComponents;
+      const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'];
+      const componentLines: string[] = [];
+
+      for (const type of componentTypes) {
+        const comp = orig[type];
+        if (comp && comp.material) {
+          componentLines.push(
+            `${type.toUpperCase()}: ${comp.material} in ${comp.color || 'N/A'}`
+          );
+        }
+      }
+
+      if (componentLines.length > 0) {
+        sections.push("=== PRODUCT COMPONENTS (from analysis) ===");
+        sections.push("Accurately describe these materials and features in your prompt:");
+        componentLines.forEach(line => sections.push(line));
+        sections.push("");
       }
     }
     

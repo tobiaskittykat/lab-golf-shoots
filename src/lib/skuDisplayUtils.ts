@@ -10,6 +10,7 @@ export interface SKUDisplayInfo {
   color: string;
   productType: string;
   fullName: string;
+  summary?: string;
 }
 
 // Known footwear brands for parsing
@@ -88,6 +89,9 @@ export function parseSkuDisplayInfo(
     }
     if (description.product_type) {
       result.productType = capitalizeFirst(description.product_type);
+    }
+    if (description.summary) {
+      result.summary = description.summary;
     }
   }
   
