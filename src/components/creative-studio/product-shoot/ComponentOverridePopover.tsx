@@ -46,7 +46,7 @@ export function ComponentOverridePopover({
   const isModified = selectedMaterial !== currentMaterial || selectedColor !== currentColor;
   
   // Check if this material is color-matched (inherits from upper)
-  const isColorMatched = selectedMaterial === 'Matte Plastic (Coordinated)' || selectedMaterial === 'Metal (Coordinated)';
+  const isColorMatched = selectedMaterial === 'Matte Plastic (Coordinated)' || selectedMaterial === 'Metal (Coordinated)' || selectedMaterial === 'Translucent (Coordinated)';
 
   // Group materials by category
   const groupedMaterials = useMemo(() => {

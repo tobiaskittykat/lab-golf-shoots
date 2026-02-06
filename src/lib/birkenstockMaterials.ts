@@ -60,6 +60,7 @@ export const COMPONENT_MATERIALS: Record<string, MaterialOption[]> = {
     // Translucent/Big Buckle options
     { value: 'Translucent', label: 'Translucent (Clear)', category: 'Special' },
     { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)', category: 'Special' },
+    { value: 'Translucent (Coordinated)', label: 'Translucent Plastic (Color-Matched)', category: 'Special' },
     { value: 'Metallic Rose Gold', label: 'Metallic (Rose Gold Big Buckle)', category: 'Special' },
   ],
   heelstrap: [
