@@ -6,19 +6,23 @@
 // Materials organized by component type
 export const COMPONENT_MATERIALS = {
   upper: [
-    { value: 'Suede', label: 'Suede' },
+    // Natural Leathers
     { value: 'Oiled Leather', label: 'Oiled Leather' },
     { value: 'Smooth Leather', label: 'Smooth Leather' },
-    { value: 'Nubuck', label: 'Nubuck' },
-    { value: 'Birko-Flor', label: 'Birko-Flor' },
-    { value: 'Birkibuc', label: 'Birkibuc' },
-    { value: 'Wool Felt', label: 'Wool Felt' },
-    { value: 'EVA', label: 'EVA' },
+    { value: 'Nubuck', label: 'Nubuck (Leather)' },
+    { value: 'Suede', label: 'Suede' },
     { value: 'Patent Leather', label: 'Patent Leather' },
     { value: 'Shearling', label: 'Shearling' },
-    // Fabric/textile options
-    { value: 'Fabric', label: 'Fabric (Woven)' },
+    // Birkenstock Synthetics
+    { value: 'Birko-Flor', label: 'Birko-Flor (Smooth)' },
+    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' },
+    { value: 'Birko-Flor Patent', label: 'Birko-Flor Patent' },
+    { value: 'Birkibuc', label: 'Birkibuc' },
+    { value: 'EVA', label: 'EVA (Molded)' },
+    // Textiles
+    { value: 'Wool Felt', label: 'Wool Felt' },
     { value: 'Canvas', label: 'Canvas' },
+    { value: 'Fabric', label: 'Fabric (Woven)' },
     { value: 'Mesh', label: 'Mesh (Breathable)' },
     { value: 'Recycled PET', label: 'Recycled PET (Eco)' },
   ],
@@ -35,19 +39,27 @@ export const COMPONENT_MATERIALS = {
     { value: 'Cork', label: 'Cork' },
   ],
   buckles: [
+    // Metal finishes
     { value: 'Metal (Brass)', label: 'Metal (Brass/Gold)' },
     { value: 'Metal (Silver)', label: 'Metal (Silver)' },
     { value: 'Metal (Copper)', label: 'Metal (Copper)' },
+    { value: 'Metal (Rose Gold)', label: 'Metal (Rose Gold)' },
     { value: 'Antique Brass', label: 'Antique Brass' },
+    // Plastic finishes
     { value: 'Matte Plastic', label: 'Matte Plastic' },
     { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)' },
+    // Translucent/Big Buckle options
+    { value: 'Translucent', label: 'Translucent (Clear)' },
+    { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)' },
+    { value: 'Metallic Rose Gold', label: 'Metallic (Rose Gold Big Buckle)' },
   ],
   heelstrap: [
     { value: 'Suede', label: 'Suede' },
     { value: 'Oiled Leather', label: 'Oiled Leather' },
     { value: 'Smooth Leather', label: 'Smooth Leather' },
-    { value: 'Birko-Flor', label: 'Birko-Flor' },
     { value: 'Nubuck', label: 'Nubuck' },
+    { value: 'Birko-Flor', label: 'Birko-Flor' },
+    { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' },
   ],
   lining: [
     { value: 'Shearling (Cream)', label: 'Shearling (Cream)' },
@@ -84,6 +96,9 @@ export const COLOR_PRESETS = [
   { name: 'Apricot', hex: '#E6A57E', category: 'color' },
   { name: 'Coral', hex: '#FF7F50', category: 'color' },
   { name: 'Peach', hex: '#FFDAB9', category: 'color' },
+  // Metallic/Special
+  { name: 'Rose Gold', hex: '#B76E79', category: 'metallic' },
+  { name: 'Blush', hex: '#DE98AB', category: 'color' },
 ] as const;
 
 // Component type definitions
