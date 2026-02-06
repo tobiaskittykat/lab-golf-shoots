@@ -931,75 +931,69 @@ The result should look like a simple watermark/branding overlay.`;
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+// Helper: Create pending rows in generated_images table
+async function createPendingRows(
+  supabaseClient: any,
+  userId: string,
+  body: GenerateImageRequest,
+  imageCount: number,
+): Promise<string[]> {
+  const pendingIds: string[] = [];
+  for (let i = 0; i < imageCount; i++) {
+    const { data, error } = await supabaseClient
+      .from('generated_images')
+      .insert({
+        user_id: userId,
+        brand_id: body.brandId || null,
+        prompt: body.prompt || '',
+        image_url: '', // Placeholder - updated when generation completes
+        status: 'pending',
+        concept_title: body.conceptTitle || null,
+        folder: body.folder || 'Uncategorized',
+      })
+      .select('id')
+      .single();
+    if (data) {
+      pendingIds.push(data.id);
+    } else {
+      console.error(`[ASYNC] Failed to create pending row ${i}:`, error);
+    }
   }
+  return pendingIds;
+}
+
+// Background generation - runs after HTTP response is sent via EdgeRuntime.waitUntil
+async function runBackgroundGeneration(params: {
+  pendingIds: string[];
+  body: GenerateImageRequest & { moodboard?: { thumbnail?: string; url?: string } };
+  userId: string;
+  supabaseUrl: string;
+  supabaseServiceKey: string;
+  apiKey: string;
+  selectedModel: string;
+}) {
+  const { pendingIds, body, userId, supabaseUrl, supabaseServiceKey, apiKey, selectedModel } = params;
+  const bgSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase credentials not configured");
-    }
-
-    // Get auth header for user identification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
-    // Get user from JWT
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const body: GenerateImageRequest & { moodboard?: { thumbnail?: string; url?: string } } = await req.json();
-    const imageCount = Math.min(body.imageCount || 1, 8);
-    const selectedModel = modelMap[body.aiModel || 'auto'] || modelMap['auto'];
-    
-    // Extract moodboard URL from various possible locations (top-level or nested)
     const moodboardUrl = body.moodboardUrl || body.moodboard?.thumbnail || body.moodboard?.url;
-    console.log("=== MOODBOARD URL EXTRACTION ===");
-    console.log("body.moodboardUrl:", body.moodboardUrl);
-    console.log("body.moodboard?.thumbnail:", body.moodboard?.thumbnail);
-    console.log("Resolved moodboardUrl:", moodboardUrl || "NONE");
-    console.log("================================");
-    
-    console.log("Generating", imageCount, "images with model:", selectedModel);
-    console.log("Request:", JSON.stringify(body, null, 2));
+    console.log("[BG] Starting background generation for", pendingIds.length, "images");
+    console.log("[BG] Model:", selectedModel, "| Moodboard:", moodboardUrl || "NONE");
 
-    // Use the prompt agent to craft a refined, intelligent prompt
-    const refinedPrompt = await craftPromptWithAgent(body, LOVABLE_API_KEY);
-    console.log("Refined prompt:", refinedPrompt);
+    // Craft refined prompt (can take a few seconds)
+    const refinedPrompt = await craftPromptWithAgent(body, apiKey);
+    console.log("[BG] Refined prompt:", refinedPrompt);
 
-    // Generate images in parallel for faster response
-    const generateSingleImage = async (index: number): Promise<any> => {
+    // Generate each image in parallel
+    const generateOne = async (pendingId: string, index: number) => {
       try {
-        console.log(`Generating image ${index + 1}/${imageCount}...`);
-        
+        console.log(`[BG] Generating image ${index + 1}/${pendingIds.length}...`);
+
         // Build multimodal content
         const messageContent: any[] = [
           { type: "text", text: refinedPrompt }
         ];
-        
+
         // Add source image for editing (image-to-image)
         if (body.editMode && body.sourceImageUrl && body.sourceImageUrl.startsWith('http')) {
           messageContent.unshift({
@@ -1011,10 +1005,9 @@ Deno.serve(async (req) => {
             text: "Edit the following image according to these instructions:"
           });
         }
-        
-        // Add moodboard reference as style guide (IMPORTANT: must attach as image)
+
+        // Add moodboard reference as style guide
         if (moodboardUrl && moodboardUrl.startsWith('http')) {
-          console.log("✅ ATTACHING MOODBOARD TO MULTIMODAL PAYLOAD:", moodboardUrl);
           messageContent.push({
             type: "image_url",
             image_url: { url: moodboardUrl }
@@ -1023,158 +1016,98 @@ Deno.serve(async (req) => {
             type: "text",
             text: "⚠️ PRIMARY STYLE REFERENCE: This moodboard image should STRONGLY influence the color palette, lighting quality, mood, and visual atmosphere of the generated image. It carries HIGH WEIGHT for all aesthetic decisions. Blend it harmoniously with the text direction, but let this image lead the visual feel."
           });
-        } else {
-          console.log("⚠️ NO MOODBOARD URL TO ATTACH - moodboardUrl was:", moodboardUrl);
         }
-        
-        // Add product references as visual inputs (up to 10, skip GIFs which aren't supported)
-        // BUT: Only attach if attachReferenceImages is not explicitly false
+
+        // Add product references as visual inputs
         const shouldAttachProductRefs = body.attachReferenceImages !== false;
         const productUrls = (body.productReferenceUrls || [])
-          .filter(url => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
-        
+          .filter((url: string) => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
+
         if (shouldAttachProductRefs && productUrls.length > 0) {
-          // Attach up to 10 product reference images for maximum fidelity - Gemini supports many images
           const attachCount = Math.min(productUrls.length, 10);
           for (let i = 0; i < attachCount; i++) {
-            const url = productUrls[i];
             messageContent.push({
               type: "image_url",
-              image_url: { url }
+              image_url: { url: productUrls[i] }
             });
           }
           messageContent.push({
             type: "text",
-            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.
-
-MANDATORY REQUIREMENTS:
-- Preserve EXACT visual details: materials, textures, colors, hardware finishes
-- Match proportions and silhouette precisely  
-- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy
-- Do NOT simplify, reimagine, or take creative liberties with these products
-- The products should look like they were photographed, not illustrated or reinterpreted
-- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
+            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.\n\nMANDATORY REQUIREMENTS:\n- Preserve EXACT visual details: materials, textures, colors, hardware finishes\n- Match proportions and silhouette precisely\n- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy\n- Do NOT simplify, reimagine, or take creative liberties with these products\n- The products should look like they were photographed, not illustrated or reinterpreted\n- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
           });
         } else if (!shouldAttachProductRefs && productUrls.length > 0) {
-          console.log("⚠️ SKIPPING PRODUCT IMAGE ATTACHMENTS - user toggled off reference images");
-          // Add a note to the prompt that we're relying on text descriptions only
+          console.log("[BG] ⚠️ SKIPPING PRODUCT IMAGE ATTACHMENTS - user toggled off");
           messageContent.push({
             type: "text",
-            text: `⚠️ NOTE: Reference images are disabled for this generation. Create the product based on the text descriptions provided in the prompt. Use the component overrides and product identity descriptions to guide the rendering.`
+            text: `⚠️ NOTE: Reference images are disabled for this generation. Create the product based on the text descriptions provided in the prompt.`
           });
         }
-        
-        // Note: Shot type guidance is now in the text prompt via the creative brief
-        // No image attachment for shot references - they guide via text only
-        
-        // Log the multimodal content structure for transparency
-        console.log("=== MULTIMODAL CONTENT STRUCTURE ===");
-        console.log(JSON.stringify(messageContent.map(c => 
-          c.type === 'image_url' ? { type: 'image_url', url: c.image_url?.url?.slice(0, 100) + '...' } : c
-        ), null, 2));
-        console.log("=====================================");
 
-        // Map resolution to Gemini image_size format
+        // Map resolution to image_size
         const imageSizeMap: Record<string, string> = {
-          '512': '1K',    // 512px → 1K (closest match)
-          '1024': '1K',   // 1024px → 1K
-          '2048': '2K',   // 2048px → 2K
-          '4096': '4K',   // 4096px → 4K (true 4K!)
+          '512': '1K', '1024': '1K', '2048': '2K', '4096': '4K',
         };
-
         const imageSize = imageSizeMap[body.resolution || '1024'] || '1K';
         const aspectRatio = body.aspectRatio || '1:1';
 
-        console.log(`Image config: size=${imageSize}, aspectRatio=${aspectRatio}`);
+        console.log(`[BG] Image ${index + 1} config: size=${imageSize}, aspectRatio=${aspectRatio}`);
 
-        // Call Lovable AI Gateway for image generation
+        // Call AI Gateway for image generation
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             model: selectedModel,
-            messages: [
-              { 
-                role: "user", 
-                content: messageContent
-              }
-            ],
+            messages: [{ role: "user", content: messageContent }],
             modalities: ["image", "text"],
-            image_config: {
-              image_size: imageSize,
-              aspect_ratio: aspectRatio,
-            },
+            image_config: { image_size: imageSize, aspect_ratio: aspectRatio },
           }),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`Image generation error for image ${index + 1}:`, response.status, errorText);
-          return {
-            status: 'failed',
-            error: `Generation failed: ${response.status}`,
-            index
-          };
+          console.error(`[BG] Image ${index + 1} API error:`, response.status, errorText);
+          throw new Error(`Generation failed: ${response.status}`);
         }
 
         const aiResponse = await response.json();
-        console.log(`AI response for image ${index + 1}:`, JSON.stringify(aiResponse).slice(0, 500));
-        
-        // Extract the image from the response
         const images = aiResponse.choices?.[0]?.message?.images;
         if (!images || images.length === 0) {
-          console.error(`No images in response for image ${index + 1}`);
-          return {
-            status: 'failed',
-            error: 'No image in response',
-            index
-          };
+          throw new Error('No image in response');
         }
 
         const imageData = images[0];
         const imageUrl = imageData.image_url?.url;
-        
         if (!imageUrl || !imageUrl.startsWith('data:image')) {
-          console.error(`Invalid image URL format for image ${index + 1}`);
-          return {
-            status: 'failed',
-            error: 'Invalid image format',
-            index
-          };
+          throw new Error('Invalid image format');
         }
 
-        // Extract base64 data
+        // Extract base64
         const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
         if (!base64Match) {
-          console.error(`Could not parse base64 for image ${index + 1}`);
-          return {
-            status: 'failed',
-            error: 'Could not parse image data',
-            index
-          };
+          throw new Error('Could not parse image data');
         }
 
         const imageFormat = base64Match[1];
         let base64Data = base64Match[2];
-        
+
         // Composite logo if enabled
         if (body.logoPlacement?.enabled && body.logoPlacement.logoUrl) {
-          console.log("Logo placement enabled, compositing...");
+          console.log("[BG] Compositing logo...");
           base64Data = await compositeLogoOnImage(base64Data, body.logoPlacement);
         }
-        
+
         const imageBytes = base64ToUint8Array(base64Data);
-        
-        // Generate unique filename
+
+        // Upload to storage
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substring(2, 8);
-        const filename = `${user.id}/${timestamp}-${randomId}.${imageFormat}`;
-        
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const filename = `${userId}/${timestamp}-${randomId}.${imageFormat}`;
+
+        const { error: uploadError } = await bgSupabase.storage
           .from('generated-images')
           .upload(filename, imageBytes, {
             contentType: `image/${imageFormat}`,
@@ -1182,40 +1115,28 @@ MANDATORY REQUIREMENTS:
           });
 
         if (uploadError) {
-          console.error(`Upload error for image ${index + 1}:`, uploadError);
-          return {
-            status: 'failed',
-            error: 'Failed to save image',
-            index
-          };
+          throw new Error(`Failed to save image: ${uploadError.message}`);
         }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = bgSupabase.storage
           .from('generated-images')
           .getPublicUrl(filename);
 
         const publicUrl = urlData.publicUrl;
-        console.log(`Image ${index + 1} uploaded to:`, publicUrl);
+        console.log(`[BG] Image ${index + 1} uploaded:`, publicUrl);
 
-        // Determine if product references were actually attached to the AI payload
+        // UPDATE the pending row with completed data
         const refsWereAttached = body.attachReferenceImages !== false;
-        
-        // Save to database with references stored in settings for reliable retrieval
-        const { data: dbRecord, error: dbError } = await supabase
+        const { error: updateError } = await bgSupabase
           .from('generated_images')
-          .insert({
-            user_id: user.id,
-            brand_id: body.brandId || null,
-            prompt: body.prompt,
+          .update({
+            image_url: publicUrl,
             refined_prompt: refinedPrompt,
             negative_prompt: body.negativePrompt || null,
-            image_url: publicUrl,
             product_reference_url: refsWereAttached ? (body.productReferenceUrls?.[0] || null) : null,
-            context_reference_url: null, // Shot types are now text prompts, not image URLs
             moodboard_id: body.moodboardId || null,
             settings: {
-              aiModel: selectedModel, // Save actual model used, not user selection
+              aiModel: selectedModel,
               artisticStyle: body.artisticStyle,
               lightingStyle: body.lightingStyle,
               cameraAngle: body.cameraAngle,
@@ -1225,76 +1146,134 @@ MANDATORY REQUIREMENTS:
               seed: body.seed,
               extraKeywords: body.extraKeywords,
               textOnImage: body.textOnImage,
-              // Only store references that were ACTUALLY attached to the generation
               references: {
                 moodboardId: body.moodboardId || null,
-                // Moodboard is always attached when present (no toggle for moodboard)
                 moodboardUrl: body.moodboardUrl || null,
                 moodboardDescription: body.moodboardDescription || null,
-                // Only include product refs if they were actually attached
                 productReferenceUrls: refsWereAttached ? (body.productReferenceUrls || []) : [],
                 shotTypePrompt: body.shotTypePrompt || null,
                 sourceImageUrl: body.sourceImageUrl || null,
-                // Track whether references were attached for clarity
                 referencesAttached: refsWereAttached,
               },
-              // Track if logo was applied
               logoApplied: body.logoPlacement?.enabled || false,
               logoPosition: body.logoPlacement?.position || null,
             },
             concept_id: body.conceptTitle ? `concept-${index}` : null,
-            concept_title: body.conceptTitle || null,
             status: 'completed',
-            folder: body.folder || 'Uncategorized',
           })
-          .select()
-          .single();
+          .eq('id', pendingId);
 
-        if (dbError) {
-          console.error(`Database error for image ${index + 1}:`, dbError);
+        if (updateError) {
+          console.error(`[BG] DB update error for image ${index + 1}:`, updateError);
+        } else {
+          console.log(`[BG] ✅ Image ${index + 1} completed`);
         }
 
-        return {
-          id: dbRecord?.id || `temp-${index}`,
-          imageUrl: publicUrl,
-          status: 'completed',
-          prompt: body.prompt,
-          refinedPrompt,
-          index
-        };
-
-      } catch (imageError) {
-        console.error(`Error generating image ${index + 1}:`, imageError);
-        return {
-          status: 'failed',
-          error: imageError instanceof Error ? imageError.message : 'Unknown error',
-          index
-        };
+      } catch (err) {
+        console.error(`[BG] ❌ Image ${index + 1} failed:`, err);
+        await bgSupabase
+          .from('generated_images')
+          .update({
+            status: 'failed',
+            error_message: err instanceof Error ? err.message : 'Unknown error',
+          })
+          .eq('id', pendingId);
       }
     };
 
     // Generate all images in parallel
-    const imagePromises = Array.from({ length: imageCount }, (_, i) => generateSingleImage(i));
-    const generatedImages = await Promise.all(imagePromises);
+    await Promise.all(pendingIds.map((id, i) => generateOne(id, i)));
+    console.log(`[BG] Background generation complete`);
 
-    // Check if any images were generated
-    const successfulImages = generatedImages.filter(img => img.status === 'completed');
-    console.log(`Generated ${successfulImages.length}/${imageCount} images successfully`);
+  } catch (err) {
+    console.error("[BG] Critical failure:", err);
+    // Mark all as failed
+    for (const id of pendingIds) {
+      await bgSupabase
+        .from('generated_images')
+        .update({
+          status: 'failed',
+          error_message: err instanceof Error ? err.message : 'Generation failed',
+        })
+        .eq('id', id);
+    }
+  }
+}
 
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase credentials not configured");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body: GenerateImageRequest & { moodboard?: { thumbnail?: string; url?: string } } = await req.json();
+    const imageCount = Math.min(body.imageCount || 1, 8);
+    const selectedModel = modelMap[body.aiModel || 'auto'] || modelMap['auto'];
+
+    console.log("[ASYNC] Creating", imageCount, "pending rows for user", user.id);
+
+    // Create pending rows in database
+    const pendingIds = await createPendingRows(supabase, user.id, body, imageCount);
+
+    if (pendingIds.length === 0) {
+      throw new Error("Failed to create pending image records");
+    }
+
+    console.log("[ASYNC] Pending rows created:", pendingIds);
+
+    // Start background generation (continues after HTTP response)
+    EdgeRuntime.waitUntil(
+      runBackgroundGeneration({
+        pendingIds,
+        body,
+        userId: user.id,
+        supabaseUrl: SUPABASE_URL,
+        supabaseServiceKey: SUPABASE_SERVICE_ROLE_KEY,
+        apiKey: LOVABLE_API_KEY,
+        selectedModel,
+      })
+    );
+
+    // Return immediately with pending IDs
     return new Response(
-      JSON.stringify({ 
-        images: generatedImages,
+      JSON.stringify({
+        pendingIds,
+        status: 'processing',
         total: imageCount,
-        successful: successfulImages.length
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
     console.error("Error in generate-image:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate images";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to generate images" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
