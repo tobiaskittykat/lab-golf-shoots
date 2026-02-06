@@ -1159,6 +1159,9 @@ MANDATORY REQUIREMENTS:
         const publicUrl = urlData.publicUrl;
         console.log(`Image ${index + 1} uploaded to:`, publicUrl);
 
+        // Determine if product references were actually attached to the AI payload
+        const refsWereAttached = body.attachReferenceImages !== false;
+        
         // Save to database with references stored in settings for reliable retrieval
         const { data: dbRecord, error: dbError } = await supabase
           .from('generated_images')
@@ -1169,7 +1172,7 @@ MANDATORY REQUIREMENTS:
             refined_prompt: refinedPrompt,
             negative_prompt: body.negativePrompt || null,
             image_url: publicUrl,
-            product_reference_url: (body.productReferenceUrls && body.productReferenceUrls[0]) || null,
+            product_reference_url: refsWereAttached ? (body.productReferenceUrls?.[0] || null) : null,
             context_reference_url: null, // Shot types are now text prompts, not image URLs
             moodboard_id: body.moodboardId || null,
             settings: {
@@ -1183,14 +1186,18 @@ MANDATORY REQUIREMENTS:
               seed: body.seed,
               extraKeywords: body.extraKeywords,
               textOnImage: body.textOnImage,
-              // Store all references for reliable UI display
+              // Only store references that were ACTUALLY attached to the generation
               references: {
                 moodboardId: body.moodboardId || null,
+                // Moodboard is always attached when present (no toggle for moodboard)
                 moodboardUrl: body.moodboardUrl || null,
                 moodboardDescription: body.moodboardDescription || null,
-                productReferenceUrls: body.productReferenceUrls || [],
+                // Only include product refs if they were actually attached
+                productReferenceUrls: refsWereAttached ? (body.productReferenceUrls || []) : [],
                 shotTypePrompt: body.shotTypePrompt || null,
                 sourceImageUrl: body.sourceImageUrl || null,
+                // Track whether references were attached for clarity
+                referencesAttached: refsWereAttached,
               },
               // Track if logo was applied
               logoApplied: body.logoPlacement?.enabled || false,
