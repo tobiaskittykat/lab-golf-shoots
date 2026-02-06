@@ -1,112 +1,129 @@
 
 
-# Update Materials Library: Add Birko-Flor Variants & Translucent Buckles
+# Add EVA to Lining & Visual Category Headers in Material Picker
 
-## Overview
+## Issues Found
 
-Updating `src/lib/birkenstockMaterials.ts` to add missing materials and buckle finishes based on actual Birkenstock catalog.
+1. **Missing Material**: `EVA` is not in the `lining` array - needed for molded sandals
+2. **No Visual Categorization**: The material list has category comments in the code but the UI shows all materials in a flat grid with no groupings
 
 ---
 
-## Changes to `src/lib/birkenstockMaterials.ts`
+## Changes
 
-### 1. Update Upper Materials (add Birko-Flor variants, organize with clearer labels)
+### 1. Add EVA to Lining Materials
+
+**File: `src/lib/birkenstockMaterials.ts`**
+
+```typescript
+lining: [
+  { value: 'Shearling (Cream)', label: 'Shearling (Cream)' },
+  { value: 'Shearling (Black)', label: 'Shearling (Black)' },
+  { value: 'Suede', label: 'Suede' },
+  { value: 'Wool Felt', label: 'Wool Felt' },
+  { value: 'Microfiber', label: 'Microfiber' },
+  { value: 'EVA', label: 'EVA (Molded)' },  // NEW
+],
+```
+
+### 2. Add Category Metadata to Materials
+
+Update the data structure to include category info for UI rendering:
+
+**File: `src/lib/birkenstockMaterials.ts`**
 
 ```typescript
 upper: [
   // Natural Leathers
-  { value: 'Oiled Leather', label: 'Oiled Leather' },
-  { value: 'Smooth Leather', label: 'Smooth Leather' },
-  { value: 'Nubuck', label: 'Nubuck (Leather)' },        // Clarified
-  { value: 'Suede', label: 'Suede' },
-  { value: 'Patent Leather', label: 'Patent Leather' },
-  { value: 'Shearling', label: 'Shearling' },
-  
-  // Birkenstock Synthetics
-  { value: 'Birko-Flor', label: 'Birko-Flor (Smooth)' },      // Clarified
-  { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' }, // NEW
-  { value: 'Birko-Flor Patent', label: 'Birko-Flor Patent' }, // NEW
-  { value: 'Birkibuc', label: 'Birkibuc' },
-  { value: 'EVA', label: 'EVA (Molded)' },                    // Clarified
-  
+  { value: 'Oiled Leather', label: 'Oiled Leather', category: 'Natural Leathers' },
+  { value: 'Smooth Leather', label: 'Smooth Leather', category: 'Natural Leathers' },
+  { value: 'Nubuck', label: 'Nubuck (Leather)', category: 'Natural Leathers' },
+  // ... etc
+  // Synthetics
+  { value: 'Birko-Flor', label: 'Birko-Flor (Smooth)', category: 'Synthetics' },
+  // ... etc
   // Textiles
-  { value: 'Wool Felt', label: 'Wool Felt' },
-  { value: 'Canvas', label: 'Canvas' },
-  { value: 'Fabric', label: 'Fabric (Woven)' },
-  { value: 'Mesh', label: 'Mesh (Breathable)' },
-  { value: 'Recycled PET', label: 'Recycled PET (Eco)' },
+  { value: 'Canvas', label: 'Canvas', category: 'Textiles' },
+  // ... etc
 ],
 ```
 
-### 2. Add New Buckle Finishes (Translucent, Metallic Rose Gold, Big Buckle)
+### 3. Update UI to Show Category Headers
+
+**File: `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx`**
+
+Group materials by category and render section headers:
 
 ```typescript
-buckles: [
-  // Metal finishes
-  { value: 'Metal (Brass)', label: 'Metal (Brass/Gold)' },
-  { value: 'Metal (Silver)', label: 'Metal (Silver)' },
-  { value: 'Metal (Copper)', label: 'Metal (Copper)' },
-  { value: 'Metal (Rose Gold)', label: 'Metal (Rose Gold)' },  // NEW
-  { value: 'Antique Brass', label: 'Antique Brass' },
-  
-  // Plastic finishes
-  { value: 'Matte Plastic', label: 'Matte Plastic' },
-  { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)' },
-  
-  // Translucent/Big Buckle options  
-  { value: 'Translucent', label: 'Translucent (Clear)' },              // NEW
-  { value: 'Translucent Rose Gold', label: 'Translucent (Rose Gold)' }, // NEW
-  { value: 'Metallic Rose Gold', label: 'Metallic (Rose Gold Big Buckle)' }, // NEW
-],
-```
+// Group materials by category
+const groupedMaterials = useMemo(() => {
+  const groups: Record<string, typeof materials> = {};
+  materials.forEach(mat => {
+    const cat = mat.category || 'Other';
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(mat);
+  });
+  return groups;
+}, [materials]);
 
-### 3. Update Heelstrap (add Birko-Flor Nubuck)
-
-```typescript
-heelstrap: [
-  { value: 'Suede', label: 'Suede' },
-  { value: 'Oiled Leather', label: 'Oiled Leather' },
-  { value: 'Smooth Leather', label: 'Smooth Leather' },
-  { value: 'Nubuck', label: 'Nubuck' },
-  { value: 'Birko-Flor', label: 'Birko-Flor' },
-  { value: 'Birko-Flor Nubuck', label: 'Birko-Flor Nubuck' },  // NEW
-],
-```
-
-### 4. Add Rose Gold to Color Presets
-
-```typescript
-// Add to COLOR_PRESETS array
-{ name: 'Rose Gold', hex: '#B76E79', category: 'metallic' },
-{ name: 'Blush', hex: '#DE98AB', category: 'color' },  // For the pink EVA
+// In render:
+{Object.entries(groupedMaterials).map(([category, mats]) => (
+  <div key={category} className="space-y-1.5">
+    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+      {category}
+    </p>
+    <div className="grid grid-cols-2 gap-1.5">
+      {mats.map((mat) => (
+        // existing material button...
+      ))}
+    </div>
+  </div>
+))}
 ```
 
 ---
 
-## Summary of Additions
+## Visual Result
 
-| Category | New Options |
-|----------|-------------|
-| **Upper** | `Birko-Flor Nubuck`, `Birko-Flor Patent` |
-| **Buckles** | `Metal (Rose Gold)`, `Translucent`, `Translucent Rose Gold`, `Metallic Rose Gold Big Buckle` |
-| **Heelstrap** | `Birko-Flor Nubuck` |
-| **Colors** | `Rose Gold`, `Blush` |
+**Before** (flat list):
+```
+┌─────────────┬─────────────┐
+│ Oiled       │ Smooth      │
+│ Nubuck      │ Suede       │
+│ Patent      │ Shearling   │
+│ Birko-Flor  │ Birko-Flor  │
+│ ...         │ ...         │
+└─────────────┴─────────────┘
+```
+
+**After** (grouped with headers):
+```
+NATURAL LEATHERS
+┌─────────────┬─────────────┐
+│ Oiled       │ Smooth      │
+│ Nubuck      │ Suede       │
+│ Patent      │ Shearling   │
+└─────────────┴─────────────┘
+
+SYNTHETICS  
+┌─────────────┬─────────────┐
+│ Birko-Flor  │ Birko-Flor  │
+│ Birkibuc    │ EVA (Molded)│
+└─────────────┴─────────────┘
+
+TEXTILES
+┌─────────────┬─────────────┐
+│ Wool Felt   │ Canvas      │
+│ Fabric      │ Mesh        │
+└─────────────┴─────────────┘
+```
 
 ---
 
-## Labels Clarified
-
-| Before | After |
-|--------|-------|
-| `Nubuck` | `Nubuck (Leather)` |
-| `Birko-Flor` | `Birko-Flor (Smooth)` |
-| `EVA` | `EVA (Molded)` |
-
----
-
-## File to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/lib/birkenstockMaterials.ts` | Add new materials, buckle finishes, colors; clarify labels |
+| `src/lib/birkenstockMaterials.ts` | Add EVA to lining; add `category` property to all materials in `upper`, `buckles`, `heelstrap` |
+| `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx` | Group materials by category and render with section headers |
 
