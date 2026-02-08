@@ -35,6 +35,10 @@ Colors: Usually black, brown, white, or tan
 Adjustment hardware on straps.
 Types: Metal (brass/gold, silver, copper, antique brass) or Matte Plastic (EVA models)
 Note: Some styles like the Boston clog have 1 buckle, Arizona has 2
+Note for thong-style sandals (Gizeh, Ramses, Mayari): The small pin/rivet 
+at the top of the toe post is part of the buckle hardware system. It should 
+match the buckle finish (e.g., both brass, both silver). Report the buckle 
+material/color to cover both the strap buckle AND the toe post pin.
 
 **HEELSTRAP** (Optional - only if present)
 Back strap that wraps behind the heel.
@@ -57,7 +61,9 @@ IMPORTANT:
 - If a component is not visible or doesn't exist for this shoe type, return null for that component
 - Be very specific about colors - "tobacco brown oiled leather" is better than "brown"
 - For buckles, note the finish/color of the metal
-- Provide hex codes that best represent the actual color you see`;
+- Provide hex codes that best represent the actual color you see
+- For thong-style sandals (Gizeh, Ramses, Mayari): the toe post STRAP typically matches the SOLE color, 
+  while the toe post PIN/RIVET matches the BUCKLE hardware finish`;
 
 const TOOL_DEFINITION = {
   name: "extract_shoe_components",

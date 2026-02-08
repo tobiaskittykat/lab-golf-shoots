@@ -204,6 +204,11 @@ CRITICAL RULES:
     - NEVER leave colorHex empty or null when changing a color
 14. When user specifies BOTH material AND color, apply BOTH together - don't just change one.
 15. EVA is a valid material for: upper (molded sandals), sole, footbed, heelstrap, lining. For "all EVA" requests, apply to ALL these components.
+16. For thong-style sandals (Gizeh, Ramses, Mayari): The toe post strap color 
+    follows the SOLE color, and the toe post pin/rivet follows the BUCKLE hardware. 
+    When changing sole color, the toe post strap automatically matches. 
+    When changing buckle finish, the toe post pin automatically matches.
+    No separate component needed.
 
 EXAMPLES:
 - "baby blue version" → upper: { material: (keep original), color: "Baby Blue", colorHex: "#89CFF0" }

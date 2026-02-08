@@ -247,6 +247,14 @@ export function buildComponentOverridePrompt(
     }
   }
   
+  // Add toe post relationship notes for thong-style sandals
+  if (overrides.sole) {
+    lines.push("Note: On thong-style sandals (Gizeh, Ramses, Mayari), the toe post strap matches the sole color.");
+  }
+  if (overrides.buckles) {
+    lines.push("Note: On thong-style sandals, the toe post pin/rivet matches the buckle finish.");
+  }
+  
   lines.push("");
   lines.push("Keep all OTHER components exactly as shown in reference images.");
   lines.push("The overall shoe silhouette/shape must remain unchanged.");

@@ -584,6 +584,15 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push("the original silhouette and proportions from reference images:");
         sections.push("");
         changedComponents.forEach(c => sections.push(c));
+        
+        // Toe post relationship notes for thong-style sandals
+        if (overrides.sole) {
+          sections.push("Note: On thong-style sandals (Gizeh, Ramses, Mayari), the toe post strap matches the sole color.");
+        }
+        if (overrides.buckles) {
+          sections.push("Note: On thong-style sandals, the toe post pin/rivet matches the buckle finish.");
+        }
+        
         sections.push("");
         sections.push("Keep all OTHER components exactly as shown in reference images.");
         sections.push("The overall shoe silhouette/shape must remain unchanged.");
