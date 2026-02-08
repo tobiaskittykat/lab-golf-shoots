@@ -78,6 +78,17 @@ CRITICAL RULES:
     - Your final prompt MUST explicitly describe and emphasize these branding elements to ensure the image generator renders them faithfully.
     - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials, same branding. Make this emphasis feel natural, not like a checklist.
 
+    **⚠️ BUCKLE SHAPE AND EMBOSSING FIDELITY**:
+    - When the user changes buckle material/color via overrides, change ONLY the surface finish (color, material, sheen).
+    - The buckle SHAPE, SIZE, proportions, and any EMBOSSED TEXT must remain EXACTLY as shown in the reference images.
+    - Never generate generic buckle shapes — always match the specific hardware design visible in the references.
+    - Embossed text on buckles (from BRANDING DETAILS) must be preserved even when changing to a different metal finish.
+
+    **⚠️ TOE POST ACCURACY**:
+    - ONLY thong-style sandals (e.g., Gizeh, Ramses) have a toe post strap between the toes with a pin/rivet.
+    - Crossover-strap sandals (e.g., Mayari) do NOT have a toe post — never describe one for these models.
+    - When TOE POST entries appear in the brief, describe the exact colors specified. When they don't appear, the shoe has no toe post.
+
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
    - When visual style guidelines are provided (photography style, color palette), incorporate them as foundational elements

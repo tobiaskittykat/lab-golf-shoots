@@ -607,17 +607,28 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push("");
         changedComponents.forEach(c => sections.push(c));
         
-        // Pre-resolve toe post colors for thong-style sandals (concrete values, not abstract rules)
-        const soleSource = overrides.sole || original.sole;
-        const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
-        
-        if (soleSource) {
-          const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
-          sections.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — critical for thong-style sandals like Gizeh, Ramses, Mayari)`);
+        // Pre-resolve toe post colors ONLY for thong-style sandals (based on analyzed construction)
+        const strapConstruction = (original as any).strapConstruction;
+        if (strapConstruction === 'thong') {
+          const soleSource = overrides.sole || original.sole;
+          const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
+          
+          if (soleSource) {
+            const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
+            sections.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — thong-style sandal construction)`);
+          }
+          if (buckleSource) {
+            const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
+            sections.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
+          }
         }
-        if (buckleSource) {
-          const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
-          sections.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
+        
+        // Buckle shape and embossing preservation
+        if (overrides.buckles) {
+          sections.push("");
+          sections.push("⚠️ BUCKLE SHAPE AND EMBOSSING: Change ONLY the material and color of the buckles.");
+          sections.push("The buckle SHAPE, SIZE, and any EMBOSSED TEXT must remain EXACTLY as shown in the reference images.");
+          sections.push("Engraving text and style are specified in the BRANDING DETAILS section above — preserve them precisely.");
         }
         
         sections.push("");
@@ -679,7 +690,8 @@ CRITICAL RULES:
 5. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.
 6. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
 7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
-8. **TOE POST ACCURACY (THONG-STYLE SANDALS)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. Its color and the small pin/rivet at its base are critical details that must be specified with exact color names.
+8. **TOE POST ACCURACY (THONG-STYLE SANDALS ONLY)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. ONLY thong-style sandals (e.g., Gizeh, Ramses) have a toe post. Crossover-strap sandals (e.g., Mayari) do NOT have a toe post — never describe one for those models.
+9. **BUCKLE SHAPE AND EMBOSSING FIDELITY** - When the user changes buckle material/color, change ONLY the surface finish. The buckle SHAPE, SIZE, proportions, and any EMBOSSED TEXT (from BRANDING DETAILS) must remain EXACTLY as shown in reference images. Never generate generic buckle shapes — always match the specific hardware design visible in the references.
 9. Be specific and evocative - use sensory language
 9. Keep it focused - one clear scene, not multiple concepts
 10. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
@@ -771,10 +783,12 @@ OVERRIDE RULES:
   - "...while keeping the silver buckle hardware exactly as shown in the reference photos"
 - Make it UNMISTAKABLY CLEAR what differs from the reference photos vs what matches them
 - The Image Generator needs this explicit contrast to know what to change vs preserve
-- For TOE POST details on thong sandals:
+- For TOE POST details on thong-style sandals (ONLY when TOE POST entries exist in the brief):
   - "White toe post strap (matching the White sole, instead of the original Black)"
   - "Silver toe post pin (matching the Silver buckle hardware)"
-  - Always describe toe post strap color AND pin/rivet finish explicitly when TOE POST entries exist in the brief`;
+  - Always describe toe post strap color AND pin/rivet finish explicitly when TOE POST entries exist
+  - NEVER describe a toe post for crossover-strap models (e.g., Mayari) — they don't have one
+- For BUCKLE OVERRIDES: change ONLY color/material; preserve original buckle SHAPE, SIZE, and EMBOSSED TEXT from references`;
       }
       
       // Add PROMPT-ONLY MODE instructions if reference images disabled for generator

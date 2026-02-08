@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Trash2, Upload, Package, Loader2, AlertTriangle, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,6 +40,7 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
   
   const [name, setName] = useState('');
   const [skuCode, setSkuCode] = useState('');
+  const [description, setDescription] = useState('');
   const [angles, setAngles] = useState<Angle[]>([]);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [deletedAngleIds, setDeletedAngleIds] = useState<string[]>([]);
@@ -78,6 +80,8 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
     if (skuData) {
       setName(skuData.name);
       setSkuCode(skuData.sku_code || '');
+      const desc = skuData.description as any;
+      setDescription(desc?.summary || '');
       setAngles(skuData.angles);
       setDeletedAngleIds([]);
       setPendingUploads([]);
@@ -152,11 +156,16 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
         });
       }
 
-      // 3. Update SKU name/code if changed
-      if (name !== skuData.name || skuCode !== (skuData.sku_code || '')) {
+      // 3. Update SKU metadata if changed
+      const existingDesc = skuData.description as any;
+      const originalSummary = existingDesc?.summary || '';
+      const metaChanged = name !== skuData.name || skuCode !== (skuData.sku_code || '') || description !== originalSummary;
+      
+      if (metaChanged) {
+        const updatedDescription = { ...(existingDesc || {}), summary: description };
         await supabase
           .from('product_skus')
-          .update({ name, sku_code: skuCode || null })
+          .update({ name, sku_code: skuCode || null, description: updatedDescription })
           .eq('id', skuId);
       }
 
@@ -212,10 +221,12 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
   };
 
   const totalAngles = angles.length + pendingUploads.length;
+  const originalSummary = (skuData?.description as any)?.summary || '';
   const hasChanges = deletedAngleIds.length > 0 || 
     pendingUploads.length > 0 || 
     name !== skuData?.name || 
-    skuCode !== (skuData?.sku_code || '');
+    skuCode !== (skuData?.sku_code || '') ||
+    description !== originalSummary;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -258,6 +269,20 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
                       onChange={(e) => setSkuCode(e.target.value)}
                       placeholder="e.g., BIRK-BOSTON-SHEAR"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-sku-description">Product Description</Label>
+                    <Textarea
+                      id="edit-sku-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Auto-generated product summary..."
+                      rows={3}
+                      className="text-sm resize-none"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Auto-generated summary used in image prompts. Edit to correct any inaccuracies.
+                    </p>
                   </div>
                 </div>
 

@@ -35,10 +35,11 @@ Colors: Usually black, brown, white, or tan
 Adjustment hardware on straps.
 Types: Metal (brass/gold, silver, copper, antique brass) or Matte Plastic (EVA models)
 Note: Some styles like the Boston clog have 1 buckle, Arizona has 2
-Note for thong-style sandals (Gizeh, Ramses, Mayari): The small pin/rivet 
+Note for thong-style sandals (Gizeh, Ramses): The small pin/rivet 
 at the top of the toe post is part of the buckle hardware system. It should 
 match the buckle finish (e.g., both brass, both silver). Report the buckle 
 material/color to cover both the strap buckle AND the toe post pin.
+Note: Crossover-strap sandals like the Mayari do NOT have a toe post or pin.
 
 **HEELSTRAP** (Optional - only if present)
 Back strap that wraps behind the heel.
@@ -72,8 +73,18 @@ IMPORTANT:
 - Be very specific about colors - "tobacco brown oiled leather" is better than "brown"
 - For buckles, note the finish/color of the metal
 - Provide hex codes that best represent the actual color you see
-- For thong-style sandals (Gizeh, Ramses, Mayari): the toe post STRAP typically matches the SOLE color, 
-  while the toe post PIN/RIVET matches the BUCKLE hardware finish`;
+- For thong-style sandals (Gizeh, Ramses): the toe post STRAP typically matches the SOLE color, 
+  while the toe post PIN/RIVET matches the BUCKLE hardware finish.
+- Crossover-strap sandals (Mayari, Yao) do NOT have a toe post or pin — do not describe one.
+
+STRAP CONSTRUCTION: Identify the construction type from the images:
+- 'thong' = has a toe post strap between big and second toe (e.g., Gizeh, Ramses)
+- 'crossover' = straps cross over the foot without a toe post (e.g., Mayari, Yao)
+- 'single-strap' = one wide strap (e.g., Madrid)
+- 'two-strap' = two parallel straps (e.g., Arizona, Milano)
+- 'clog' = enclosed upper (e.g., Boston, Kyoto)
+- 'slip-on' = no straps or buckles
+- 'other' = anything else`;
 
 const TOOL_DEFINITION = {
   name: "extract_shoe_components",
@@ -144,6 +155,11 @@ const TOOL_DEFINITION = {
           notes: { type: "string" }
         }
       },
+      strapConstruction: {
+        type: "string",
+        enum: ["thong", "crossover", "single-strap", "two-strap", "clog", "slip-on", "other"],
+        description: "The strap construction type of the shoe. 'thong' = has a toe post strap between big and second toe (e.g., Gizeh, Ramses). 'crossover' = straps cross over the foot without a toe post (e.g., Mayari, Yao). 'single-strap' = one wide strap (e.g., Madrid). 'two-strap' = two parallel straps (e.g., Arizona, Milano). 'clog' = enclosed upper (e.g., Boston, Kyoto). 'slip-on' = no straps or buckles. 'other' = anything else."
+      },
       branding: {
         type: "object",
         description: "All visible branding, logos, text, and engravings on the shoe",
@@ -177,7 +193,7 @@ const TOOL_DEFINITION = {
         required: ["footbedText", "buckleEngravings"]
       }
     },
-    required: ["upper", "footbed", "sole", "branding"]
+    required: ["upper", "footbed", "sole", "branding", "strapConstruction"]
   }
 };
 
@@ -312,7 +328,7 @@ Deno.serve(async (req) => {
     const componentsWithMeta = {
       ...components,
       analyzedAt: new Date().toISOString(),
-      analysisVersion: "1.2",
+      analysisVersion: "1.3",
     };
 
     // Save to database

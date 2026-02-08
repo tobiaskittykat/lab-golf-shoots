@@ -249,15 +249,16 @@ export function buildComponentOverridePrompt(
     }
   }
   
-  // Pre-resolve toe post colors for thong-style sandals (Gizeh, Ramses, Mayari)
-  // Instead of abstract relationship rules, inject concrete colors so the AI sees exact specs
-  if (overrides.sole) {
-    const soleColor = getColorDescription(overrides.sole);
-    lines.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — critical for thong-style sandals like Gizeh, Ramses, Mayari)`);
-  }
+  // NOTE: Toe post injection is handled by generate-image based on analyzed strapConstruction.
+  // This function only builds the override text — toe post lines are added server-side
+  // when strapConstruction === 'thong' (Gizeh, Ramses) but NOT for crossover models (Mayari).
+  
+  // Buckle shape/embossing preservation when buckle overrides are present
   if (overrides.buckles) {
-    const buckleColor = getColorDescription(overrides.buckles);
-    lines.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
+    lines.push("");
+    lines.push("⚠️ BUCKLE SHAPE AND EMBOSSING: Change ONLY the material and color.");
+    lines.push("The buckle SHAPE, SIZE, and any EMBOSSED TEXT must remain EXACTLY");
+    lines.push("as shown in the reference images.");
   }
   
   lines.push("");
