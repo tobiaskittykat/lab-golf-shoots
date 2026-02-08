@@ -585,12 +585,17 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push("");
         changedComponents.forEach(c => sections.push(c));
         
-        // Toe post relationship notes for thong-style sandals
-        if (overrides.sole) {
-          sections.push("Note: On thong-style sandals (Gizeh, Ramses, Mayari), the toe post strap matches the sole color.");
+        // Pre-resolve toe post colors for thong-style sandals (concrete values, not abstract rules)
+        const soleSource = overrides.sole || original.sole;
+        const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
+        
+        if (soleSource) {
+          const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
+          sections.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — critical for thong-style sandals like Gizeh, Ramses, Mayari)`);
         }
-        if (overrides.buckles) {
-          sections.push("Note: On thong-style sandals, the toe post pin/rivet matches the buckle finish.");
+        if (buckleSource) {
+          const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
+          sections.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
         }
         
         sections.push("");
@@ -653,7 +658,8 @@ CRITICAL RULES:
 5. **MOODBOARD LEADS STYLE** - When moodboard analysis is provided (marked as PRIMARY STYLE INFLUENCE), it carries HIGH WEIGHT for aesthetic decisions (colors, lighting, mood, atmosphere). The concept's Visual World carries MEDIUM WEIGHT for composition, props, and scene structure. BLEND both harmoniously, but when choosing colors, lighting, or mood, LEAN TOWARD the moodboard's aesthetic.
 6. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
 7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
-8. Be specific and evocative - use sensory language
+8. **TOE POST ACCURACY (THONG-STYLE SANDALS)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. Its color and the small pin/rivet at its base are critical details that must be specified with exact color names.
+9. Be specific and evocative - use sensory language
 9. Keep it focused - one clear scene, not multiple concepts
 10. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
 11. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
@@ -743,7 +749,11 @@ OVERRIDE RULES:
   - "Midnight Blue leather (replacing the original Brown visible in the attached images)"
   - "...while keeping the silver buckle hardware exactly as shown in the reference photos"
 - Make it UNMISTAKABLY CLEAR what differs from the reference photos vs what matches them
-- The Image Generator needs this explicit contrast to know what to change vs preserve`;
+- The Image Generator needs this explicit contrast to know what to change vs preserve
+- For TOE POST details on thong sandals:
+  - "White toe post strap (matching the White sole, instead of the original Black)"
+  - "Silver toe post pin (matching the Silver buckle hardware)"
+  - Always describe toe post strap color AND pin/rivet finish explicitly when TOE POST entries exist in the brief`;
       }
       
       // Add PROMPT-ONLY MODE instructions if reference images disabled for generator
