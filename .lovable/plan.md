@@ -1,86 +1,116 @@
 
 
-# Add Toe Post Awareness to Shoe Component System
+# Clean Up Buckle Material Options
 
-## Background
+## Problem
 
-On Birkenstock thong-style sandals (Gizeh, Ramses, Mayari), there is a **toe post** -- the vertical strap between the big toe and second toe, with a small **pin/rivet** at its base.
+The current buckle options have two issues:
 
-Based on research of actual Birkenstock products:
-- The **toe post strap** color follows the **sole** color (not the upper, as previously assumed)
-- The **toe post pin/rivet** follows the **buckle** hardware color and finish
+1. **No generic "Metal" with color picker** -- All metal options (Brass, Silver, Copper, Rose Gold) have their color baked into the name, but there's no way to pick a custom metal color for creative exploration
+2. **"Translucent Rose Gold" is odd** -- This isn't a real Birkenstock category. Birkenstock has translucent clear buckles (on EVA models) and that's it for translucent
+3. **"Metallic (Rose Gold Big Buckle)" is too specific** -- Big Buckles come in various metallic finishes (silver, copper, gold), not just rose gold
 
-This means when users customize the sole color or buckle finish, the AI needs to know about these relationships to render the product correctly.
+## Revised Buckle Options
 
-## Approach: Prompt Awareness (No New Component)
+Here's the cleaned-up list with clear logic for each:
 
-The toe post does not need its own standalone component in the UI because:
-- Its strap color is always derived from the sole
-- Its pin color is always derived from the buckles
-- Users can already control both sole and buckle colors
+| Material | Color Picker? | Why |
+|----------|--------------|-----|
+| **Metal (Brass/Gold)** | No - fixed color | Inherent finish |
+| **Metal (Silver)** | No - fixed color | Inherent finish |
+| **Metal (Copper)** | No - fixed color | Inherent finish |
+| **Metal (Rose Gold)** | No - fixed color | Inherent finish |
+| **Antique Brass** | No - fixed color | Inherent finish |
+| **Metal (Custom Color)** | Yes - color picker | NEW -- for creative/non-standard metal colors |
+| **Metal (Color-Matched)** | No - syncs with upper | Existing coordinated behavior |
+| **Matte Plastic** | Yes - color picker | Can be any color |
+| **Matte Plastic (Color-Matched)** | No - syncs with upper | Existing coordinated behavior |
+| **Translucent (Clear)** | No - fixed color | Inherent finish |
+| **Translucent (Color-Matched)** | No - syncs with upper | Existing coordinated behavior |
+| **Metallic Big Buckle** | Yes - color picker | NEW -- replaces Rose Gold-only option, can be any metallic color |
 
-Instead, we add **relationship rules** to the prompts so the AI correctly renders the toe post when generating images.
+**Removed:**
+- "Translucent Rose Gold" -- not a real Birkenstock category
+- "Metallic (Rose Gold Big Buckle)" -- replaced by generic "Metallic Big Buckle" with color picker
+
+**Added:**
+- "Metal (Custom Color)" -- generic metal with color picker for creative use
+- "Metallic Big Buckle" -- generic big buckle with color picker (silver, copper, gold, rose gold, etc.)
 
 ## Changes
 
-### 1. `supabase/functions/analyze-shoe-components/index.ts`
+### 1. `src/lib/birkenstockMaterials.ts`
 
-Update the BUCKLES section of the system prompt to note that on thong-style sandals, the toe post pin is part of the buckle hardware system and should match.
+**Extend `MaterialOption` interface** with optional `fixedColor` and `fixedColorHex`:
 
-Add a new general note about the toe post strap following the sole color.
-
-```
-**BUCKLES** (Optional - only if present)
-Adjustment hardware on straps.
-Types: Metal (brass/gold, silver, copper, antique brass) or Matte Plastic (EVA models)
-Note: Some styles like the Boston clog have 1 buckle, Arizona has 2
-Note for thong-style sandals (Gizeh, Ramses, Mayari): The small pin/rivet 
-at the top of the toe post is part of the buckle hardware system. It should 
-match the buckle finish (e.g., both brass, both silver). Report the buckle 
-material/color to cover both the strap buckle AND the toe post pin.
+```typescript
+export interface MaterialOption {
+  value: string;
+  label: string;
+  category?: string;
+  fixedColor?: string;
+  fixedColorHex?: string;
+}
 ```
 
-Add a general note in the IMPORTANT section:
+**Update buckle entries** with fixed colors and restructured options:
+
+```typescript
+buckles: [
+  // Metal finishes (fixed color)
+  { value: 'Metal (Brass)', label: 'Metal (Brass/Gold)', category: 'Metal', fixedColor: 'Brass/Gold', fixedColorHex: '#B5A642' },
+  { value: 'Metal (Silver)', label: 'Metal (Silver)', category: 'Metal', fixedColor: 'Silver', fixedColorHex: '#C0C0C0' },
+  { value: 'Metal (Copper)', label: 'Metal (Copper)', category: 'Metal', fixedColor: 'Copper', fixedColorHex: '#B87333' },
+  { value: 'Metal (Rose Gold)', label: 'Metal (Rose Gold)', category: 'Metal', fixedColor: 'Rose Gold', fixedColorHex: '#B76E79' },
+  { value: 'Antique Brass', label: 'Antique Brass', category: 'Metal', fixedColor: 'Antique Brass', fixedColorHex: '#6B5B3E' },
+  // Metal with color picker
+  { value: 'Metal (Custom)', label: 'Metal (Custom Color)', category: 'Metal' },
+  { value: 'Metal (Coordinated)', label: 'Metal (Color-Matched)', category: 'Metal' },
+  // Plastic
+  { value: 'Matte Plastic', label: 'Matte Plastic', category: 'Plastic' },
+  { value: 'Matte Plastic (Coordinated)', label: 'Matte Plastic (Color-Matched)', category: 'Plastic' },
+  // Special
+  { value: 'Translucent', label: 'Translucent (Clear)', category: 'Special', fixedColor: 'Clear', fixedColorHex: '#E8E8E8' },
+  { value: 'Translucent (Coordinated)', label: 'Translucent (Color-Matched)', category: 'Special' },
+  { value: 'Metallic Big Buckle', label: 'Metallic Big Buckle', category: 'Special' },
+]
+```
+
+### 2. `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx`
+
+**Add fixed-color detection** -- look up the selected material in the materials list and check for `fixedColor`:
+
+```typescript
+const selectedMaterialOption = materials.find(m => m.value === selectedMaterial);
+const hasFixedColor = selectedMaterialOption?.fixedColor != null;
+```
+
+**Auto-set color when a fixed-color material is selected** -- add an effect:
+
+```typescript
+useEffect(() => {
+  if (hasFixedColor && selectedMaterialOption) {
+    setSelectedColor(selectedMaterialOption.fixedColor!);
+    setSelectedHex(selectedMaterialOption.fixedColorHex || '');
+  }
+}, [selectedMaterial, hasFixedColor]);
+```
+
+**Show locked state for fixed-color materials** -- similar to the existing color-matched display, but showing the material's inherent color:
 
 ```
-- For thong-style sandals: the toe post STRAP typically matches the SOLE color, 
-  while the toe post PIN/RIVET matches the BUCKLE hardware finish.
+Color section has 3 states:
+1. Normal -- full color picker (Matte Plastic, Metal Custom, Metallic Big Buckle, non-buckle components)
+2. Color-matched -- locked to upper color (Coordinated materials, already implemented)
+3. Fixed color -- locked to material's inherent color (Metal Brass, Silver, etc.)
 ```
 
-### 2. `supabase/functions/interpret-shoe-customization/index.ts`
-
-Add rule 16 to the system prompt:
-
-```
-16. For thong-style sandals (Gizeh, Ramses, Mayari): The toe post strap color 
-    follows the SOLE color, and the toe post pin/rivet follows the BUCKLE hardware. 
-    When changing sole color, the toe post strap automatically matches. 
-    When changing buckle finish, the toe post pin automatically matches.
-    No separate component needed.
-```
-
-### 3. `src/lib/birkenstockMaterials.ts`
-
-In `buildComponentOverridePrompt()`, after listing all component overrides, add contextual notes:
-- If sole overrides are present: `"Note: On thong-style sandals (Gizeh, Ramses, Mayari), the toe post strap matches the sole color."`
-- If buckle overrides are present: `"Note: On thong-style sandals, the toe post pin/rivet matches the buckle finish."`
-
-### 4. `supabase/functions/generate-image/index.ts`
-
-In the component overrides section (around line 580), add the same toe post relationship notes when sole or buckle overrides are present, so the prompt agent knows to render the toe post accordingly.
+The fixed-color display shows a small swatch with the inherent color name and a note like "Inherent finish -- color defined by material."
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/analyze-shoe-components/index.ts` | Add toe post notes to BUCKLES section and IMPORTANT section |
-| `supabase/functions/interpret-shoe-customization/index.ts` | Add rule 16 about toe post relationships |
-| `src/lib/birkenstockMaterials.ts` | Add conditional toe post notes in `buildComponentOverridePrompt()` |
-| `supabase/functions/generate-image/index.ts` | Add toe post relationship notes to override prompt section |
+| `src/lib/birkenstockMaterials.ts` | Add `fixedColor`/`fixedColorHex` to interface; restructure buckle entries; remove Translucent Rose Gold and Metallic Rose Gold Big Buckle; add Metal Custom and Metallic Big Buckle |
+| `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx` | Add fixed-color detection; show locked state for fixed-color materials; auto-set color on selection |
 
-## What This Achieves
-
-- When a user changes the **sole** to white, the AI knows the toe post strap should also be white
-- When a user changes the **buckle** to silver, the AI knows the toe post pin should also be silver
-- Analysis correctly reports buckle hardware as covering the toe post pin
-- No new UI components or database changes needed -- all handled through prompt intelligence
