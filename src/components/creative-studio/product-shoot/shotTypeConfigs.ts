@@ -394,48 +394,56 @@ export const productFocusAngleOptions = [
     value: 'auto' as ProductFocusAngle, 
     label: 'Auto (AI chooses)', 
     prompt: null,
+    narrative: null,
     thumbnail: null,
   },
   { 
     value: 'hero' as ProductFocusAngle, 
     label: 'Hero (3/4 Front)', 
     prompt: 'three-quarter front view at 45-degree angle, classic hero product shot showing depth and dimension, single shoe angled toward camera',
+    narrative: 'the classic hero shot, camera positioned at a 45-degree angle to capture depth and dimension. A single shoe angled toward the lens, revealing both the lateral profile and the top of the footbed in one commanding frame. This is the definitive e-commerce angle — authoritative, dimensional, and immediately recognizable.',
     thumbnail: 'angle-hero.jpg',
   },
   { 
     value: 'side-profile' as ProductFocusAngle, 
     label: 'Side Profile', 
     prompt: 'pure lateral side profile view, single shoe centered, showing full silhouette from true side angle, product facing left',
+    narrative: 'a pure lateral view capturing the full silhouette. A single shoe centered in frame, photographed from a true side angle with the product facing left. The entire profile line — from heel counter through the arch to the toe — reads as one clean, uninterrupted silhouette against the background.',
     thumbnail: 'angle-side-profile.jpg',
   },
   { 
     value: 'top-down' as ProductFocusAngle, 
     label: 'Top Down', 
     prompt: 'overhead top-down view of pair, both shoes visible side by side, footbed and straps fully visible from above, embossed branding readable',
+    narrative: 'shot from directly overhead, looking straight down at both shoes placed side by side. The footbed, straps, buckles, and any embossed branding are fully visible and readable from this bird\'s-eye perspective. The symmetry of the pair creates a graphic, almost architectural composition.',
     thumbnail: 'angle-top-down.jpg',
   },
   { 
     value: 'sole-view' as ProductFocusAngle, 
     label: 'Sole View', 
     prompt: 'one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces',
+    narrative: 'one shoe flipped upside down to reveal the outsole tread pattern and construction, while the second shoe sits right-side-up showing the footbed. The two are artfully arranged to present both the walking surface and the wearing surface in a single composition — a dual-perspective product story.',
     thumbnail: 'angle-sole.jpg',
   },
   { 
     value: 'detail-closeup' as ProductFocusAngle, 
     label: 'Detail Close-up', 
     prompt: 'extreme close-up cropped tight on buckle hardware, strap texture, and material details, macro-style product detail shot',
+    narrative: 'cropped tight in a macro-style detail shot, filling the frame with buckle hardware, strap texture, and material grain. The camera is close enough to reveal stitching paths, metal finishes, and the subtle surface variation of the materials. This is about tactile intimacy — making the viewer feel the product\'s craftsmanship.',
     thumbnail: 'angle-detail.jpg',
   },
   { 
     value: 'pair-shot' as ProductFocusAngle, 
     label: 'Pair Shot', 
     prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered',
+    narrative: 'both shoes arranged at complementary angles, slightly staggered or overlapping to create depth and visual rhythm. The classic e-commerce pair composition — one shoe slightly forward and rotated, the other angled behind — producing a dynamic yet balanced arrangement that showcases the product from multiple perspectives simultaneously.',
     thumbnail: 'angle-pair.jpg',
   },
   { 
     value: 'lifestyle' as ProductFocusAngle, 
     label: 'Lifestyle', 
     prompt: 'dynamic lifestyle composition with creative freedom, product artfully placed in context with props or environmental elements, editorial product photography with mood and atmosphere, AI determines optimal angle and arrangement',
+    narrative: 'artfully placed in an environmental context with carefully chosen props and atmospheric elements. This is editorial product photography with mood and story — the shoes exist within a scene rather than isolation. The AI has creative freedom to determine the optimal angle, arrangement, and surrounding elements to create a compelling lifestyle narrative.',
     thumbnail: 'angle-lifestyle.jpg',
   },
 ];
@@ -477,72 +485,74 @@ export const initialProductFocusConfig: ProductFocusShotConfig = {
  * Product-only photography without models.
  */
 export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContext?: BackgroundContext): string {
-  const sections: string[] = [];
+  // Pre-select a random concrete angle when 'auto' is set
+  const selectedAngle = selectRandomFromOptions(productFocusAngleOptions, config.cameraAngle);
   
-  // === STATIC: Always included ===
-  sections.push("=== PRODUCT FOCUS SHOT ===");
-  sections.push("");
+  // Determine background description
+  let backgroundDesc = 'a clean, neutral studio background with soft shadows grounding the product';
+  let lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination with soft shadows';
   
-  // Frame & Composition (STATIC)
-  sections.push("FRAMING & COMPOSITION (MANDATORY):");
-  sections.push("- Single, high-resolution e-commerce product image (one frame only, no collage)");
-  sections.push("- Product only - NO hands, NO models, NO body parts, NO feet");
-  sections.push("- Product centered in frame with balanced negative space");
-  sections.push("- Clean, professional product photography composition");
-  sections.push("");
-  
-  // Product integrity is now handled by the prompt agent instructions
-  
-  // Background (DYNAMIC)
-  if (bgContext) {
-    sections.push(...buildBackgroundSection(bgContext));
-    sections.push("");
-  }
-  
-  // Camera Angle (DYNAMIC)
-  sections.push("CAMERA ANGLE:");
-  if (config.cameraAngle === 'auto') {
-    sections.push("- AI selects optimal angle to showcase product");
-    sections.push("- May use: side profile, three-quarter view, top-down, detail close-up, or sole view");
-  } else {
-    const angleOpt = productFocusAngleOptions.find(a => a.value === config.cameraAngle);
-    if (angleOpt?.prompt) {
-      sections.push(`- ${angleOpt.prompt}`);
+  if (bgContext?.backgroundId === 'studio-white') {
+    backgroundDesc = 'a pure white seamless studio background with a visible floor plane and soft, natural contact shadows';
+    lightingDesc = 'clean, diffused studio lighting that accurately represents material textures and true color';
+  } else if (bgContext?.customBackgroundPrompt) {
+    backgroundDesc = bgContext.customBackgroundPrompt;
+    lightingDesc = 'lighting appropriate to the setting, revealing material textures and finishes';
+  } else if (bgContext?.backgroundId) {
+    const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
+    const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
+    if (preset) {
+      backgroundDesc = preset.prompt.toLowerCase();
+      const isOutdoor = bgContext.backgroundId.startsWith('outdoor-');
+      if (isOutdoor) {
+        const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+        lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
+      } else {
+        lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
+      }
     }
   }
-  sections.push("");
   
-  // Lighting (DYNAMIC based on background or explicit choice)
+  // Override lighting if explicitly set
   if (config.lighting !== 'auto') {
-    // Explicit lighting choice overrides background-based lighting
-    sections.push("LIGHTING:");
     const lightOpt = productFocusLightingOptions.find(l => l.value === config.lighting);
     if (lightOpt?.prompt) {
-      sections.push(`- ${lightOpt.prompt}`);
+      lightingDesc = lightOpt.prompt;
     }
-  } else if (bgContext) {
-    // Use background-based lighting
-    sections.push(...buildLightingSection(bgContext));
-  } else {
-    // Default fallback
-    sections.push("LIGHTING:");
-    sections.push("- Professional studio lighting, softbox diffusion");
-    sections.push("- Controlled even illumination with soft shadows");
   }
-  sections.push("- Accurately reveal material textures and finishes");
-  sections.push("- Soft shadows that ground the product");
-  sections.push("- Neutral color balance, no color cast");
-  sections.push("");
-  
-  // Quality Standards (STATIC)
-  sections.push("QUALITY STANDARDS:");
-  sections.push("- Premium footwear e-commerce photography");
-  sections.push("- Ultra-sharp focus on product details");
-  sections.push("- Clean, professional composition");
-  sections.push("- True to retail product photography standards");
-  sections.push("");
-  
-  return sections.join("\n");
+
+  // Build the angle/composition narrative
+  const angleNarrative = selectedAngle.narrative 
+    || 'the classic hero shot, camera positioned at a 45-degree angle to capture depth and dimension';
+
+  // Build the evocative prompt (matching On Foot / Full Body style)
+  const prompt = `A single, high-resolution e-commerce product image (one frame only, no collage).
+
+A product-only shot — NO hands, NO models, NO body parts, NO feet anywhere in the image. The footwear is the sole subject, photographed against ${backgroundDesc}.
+
+COMPOSITION & CAMERA ANGLE
+The composition is ${angleNarrative}
+
+The product is centered in frame with balanced negative space, consistent with premium footwear e-commerce photography standards.
+
+FOOTWEAR — LOCKED (MUST NOT CHANGE)
+The exact footwear shown in the product reference images.
+The shoe's geometry, construction, silhouette, proportions, stitching,
+hardware placement, and material behavior must remain identical to the
+reference images. Do not redesign, stylize, or reinterpret the product.
+
+Product identity and materials are provided in the PRODUCT IDENTITY section
+and must be described accurately.
+
+LIGHTING & TECHNICAL
+${lightingDesc}.
+Shadows are soft and realistic, grounding the product to the surface.
+Materials are accurately revealed — textures, finishes, and surface details are sharp and true to life.
+Neutral color balance with no color cast.
+
+The final image must be indistinguishable from an official Birkenstock e-commerce product photograph.`;
+
+  return prompt;
 }
 
 // ===== LIFESTYLE SHOT TYPE (Full Body on Model) =====
