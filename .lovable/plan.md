@@ -1,102 +1,95 @@
 
 
-# Fix Buckle Branding Accuracy in Analysis and Prompting
+# Fix Mayari Toe Post Misclassification and Add Buckle Shape Fidelity
 
-## Problem
+## Problem 1: Mayari incorrectly treated as a thong sandal
 
-The current system has two issues causing incorrect buckle branding in generated images:
+The Mayari has **crossover straps** -- there is no toe post strap or pin between the toes. However, the system hardcodes "Mayari" alongside Gizeh and Ramses as a "thong-style sandal" in multiple places:
 
-1. **Hardcoded branding text**: The prompt agent system prompt says `the engraved "Birkenstock" on the buckle` -- but this is wrong for many models. The Mayari buckles actually say **"BIRKEN"** on the larger strap buckle and **"BIRK"** on the smaller buckle bar. Other models may have different engravings or none at all.
+- `analyze-shoe-components/index.ts` line 38, 75: references Mayari as thong-style
+- `generate-image/index.ts` line 616: injects "TOE POST STRAP" and "TOE POST PIN/RIVET" for Mayari
+- `birkenstockMaterials.ts` line 252-261: same toe post injection for Mayari
+- `generate-image/index.ts` line 682: prompt agent rule about toe post accuracy mentions Mayari
 
-2. **No branding data captured**: The `analyze-shoe-components` function only captures material, color, hex, confidence, and notes for each component. There is no dedicated field for engravings, logos, or branding text. This means the generation pipeline has no model-specific branding data to work with.
+This causes the prompt to describe a toe post strap and pin that don't exist on the shoe, leading to inaccurate generations.
 
-## What needs to change
+**Root cause**: The system has no knowledge of each model's actual strap construction. It relies on a hardcoded list of model names, and Mayari was incorrectly included.
 
-### 1. Add a `branding` field to the component analysis schema
+## Problem 2: Buckle shape not preserved during overrides
 
-Update `supabase/functions/analyze-shoe-components/index.ts`:
+When a user changes buckle material/color (e.g., from Antique Copper metal to Silver metal), nothing in the prompt tells the AI to keep the original buckle **shape** and **embossing** from the reference images. The override section only says the new material/color. The AI may then generate a generic buckle shape instead of the specific Birkenstock buckle style visible in references.
 
-- Add a new top-level `branding` field in the tool definition that captures model-specific branding details:
+## Solution
 
+### 1. Add `strapConstruction` to component analysis schema
+
+Add a new field to the analysis tool that captures the shoe's strap/construction type. This replaces the hardcoded model-name list with actual analyzed data.
+
+In `supabase/functions/analyze-shoe-components/index.ts`:
+
+- Add a `strapConstruction` field to `TOOL_DEFINITION`:
 ```text
-branding: {
-  footbedText: string     // e.g. "BIRKENSTOCK" + "MADE IN GERMANY" 
-  footbedLogo: string     // e.g. "Footprint logo stamped in dark ink"
-  buckleEngravings: [     // Array because models have multiple buckles
-    { location: string, text: string, style: string }
-  ]
-  // e.g. [
-  //   { location: "strap buckle bar", text: "BIRKEN", style: "embossed serif capitals" },
-  //   { location: "small buckle bar", text: "BIRK", style: "embossed serif capitals" }
-  // ]
+strapConstruction: {
+  type: "string",
+  enum: ["thong", "crossover", "single-strap", "two-strap", "clog", "slip-on", "other"],
+  description: "The strap construction type of the shoe. 
+    'thong' = has a toe post strap between big and second toe (e.g., Gizeh, Ramses)
+    'crossover' = straps cross over the foot without a toe post (e.g., Mayari, Yao)
+    'single-strap' = one wide strap (e.g., Madrid)
+    'two-strap' = two parallel straps (e.g., Arizona, Milano)
+    'clog' = enclosed upper (e.g., Boston, Kyoto)
+    'slip-on' = no straps or buckles
+    'other' = anything else"
 }
 ```
 
-- Update the SYSTEM_PROMPT to instruct the AI to carefully read and report the exact text on each buckle bar, the footbed wordmark, and any other branding marks visible in the images. Emphasize precision: "BIRKEN" is NOT the same as "BIRKENSTOCK."
+- Update `SYSTEM_PROMPT` to remove Mayari from thong-style references and instruct the AI to determine the actual construction from the images.
 
-### 2. Surface branding data in the generation prompt
+### 2. Use analyzed `strapConstruction` instead of hardcoded names
 
-Update `supabase/functions/generate-image/index.ts`:
+In `supabase/functions/generate-image/index.ts`:
 
-- In the `=== PRODUCT COMPONENTS (from analysis) ===` section (~line 503-524), check if the stored components include a `branding` field and append it to the creative brief. Example output:
+- Replace the hardcoded toe post injection (which always fires for overrides) with a conditional check: only inject `TOE POST STRAP` and `TOE POST PIN/RIVET` lines when `originalComponents.strapConstruction === 'thong'`.
+- Remove "Mayari" from the thong sandal list in the prompt agent instructions (line 682).
 
+In `src/lib/birkenstockMaterials.ts`:
+
+- Same change: only inject toe post override lines when the component data indicates `strapConstruction === 'thong'`.
+
+### 3. Add buckle shape and embossing preservation to override instructions
+
+In `supabase/functions/generate-image/index.ts`, in the component overrides section (around line 602-627):
+
+- When buckle overrides are present, add explicit instructions to preserve shape and embossing:
 ```text
-BRANDING DETAILS (from analysis - use EXACT text):
-- Footbed: embossed "BIRKENSTOCK" wordmark, "MADE IN GERMANY", footprint logo
-- Buckle 1 (strap buckle bar): embossed "BIRKEN" in serif capitals
-- Buckle 2 (small buckle bar): embossed "BIRK" in serif capitals
+⚠️ BUCKLE SHAPE AND EMBOSSING: Change ONLY the material and color of the buckles. 
+The buckle SHAPE, SIZE, and any EMBOSSED TEXT must remain EXACTLY as shown in the 
+reference images. The engraving text and style are specified in the BRANDING DETAILS section.
 ```
 
-- Update the system prompt's "BIRKENSTOCK LOGO FIDELITY" section (~line 643-650) to be dynamic instead of hardcoded. Replace the current hardcoded text with instructions to use the BRANDING DETAILS from the brief when available, and only fall back to generic instructions when no branding data exists.
+- Also add this to the prompt agent system prompt (both in `generate-image/index.ts` and `defaultPrompts.ts`) as a general rule about hardware fidelity.
 
-### 3. Update the default prompt agent prompt
+### 4. Add editable product description to EditSKUModal
 
-Update `src/lib/defaultPrompts.ts`:
+Add a "Product Description" textarea so users can correct auto-generated summaries (like fixing "bronze buckles" to "antique copper" or correcting strap type descriptions).
 
-- In `DEFAULT_PROMPT_AGENT_PROMPT`, replace the hardcoded buckle branding example (~line 74-81) with dynamic instructions:
+In `src/components/creative-studio/product-shoot/EditSKUModal.tsx`:
 
-```text
-**BIRKENSTOCK BRANDING FIDELITY (CRITICAL)**:
-- When BRANDING DETAILS are provided in the brief, use the EXACT text specified 
-  for each component. Do NOT assume all buckles say "BIRKENSTOCK" -- many models 
-  have abbreviated engravings like "BIRKEN" or "BIRK" on individual buckle bars.
-- Footbed wordmarks and logos must be described as specified in the branding data.
-- If no BRANDING DETAILS section exists, describe branding as visible in the 
-  reference images without assuming specific text.
-```
-
-### 4. Re-analyze existing SKUs
-
-After deploying the updated analysis function, the Mayari (and other existing SKUs) will need to be re-analyzed to populate the new `branding` field. This can be triggered from the existing SKU management UI (which already has a re-analyze capability).
+- Add a `description` state initialized from `skuData.description?.summary`
+- Add a `Textarea` labeled "Product Description" below SKU Code, with helper text: "Auto-generated summary used in image prompts. Edit to correct inaccuracies."
+- On save, merge the edited summary into the existing `description` JSONB (preserving colors, materials, product_type, etc.)
+- Include in `hasChanges` check
 
 ## Files changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/analyze-shoe-components/index.ts` | Add `branding` field to tool schema and system prompt; instruct AI to read exact buckle text |
-| `supabase/functions/generate-image/index.ts` | Surface `branding` data in creative brief; make logo fidelity instructions dynamic |
-| `src/lib/defaultPrompts.ts` | Replace hardcoded buckle branding with dynamic instructions that use analysis data |
+| `supabase/functions/analyze-shoe-components/index.ts` | Add `strapConstruction` enum field; remove Mayari from thong references; instruct AI to identify actual construction |
+| `supabase/functions/generate-image/index.ts` | Conditionally inject toe post data only for `strapConstruction === 'thong'`; add buckle shape/embossing preservation rule; remove Mayari from thong list in prompt |
+| `src/lib/birkenstockMaterials.ts` | Guard toe post override injection behind `strapConstruction === 'thong'` check |
+| `src/lib/defaultPrompts.ts` | Add buckle shape/embossing preservation rule to prompt agent instructions |
+| `src/components/creative-studio/product-shoot/EditSKUModal.tsx` | Add editable "Product Description" textarea |
 
-## Data flow after changes
+## After deployment
 
-```text
-Reference Images
-      |
-      v
-analyze-shoe-components  -->  product_skus.components.branding
-      |                         {footbedText, buckleEngravings[], ...}
-      v
-generate-image (creative brief)
-      |
-      "BRANDING DETAILS:
-       Buckle 1: 'BIRKEN' (embossed serif)
-       Buckle 2: 'BIRK' (embossed serif)
-       Footbed: 'BIRKENSTOCK' wordmark"
-      |
-      v
-Prompt Agent --> "...buckles engraved with 'BIRKEN' and 'BIRK' in serif capitals..."
-      |
-      v
-Image Generator --> accurate branding in output
-```
-
+The Mayari (and other existing SKUs) will need to be **re-analyzed** to populate the new `strapConstruction` field. Until re-analyzed, the toe post injection will be skipped by default (safe fallback -- no `strapConstruction` field means no toe post lines injected).
