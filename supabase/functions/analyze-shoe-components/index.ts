@@ -56,6 +56,16 @@ Color: Usually natural tan/sand for suede, cream for shearling, black for dark s
 Only return null for fully molded EVA shoes (e.g. Arizona EVA) where the entire shoe 
 is one-piece plastic with no separate lining layer.
 
+**BRANDING** (Required)
+Carefully inspect ALL visible branding, logos, text, and engravings across the shoe.
+⚠️ PRECISION IS CRITICAL: Read the EXACT text on each element. "BIRKEN" is NOT the same as "BIRKENSTOCK". "BIRK" is NOT the same as "BIRKEN". Report EXACTLY what you see — character by character.
+
+For Birkenstock models, pay close attention to:
+- **Footbed text**: Usually "BIRKENSTOCK" + "MADE IN GERMANY" embossed on the footbed. Report exact words.
+- **Footbed logo**: The Birkenstock footprint logo — describe its appearance (stamped, embossed, color).
+- **Buckle engravings**: Each buckle bar may have DIFFERENT text. Many models do NOT say "BIRKENSTOCK" on buckles. Instead they often have abbreviated text like "BIRKEN" on the larger buckle and "BIRK" on the smaller buckle bar. Inspect each buckle individually and report the EXACT text on each.
+- If text is not clearly legible, report what you can see and note uncertainty.
+
 IMPORTANT:
 - Analyze ALL provided images to get the most accurate assessment
 - If a component is not visible or doesn't exist for this shoe type, return null for that component
@@ -133,9 +143,41 @@ const TOOL_DEFINITION = {
           confidence: { type: "number" },
           notes: { type: "string" }
         }
+      },
+      branding: {
+        type: "object",
+        description: "All visible branding, logos, text, and engravings on the shoe",
+        properties: {
+          footbedText: { 
+            type: "string", 
+            description: "Exact text embossed/printed on the footbed (e.g., 'BIRKENSTOCK' + 'MADE IN GERMANY')" 
+          },
+          footbedLogo: { 
+            type: "string", 
+            description: "Description of the footbed logo (e.g., 'Footprint logo stamped in dark ink')" 
+          },
+          buckleEngravings: {
+            type: "array",
+            description: "Array of engravings found on each buckle bar. Different buckles often have DIFFERENT text.",
+            items: {
+              type: "object",
+              properties: {
+                location: { type: "string", description: "Which buckle (e.g., 'larger strap buckle bar', 'smaller buckle bar', 'single buckle')" },
+                text: { type: "string", description: "EXACT text engraved (e.g., 'BIRKEN', 'BIRK', 'BIRKENSTOCK')" },
+                style: { type: "string", description: "Engraving style (e.g., 'embossed serif capitals', 'debossed sans-serif')" }
+              },
+              required: ["location", "text", "style"]
+            }
+          },
+          otherBranding: {
+            type: "string",
+            description: "Any other branding marks not covered above (e.g., insole printing, tag text)"
+          }
+        },
+        required: ["footbedText", "buckleEngravings"]
       }
     },
-    required: ["upper", "footbed", "sole"]
+    required: ["upper", "footbed", "sole", "branding"]
   }
 };
 
@@ -197,7 +239,7 @@ Deno.serve(async (req) => {
 
     // Build multimodal content for Gemini
     const content: any[] = [
-      { type: "text", text: `Analyze these product images of "${sku.name}" and extract the shoe components.` }
+      { type: "text", text: `Analyze these product images of "${sku.name}" and extract the shoe components. Pay VERY close attention to branding: read the EXACT text on each buckle bar, the footbed wordmark, and any other visible branding marks. "BIRKEN" is NOT "BIRKENSTOCK" — report exactly what you see.` }
     ];
 
     // Add all images
@@ -210,7 +252,7 @@ Deno.serve(async (req) => {
 
     content.push({
       type: "text",
-      text: "Based on all the images above, identify each component of this shoe using the extract_shoe_components tool."
+      text: "Based on all the images above, identify each component of this shoe AND all branding/engravings using the extract_shoe_components tool. Remember: inspect each buckle bar individually for its specific engraved text."
     });
 
     // Call Gemini via Lovable AI Gateway
@@ -270,7 +312,7 @@ Deno.serve(async (req) => {
     const componentsWithMeta = {
       ...components,
       analyzedAt: new Date().toISOString(),
-      analysisVersion: "1.1",
+      analysisVersion: "1.2",
     };
 
     // Save to database

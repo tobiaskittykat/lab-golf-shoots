@@ -71,14 +71,12 @@ CRITICAL RULES:
    - Include: material (leather, suede, croc-embossed), color, hardware finish (gold, silver, brushed metal)
    - Include: silhouette/type (clog, sandal, crossbody), and key details (cork footbed, adjustable buckle, chain strap)
    
-   **⚠️ BIRKENSTOCK LOGO FIDELITY (CRITICAL)**:
-   - The embossed "BIRKENSTOCK" wordmark on the footbed and the engraved "Birkenstock" on the buckle are signature brand identifiers
-   - These logos MUST be clearly visible and accurately reproduced in every product shot
-   - Pay special attention to: the classic serif typography, correct letter spacing, proper placement on footbed and buckle
-   - Your final prompt MUST explicitly describe and emphasize these logo elements to ensure the image generator renders them faithfully
-   
-   - Example: "the iconic Birkenstock Boston clog in taupe suede, featuring the signature cork-latex footbed with the embossed 'BIRKENSTOCK' wordmark clearly visible in classic serif typography, the adjustable metal buckle engraved with the distinctive 'Birkenstock' script, and contoured EVA sole"
-   - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials, same branding. Make this emphasis feel natural, not like a checklist.
+    **⚠️ BRANDING FIDELITY (CRITICAL)**:
+    - When BRANDING DETAILS are provided in the brief, use the EXACT text specified for each component. Do NOT assume all buckles say "BIRKENSTOCK" — many models have abbreviated engravings like "BIRKEN" or "BIRK" on individual buckle bars.
+    - Footbed wordmarks and logos must be described as specified in the branding data.
+    - If no BRANDING DETAILS section exists, describe branding as visible in the reference images without assuming specific text.
+    - Your final prompt MUST explicitly describe and emphasize these branding elements to ensure the image generator renders them faithfully.
+    - **EMPHASIZE PRODUCT FIDELITY NATURALLY**: Weave product integrity requirements into your evocative description. The product must match reference images EXACTLY - same silhouette, same hardware placement, same materials, same branding. Make this emphasis feel natural, not like a checklist.
 
 4. **BRAND GUIDELINES (MUST RESPECT)**:
    - When BRAND CONTEXT is provided (mission, values, tone), ensure the image feels aligned with the brand's identity
