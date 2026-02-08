@@ -249,12 +249,15 @@ export function buildComponentOverridePrompt(
     }
   }
   
-  // Add toe post relationship notes for thong-style sandals
+  // Pre-resolve toe post colors for thong-style sandals (Gizeh, Ramses, Mayari)
+  // Instead of abstract relationship rules, inject concrete colors so the AI sees exact specs
   if (overrides.sole) {
-    lines.push("Note: On thong-style sandals (Gizeh, Ramses, Mayari), the toe post strap matches the sole color.");
+    const soleColor = getColorDescription(overrides.sole);
+    lines.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — critical for thong-style sandals like Gizeh, Ramses, Mayari)`);
   }
   if (overrides.buckles) {
-    lines.push("Note: On thong-style sandals, the toe post pin/rivet matches the buckle finish.");
+    const buckleColor = getColorDescription(overrides.buckles);
+    lines.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
   }
   
   lines.push("");
