@@ -101,6 +101,14 @@ export function useQuickCustomization({
         }
       }
 
+      // Filter out overrides for components the shoe doesn't have (phantom hallucinations)
+      for (const key of Object.keys(validOverrides)) {
+        if (!currentComponents[key as ComponentType]) {
+          console.warn(`[QuickCustomization] Filtered phantom component: ${key}`);
+          delete validOverrides[key];
+        }
+      }
+
       const changedComponents = Object.keys(validOverrides);
       if (changedComponents.length === 0) {
         toast.info('No changes needed — the shoe already matches your description');

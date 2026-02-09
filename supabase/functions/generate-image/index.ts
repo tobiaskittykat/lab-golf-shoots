@@ -607,8 +607,9 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
             );
           }
         } else if (override && !orig) {
-          const colorDisplay = getColorDescription(override);
-          changedComponents.push(`${type.toUpperCase()}: ${override.material} in ${colorDisplay}`);
+          // Skip phantom overrides — if the original shoe doesn't have this
+          // component, don't inject it into the prompt
+          console.warn(`Skipping phantom override for ${type} (no original component)`);
         }
       }
       

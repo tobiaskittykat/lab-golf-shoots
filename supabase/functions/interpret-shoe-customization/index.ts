@@ -178,6 +178,7 @@ REFERENCE COLORS (common names and hex codes):
 ${COLOR_PALETTE.map(c => `${c.name}: ${c.hex}`).join("\n")}
 
 CRITICAL RULES:
+0. **MOST IMPORTANT RULE**: ONLY return components that are present and non-null in CURRENT SHOE COMPONENTS above. If a component (e.g., heelstrap) is missing or null in the current state, the shoe does NOT have that part — do NOT include it in your response, even for "all" requests. Returning a component the shoe doesn't have creates phantom parts in the image.
 1. Only return components that should CHANGE. Omit unchanged components entirely from the response.
 2. When user says "[color] version" or "make it [color]" or "all [color]" - ALWAYS change the UPPER component at minimum.
 3. You CAN and SHOULD create custom colors not in the reference list! Just provide a descriptive name and accurate hex code.
@@ -225,17 +226,19 @@ CRITICAL RULES:
 
 EXAMPLES:
 - "baby blue version" → upper: { material: (keep original), color: "Baby Blue", colorHex: "#89CFF0" }
-- "all black leather" → upper: Smooth Leather/Black/#1C1C1C, heelstrap: Smooth Leather/Black/#1C1C1C, buckles: Matte Plastic (Coordinated)/Black/#1C1C1C
+- "all black leather" (shoe HAS heelstrap) → upper: Smooth Leather/Black/#1C1C1C, heelstrap: Smooth Leather/Black/#1C1C1C, buckles: Matte Plastic (Coordinated)/Black/#1C1C1C
+- "all black leather" (shoe has NO heelstrap, e.g. Arizona) → upper: Smooth Leather/Black/#1C1C1C, buckles: Matte Plastic (Coordinated)/Black/#1C1C1C  (NO heelstrap!)
 - "white sole" → sole: { material: (keep original), color: "White", colorHex: "#FFFFFF" }
 - "hot pink upper with silver buckles" → upper: (keep material)/Hot Pink/#FF69B4, buckles: Metal (Silver)/Silver/#C0C0C0
-- "vegan taupe" → upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A
+- "vegan taupe" (shoe HAS heelstrap) → upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A
 - "make it coral" → upper: { material: (keep original), color: "Coral", colorHex: "#FF7F50" }
-- "all eva in dusty blue" → upper: EVA/Dusty Blue/#8CA9BC, sole: EVA/Dusty Blue/#8CA9BC, footbed: EVA/Dusty Blue/#8CA9BC, heelstrap: EVA/Dusty Blue/#8CA9BC, buckles: Matte Plastic (Coordinated)/Dusty Blue/#8CA9BC
-- "all eva version in baby blue" → upper: EVA/Baby Blue/#89CFF0, sole: EVA/Baby Blue/#89CFF0, footbed: EVA/Baby Blue/#89CFF0, heelstrap: EVA/Baby Blue/#89CFF0, buckles: Matte Plastic (Coordinated)/Baby Blue/#89CFF0
-- "all leather in cognac" → upper: Smooth Leather/Cognac/#834C24, heelstrap: Smooth Leather/Cognac/#834C24, buckles: Matte Plastic (Coordinated)/Cognac/#834C24
-- "arizona in olive leather" → upper: Oiled Leather/Olive/#808000, heelstrap: Oiled Leather/Olive/#808000
+- "all eva in dusty blue" (shoe HAS heelstrap) → upper: EVA/Dusty Blue/#8CA9BC, sole: EVA/Dusty Blue/#8CA9BC, footbed: EVA/Dusty Blue/#8CA9BC, heelstrap: EVA/Dusty Blue/#8CA9BC, buckles: Matte Plastic (Coordinated)/Dusty Blue/#8CA9BC
+- "all eva in dusty blue" (shoe has NO heelstrap) → upper: EVA/Dusty Blue/#8CA9BC, sole: EVA/Dusty Blue/#8CA9BC, footbed: EVA/Dusty Blue/#8CA9BC, buckles: Matte Plastic (Coordinated)/Dusty Blue/#8CA9BC  (NO heelstrap!)
+- "all leather in cognac" (shoe HAS heelstrap) → upper: Smooth Leather/Cognac/#834C24, heelstrap: Smooth Leather/Cognac/#834C24, buckles: Matte Plastic (Coordinated)/Cognac/#834C24
+- "arizona in olive leather" → upper: Oiled Leather/Olive/#808000 (Arizona is a slide — NO heelstrap!)
 - "make it lavender" → upper: { material: (keep original), color: "Lavender", colorHex: "#E6E6FA" }
-- "all sage green" → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183, buckles: Matte Plastic (Coordinated)/Sage Green/#9DC183
+- "all sage green" (shoe HAS heelstrap) → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183, buckles: Matte Plastic (Coordinated)/Sage Green/#9DC183
+- "all sage green" (shoe has NO heelstrap) → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, buckles: Matte Plastic (Coordinated)/Sage Green/#9DC183  (NO heelstrap!)
 - "vegan version" (current: upper Suede/Taupe, lining Suede/Taupe, heelstrap Suede/Taupe) → upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A, lining: Microfiber/Taupe/#B8A99A
 - "vegan in black" (current: upper Oiled Leather/Habana, lining Shearling (Cream)/Cream, heelstrap Oiled Leather/Habana) → upper: Birko-Flor/Black/#1C1C1C, heelstrap: Birko-Flor/Black/#1C1C1C, lining: Microfiber/Black/#1C1C1C`;
 

@@ -43,7 +43,7 @@ Note: Crossover-strap sandals like the Mayari do NOT have a toe post or pin.
 
 **HEELSTRAP** (Optional - only if present)
 Back strap that wraps behind the heel.
-Note: Clogs like the Boston and Kyoto do NOT have heelstraps. However, the Tokyo (a Boston-style clog with a back strap) DOES have a heelstrap. Sandals (Arizona, Florida) also have heelstraps. Analyze the images to determine if one is present.
+Note: Clogs like the Boston and Kyoto do NOT have heelstraps. However, the Tokyo (a Boston-style clog with a back strap) DOES have a heelstrap. Some sandals like the Florida and Milano have heelstraps. Slide sandals like the Arizona and Madrid do NOT have heelstraps — they are open-back. Analyze the images to determine if a back strap is actually present.
 Material usually matches the upper.
 
 **LINING** (Required for most models)
