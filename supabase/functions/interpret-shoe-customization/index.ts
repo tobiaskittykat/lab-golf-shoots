@@ -190,7 +190,20 @@ CRITICAL RULES:
    - User explicitly mentions footbed (e.g., "EVA footbed")
    - User says "all [material]" where that material is valid for footbed (EVA, Soft Footbed)
 8. NEVER return all nulls if the user clearly wants a color/material change. At minimum, change the UPPER.
-9. For vegan/synthetic requests, use Birko-Flor or EVA materials.
+9. VEGAN / SYNTHETIC REQUESTS — scan ALL components and replace EVERY non-vegan material:
+   NON-VEGAN MATERIALS: Oiled Leather, Smooth Leather, Nubuck, Suede, Patent Leather,
+   Shearling, Shearling (Cream), Shearling (Black), Wool Felt, Exquisite (leather-wrapped).
+   VEGAN SUBSTITUTES BY COMPONENT:
+     - upper: Birko-Flor (default), Birko-Flor Nubuck (if original was Nubuck),
+              Birko-Flor Patent (if original was Patent Leather), Birkibuc, EVA, Canvas, Recycled PET
+     - heelstrap: Birko-Flor (default), Birko-Flor Nubuck
+     - lining: Microfiber (default), EVA — NEVER suede, shearling, or wool felt
+     - footbed: keep Cork-Latex or Soft Footbed (both vegan); replace Exquisite with Cork-Latex
+     - sole: already vegan (no change needed)
+     - buckles: already vegan (no change needed)
+   PRESERVE the original COLOR when swapping materials (e.g., Suede/Taupe → Birko-Flor/Taupe).
+   If user specifies a color too (e.g., "vegan in black"), apply both the vegan material swap AND the color.
+   You MUST check EVERY component (upper, heelstrap, lining, footbed) and return ALL that need changing.
 10. For metal buckles, use metallic colors (Gold, Silver, Rose Gold, Copper).
 11. IGNORE shoe model names in the request - these are just product names, not instructions:
     "boston", "bston", "arizona", "madrid", "gizeh", "mayari", "milano", "kyoto", "zurich", etc.
@@ -222,7 +235,9 @@ EXAMPLES:
 - "all leather in cognac" → upper: Smooth Leather/Cognac/#834C24, heelstrap: Smooth Leather/Cognac/#834C24, buckles: Matte Plastic (Coordinated)/Cognac/#834C24
 - "arizona in olive leather" → upper: Oiled Leather/Olive/#808000, heelstrap: Oiled Leather/Olive/#808000
 - "make it lavender" → upper: { material: (keep original), color: "Lavender", colorHex: "#E6E6FA" }
-- "all sage green" → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183, buckles: Matte Plastic (Coordinated)/Sage Green/#9DC183`;
+- "all sage green" → upper: (keep)/Sage Green/#9DC183, sole: (keep)/Sage Green/#9DC183, heelstrap: (keep)/Sage Green/#9DC183, buckles: Matte Plastic (Coordinated)/Sage Green/#9DC183
+- "vegan version" (current: upper Suede/Taupe, lining Suede/Taupe, heelstrap Suede/Taupe) → upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A, lining: Microfiber/Taupe/#B8A99A
+- "vegan in black" (current: upper Oiled Leather/Habana, lining Shearling (Cream)/Cream, heelstrap Oiled Leather/Habana) → upper: Birko-Flor/Black/#1C1C1C, heelstrap: Birko-Flor/Black/#1C1C1C, lining: Microfiber/Black/#1C1C1C`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
