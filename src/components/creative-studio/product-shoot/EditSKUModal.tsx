@@ -249,8 +249,8 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 px-6 py-4">
-              <div className="space-y-6">
+            <ScrollArea className="flex-1">
+              <div className="space-y-6 px-6 py-4">
                 {/* Name & SKU Code */}
                 <div className="space-y-4">
                   <div className="space-y-2">
