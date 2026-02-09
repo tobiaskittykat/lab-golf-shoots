@@ -367,9 +367,28 @@ export function useImageGeneration() {
       // Build base request body (shared across all generation calls)
       const buildRequestBody = (shotPromptOverride?: string | null, imgCount?: number) => {
         // For product shoot, use SKU name instead of concept title
-        const imageTitle = state.useCase === 'product'
+        let imageTitle: string | undefined = state.useCase === 'product'
           ? (productNames[0] || 'Product Shot')
           : selectedConcept?.title;
+        
+        // Dynamic naming: reflect component overrides in title
+        if (state.useCase === 'product' && state.productShoot?.componentOverrides && productIdentity) {
+          const overrides = state.productShoot.componentOverrides;
+          const upperOverride = overrides.upper;
+          if (upperOverride) {
+            const newColor = upperOverride.color || productIdentity.color;
+            const newMaterial = upperOverride.material || productIdentity.material;
+            const parts = [
+              productIdentity.brandName, 
+              productIdentity.modelName, 
+              newColor, 
+              newMaterial
+            ].filter(Boolean);
+            if (parts.length > 1) {
+              imageTitle = parts.join(' ');
+            }
+          }
+        }
         
         return {
         // Use concept-derived prompt instead of raw brief
@@ -618,10 +637,11 @@ export function useImageGeneration() {
     }
   }, [toast]);
 
-  // Generate variations of an existing image
+  // Regenerate an image with the same settings (uses async polling)
   const generateVariations = useCallback(async (
     state: CreativeStudioState,
-    sourceImage: GeneratedImage
+    sourceImage: GeneratedImage,
+    onImageReady?: (image: GeneratedImage) => void
   ): Promise<GeneratedImage[]> => {
     setIsGeneratingImages(true);
     
@@ -635,7 +655,7 @@ export function useImageGeneration() {
         sourceImage.productReferenceUrls || 
         (sourceImage.productReferenceUrl ? [sourceImage.productReferenceUrl] : []);
       
-      console.log('[generateVariations] Extracted from source image:', {
+      console.log('[regenerate] Extracted from source image:', {
         productReferenceUrls,
         moodboardId: sourceImage.moodboardId || refs.moodboardId,
         shotTypePrompt: refs.shotTypePrompt ? 'present' : 'missing',
@@ -669,62 +689,110 @@ export function useImageGeneration() {
           aspectRatio: settings.aspectRatio || state.aspectRatio,
           aiModel: settings.aiModel || state.aiModel,
           
-          // New random seed for variation
+          // New random seed for variety
           seed: Math.floor(Math.random() * 1000000),
           
-          // Preserve brand association (from settings if available)
+          // Preserve brand association
           brandId: settings.brandId,
+          
+          // Pass through product shoot config if present
+          componentOverrides: settings.componentOverrides || refs.componentOverrides,
+          originalComponents: settings.originalComponents || refs.originalComponents,
+          attachReferenceImages: settings.attachReferenceImages ?? true,
+          productIdentity: settings.productIdentity || refs.productIdentity,
+          productShootConfig: settings.productShootConfig || refs.productShootConfig,
+          productNames: settings.productNames || refs.productNames,
         },
       });
 
       if (error) {
-        console.error('Error generating variation:', error);
+        console.error('Error regenerating:', error);
         toast({
-          title: 'Failed to generate variation',
+          title: 'Failed to regenerate',
           description: error.message || 'Please try again',
           variant: 'destructive',
         });
         return [];
       }
 
-      const images: GeneratedImage[] = (data.images || []).map((img: Record<string, unknown>, idx: number) => ({
-        id: (img.id as string) || `variation-${Date.now()}-${idx}`,
-        imageUrl: (img.imageUrl as string) || '',
-        status: (img.status as 'pending' | 'completed' | 'failed' | 'nsfw') || 'failed',
-        prompt: sourceImage.prompt || '',
-        refinedPrompt: img.refinedPrompt as string | undefined,
-        conceptTitle: sourceImage.conceptTitle,
+      // Use async polling pattern
+      const pendingIds = data?.pendingIds || [];
+      if (pendingIds.length === 0) {
+        toast({
+          title: 'Failed to regenerate',
+          description: 'No image jobs were created. Please try again.',
+          variant: 'destructive',
+        });
+        return [];
+      }
+
+      console.log(`[regenerate] Polling for ${pendingIds.length} images...`, pendingIds);
+
+      const notifiedIds = new Set<string>();
+      const rows = await pollForPendingImages(pendingIds, {
+        maxWaitMs: 150000,
+        intervalMs: 4000,
+        onRowReady: (row) => {
+          if (row.status === 'completed' && onImageReady && !notifiedIds.has(row.id)) {
+            notifiedIds.add(row.id);
+            const img: GeneratedImage = {
+              id: row.id,
+              imageUrl: row.image_url || '',
+              status: 'completed',
+              prompt: row.prompt || sourceImage.prompt || '',
+              refinedPrompt: row.refined_prompt,
+              conceptTitle: row.concept_title || sourceImage.conceptTitle,
+              index: 0,
+              productReferenceUrls,
+              productReferenceUrl: productReferenceUrls[0],
+              moodboardId: sourceImage.moodboardId,
+              settings: row.settings as GeneratedImage['settings'],
+            };
+            onImageReady(img);
+            // Trigger integrity analysis
+            if (productReferenceUrls.length > 0 && img.imageUrl) {
+              triggerIntegrityAnalysis(img.id, img.imageUrl, productReferenceUrls, sourceImage.conceptTitle);
+            }
+          }
+        },
+      });
+
+      const images: GeneratedImage[] = rows.map((row, idx) => ({
+        id: row.id,
+        imageUrl: row.image_url || '',
+        status: (row.status || 'failed') as any,
+        prompt: row.prompt || sourceImage.prompt || '',
+        refinedPrompt: row.refined_prompt,
+        conceptTitle: row.concept_title || sourceImage.conceptTitle,
+        index: idx,
         productReferenceUrls,
+        productReferenceUrl: productReferenceUrls[0],
         moodboardId: sourceImage.moodboardId,
-        index: (img.index as number) ?? idx,
+        error: row.error_message,
+        settings: row.settings as GeneratedImage['settings'],
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;
       if (successCount > 0) {
         toast({
-          title: 'Variation generated!',
-          description: `Created ${successCount} new variation(s)`,
+          title: 'Regenerated!',
+          description: `Created ${successCount} new image(s)`,
         });
-        
-        // Trigger background product integrity analysis for variations with product references
+        // Trigger integrity for any not yet notified
         if (productReferenceUrls.length > 0) {
-          const successfulImages = images.filter(i => i.status === 'completed' && i.imageUrl);
-          successfulImages.forEach(img => {
-            triggerIntegrityAnalysis(
-              img.id,
-              img.imageUrl,
-              productReferenceUrls,
-              sourceImage.conceptTitle // Use original image's concept title as product name
-            );
-          });
+          images
+            .filter(i => i.status === 'completed' && i.imageUrl && !notifiedIds.has(i.id))
+            .forEach(img => {
+              triggerIntegrityAnalysis(img.id, img.imageUrl, productReferenceUrls, sourceImage.conceptTitle);
+            });
         }
       }
 
       return images;
     } catch (err) {
-      console.error('Error generating variation:', err);
+      console.error('Error regenerating:', err);
       toast({
-        title: 'Failed to generate variation',
+        title: 'Failed to regenerate',
         description: 'An unexpected error occurred',
         variant: 'destructive',
       });

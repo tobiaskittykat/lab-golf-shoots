@@ -1,5 +1,5 @@
 import { useState, DragEvent } from 'react';
-import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check, GripVertical } from 'lucide-react';
+import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check, GripVertical, Eye } from 'lucide-react';
 import { GeneratedImage } from './types';
 import { cn } from '@/lib/utils';
 import { ProductIntegrityBadge } from './product-shoot/ProductIntegrityBadge';
@@ -11,6 +11,8 @@ interface GeneratedImageCardProps {
   onEdit: (image: GeneratedImage) => void;
   onDelete: (image: GeneratedImage) => void;
   onSelect?: (image: GeneratedImage) => void;
+  onToggleSelect?: (image: GeneratedImage) => void;
+  isSelected?: boolean;
   enableDrag?: boolean;
   integrityResult?: ProductIntegrityResult;
   isAnalyzingIntegrity?: boolean;
@@ -22,6 +24,8 @@ export const GeneratedImageCard = ({
   onEdit, 
   onDelete,
   onSelect,
+  onToggleSelect,
+  isSelected = false,
   enableDrag = false,
   integrityResult,
   isAnalyzingIntegrity = false,
@@ -41,7 +45,6 @@ export const GeneratedImageCard = ({
     e.dataTransfer.effectAllowed = 'copy';
     setIsDragging(true);
     
-    // Create a drag image
     const dragImage = document.createElement('div');
     dragImage.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
     document.body.appendChild(dragImage);
@@ -58,8 +61,6 @@ export const GeneratedImageCard = ({
     
     setIsDownloading(true);
     try {
-      // Logo is already baked into the image at generation time
-      // Just download the image directly
       const response = await fetch(image.imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -113,23 +114,33 @@ export const GeneratedImageCard = ({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Don't trigger click if user is interacting with action buttons
     if ((e.target as HTMLElement).closest('button')) return;
     
+    // Toggle selection if handler provided
+    if (onToggleSelect && image.status === 'completed') {
+      onToggleSelect(image);
+      return;
+    }
+    
+    // Fallback to original onSelect behavior
     if (onSelect && image.status === 'completed') {
       onSelect(image);
     }
   };
 
   const canDrag = enableDrag && image.status === 'completed';
+  const isFailed = image.status === 'failed' || image.status === 'nsfw';
 
   return (
     <div 
       className={cn(
-        "group relative rounded-xl overflow-hidden border border-border bg-card shadow-sm hover:shadow-md transition-all",
-        onSelect && image.status === 'completed' && 'cursor-pointer',
+        "group relative rounded-xl overflow-hidden border bg-card shadow-sm hover:shadow-md transition-all",
+        isSelected 
+          ? 'border-accent ring-2 ring-accent/30' 
+          : 'border-border',
+        (onToggleSelect || onSelect) && image.status === 'completed' && 'cursor-pointer',
         isDragging && 'opacity-50 scale-95',
-        canDrag && 'cursor-grab active:cursor-grabbing'
+        canDrag && !isSelected && 'cursor-grab active:cursor-grabbing'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -138,6 +149,13 @@ export const GeneratedImageCard = ({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      {/* Selection Checkmark */}
+      {isSelected && (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-md">
+          <Check className="w-3.5 h-3.5" />
+        </div>
+      )}
+
       {/* Image Container */}
       <div className="aspect-square relative bg-secondary/30">
         {image.status === 'pending' ? (
@@ -182,28 +200,28 @@ export const GeneratedImageCard = ({
         )}
 
         {/* Drag Handle Indicator */}
-        {canDrag && isHovered && (
+        {canDrag && isHovered && !isSelected && (
           <div className="absolute top-2 left-2 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity">
             <GripVertical className="w-3 h-3" />
           </div>
         )}
 
-        {/* Hover Overlay with Actions */}
+        {/* Hover Overlay with Actions - for completed images */}
         {isHovered && image.status === 'completed' && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 transition-opacity">
             <button
               onClick={(e) => { e.stopPropagation(); onVariation(image); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
-              title="Generate Variations"
+              title="Regenerate"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); onEdit(image); }}
+              onClick={(e) => { e.stopPropagation(); onSelect?.(image); }}
               className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
-              title="Edit Image"
+              title="View Details"
             >
-              <Pencil className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleDownload(); }}
@@ -226,25 +244,34 @@ export const GeneratedImageCard = ({
             </button>
           </div>
         )}
+
+        {/* Hover Overlay for failed/NSFW - just delete button */}
+        {isHovered && isFailed && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(image); }}
+              className="p-2.5 rounded-full bg-white/90 hover:bg-white text-destructive transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Card Footer */}
       <div className="p-3 space-y-2">
-        {/* Image Name - prefer concept title */}
         <p className="text-sm text-foreground font-medium line-clamp-1">
           {image.conceptTitle || 'Generated Image'}
         </p>
-        {/* Brief as secondary info */}
         <p className="text-xs text-muted-foreground line-clamp-1">
           {image.prompt}
         </p>
 
-        {/* Status, Integrity Badge & References */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             {getStatusBadge()}
             
-            {/* Product Integrity Badge */}
             {(integrityResult || isAnalyzingIntegrity) && image.status === 'completed' && (
               <ProductIntegrityBadge
                 result={integrityResult}
@@ -255,7 +282,6 @@ export const GeneratedImageCard = ({
             )}
           </div>
           
-          {/* Reference thumbnails */}
           {(image.productReferenceUrl || image.contextReferenceUrl) && (
             <div className="flex items-center gap-1">
               {image.productReferenceUrl && (

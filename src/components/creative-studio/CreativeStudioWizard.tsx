@@ -357,13 +357,43 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
   }, [state, handleUpdate, generateImages, logoUrl, currentBrand?.id]);
 
   const handleVariation = useCallback(async (image: GeneratedImage) => {
-    const newImages = await generateVariations(state, image);
-    if (newImages.length > 0) {
-      handleUpdate({ 
-        generatedImages: [...state.generatedImages, ...newImages] 
-      });
+    // Add a pending placeholder to the gallery
+    const placeholderId = `pending-regen-${Date.now()}`;
+    setState(prev => ({
+      ...prev,
+      generatedImages: [...prev.generatedImages, {
+        id: placeholderId,
+        imageUrl: '',
+        status: 'pending' as const,
+        prompt: image.prompt || '',
+        index: prev.generatedImages.length,
+      }],
+    }));
+    
+    // Progressive callback: replace placeholder with real image
+    const onImageReady = (newImage: GeneratedImage) => {
+      setState(prev => ({
+        ...prev,
+        generatedImages: prev.generatedImages.map(img =>
+          img.id === placeholderId ? newImage : img
+        ),
+      }));
+    };
+    
+    const newImages = await generateVariations(state, image, onImageReady);
+    
+    if (newImages.length === 0) {
+      // Remove placeholder if failed
+      setState(prev => ({
+        ...prev,
+        generatedImages: prev.generatedImages.map(img =>
+          img.id === placeholderId 
+            ? { ...img, status: 'failed' as const, error: 'Regeneration failed' } 
+            : img
+        ),
+      }));
     }
-  }, [state, handleUpdate, generateVariations]);
+  }, [state, generateVariations]);
 
   const handleEdit = useCallback((image: GeneratedImage) => {
     // Navigate to edit page with the image
