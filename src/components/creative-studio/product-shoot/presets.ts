@@ -25,6 +25,13 @@ import outdoorMountain from '@/assets/backgrounds/outdoor-mountain.jpg';
 import outdoorVineyard from '@/assets/backgrounds/outdoor-vineyard.jpg';
 import outdoorBoardwalk from '@/assets/backgrounds/outdoor-boardwalk.jpg';
 import outdoorMarket from '@/assets/backgrounds/outdoor-market.jpg';
+import outdoorCactusGarden from '@/assets/backgrounds/outdoor-cactus-garden.jpg';
+import outdoorCrackedEarth from '@/assets/backgrounds/outdoor-cracked-earth.jpg';
+import outdoorSaltFlats from '@/assets/backgrounds/outdoor-salt-flats.jpg';
+import outdoorPicnic from '@/assets/backgrounds/outdoor-picnic.jpg';
+import outdoorRockyShore from '@/assets/backgrounds/outdoor-rocky-shore.jpg';
+import outdoorWeatheredMetal from '@/assets/backgrounds/outdoor-weathered-metal.jpg';
+import outdoorGrassConcrete from '@/assets/backgrounds/outdoor-grass-concrete.jpg';
 
 // ============= WEATHER OPTIONS =============
 export interface WeatherOption {
@@ -254,6 +261,62 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     thumbnail: outdoorMarket, 
     prompt: 'vibrant street market, colorful stalls, bustling atmosphere, authentic local setting',
     colorHint: 'linear-gradient(135deg, #FF6347 0%, #FFD700 50%, #32CD32 100%)'
+  },
+  { 
+    id: 'outdoor-cactus-garden', 
+    name: 'Cactus Garden', 
+    category: 'outdoor', 
+    thumbnail: outdoorCactusGarden, 
+    prompt: 'southwestern desert setting with prickly pear cactus, sandy beige ground, natural desert flora backdrop',
+    colorHint: 'linear-gradient(180deg, #8B9D83 0%, #D4C5A9 50%, #C8B896 100%)'
+  },
+  { 
+    id: 'outdoor-cracked-earth', 
+    name: 'Cracked Earth', 
+    category: 'outdoor', 
+    thumbnail: outdoorCrackedEarth, 
+    prompt: 'dry cracked earth surface, deep fissures in clay ground, dramatic arid landscape texture',
+    colorHint: 'linear-gradient(180deg, #C8B896 0%, #A89968 100%)'
+  },
+  { 
+    id: 'outdoor-salt-flats', 
+    name: 'Salt Flats', 
+    category: 'outdoor', 
+    thumbnail: outdoorSaltFlats, 
+    prompt: 'white crystalline salt flat surface, turquoise mineral deposits, otherworldly natural phenomenon',
+    colorHint: 'linear-gradient(135deg, #F0F8FF 0%, #B0E0E6 50%, #E0F7FA 100%)'
+  },
+  { 
+    id: 'outdoor-picnic', 
+    name: 'Picnic Blanket', 
+    category: 'outdoor', 
+    thumbnail: outdoorPicnic, 
+    prompt: 'red gingham picnic blanket on green grass, casual outdoor lifestyle setting, summer day',
+    colorHint: 'linear-gradient(135deg, #DC143C 0%, #FFFFFF 25%, #DC143C 50%, #228B22 100%)'
+  },
+  { 
+    id: 'outdoor-rocky-shore', 
+    name: 'Rocky Shore', 
+    category: 'outdoor', 
+    thumbnail: outdoorRockyShore, 
+    prompt: 'natural limestone rock surface, turquoise water edge, spa-like serene coastal setting',
+    colorHint: 'linear-gradient(180deg, #D3D3D3 0%, #40E0D0 100%)'
+  },
+  { 
+    id: 'outdoor-weathered-metal', 
+    name: 'Weathered Metal', 
+    category: 'outdoor', 
+    thumbnail: outdoorWeatheredMetal, 
+    prompt: 'oxidized metal surface with rust patina, golden hour tones, industrial artistic texture',
+    colorHint: 'linear-gradient(135deg, #CD7F32 0%, #DAA520 50%, #B87333 100%)'
+  },
+  { 
+    id: 'outdoor-grass-concrete', 
+    name: 'Grass Edge', 
+    category: 'outdoor', 
+    thumbnail: outdoorGrassConcrete, 
+    prompt: 'clean concrete pavement meets lush green grass, modern architectural transition, urban nature',
+    colorHint: 'linear-gradient(90deg, #228B22 0%, #C0C0C0 50%, #DCDCDC 100%)'
   },
 ];
 

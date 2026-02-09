@@ -33,6 +33,13 @@ const BACKGROUNDS = [
   { id: 'outdoor-vineyard', prompt: 'Rolling vineyard hills, grapevines rows, golden afternoon light, Tuscan countryside aesthetic, no people' },
   { id: 'outdoor-boardwalk', prompt: 'Wooden seaside boardwalk, ocean view, coastal breeze atmosphere, summer vacation vibes, no people' },
   { id: 'outdoor-market', prompt: 'Vibrant street market scene, colorful stalls, bustling atmosphere backdrop, authentic local setting, no people' },
+  { id: 'outdoor-cactus-garden', prompt: 'Southwestern desert landscape with large prickly pear cactus plants, sandy beige ground, natural desert setting, no people, no products' },
+  { id: 'outdoor-cracked-earth', prompt: 'Dry cracked earth surface with deep fissures, drought affected clay ground, dramatic arid texture, no people, no products' },
+  { id: 'outdoor-salt-flats', prompt: 'White crystalline salt flat surface with turquoise and green mineral deposits, otherworldly geothermal landscape, no people, no products' },
+  { id: 'outdoor-picnic', prompt: 'Red and white gingham checked picnic blanket spread on green grass, casual summer outdoor setting, no people, no products' },
+  { id: 'outdoor-rocky-shore', prompt: 'Natural weathered limestone rock surface meeting turquoise clear water, serene coastal spa atmosphere, no people, no products' },
+  { id: 'outdoor-weathered-metal', prompt: 'Oxidized rusted metal surface with copper and golden patina, industrial artistic texture with warm tones, no people, no products' },
+  { id: 'outdoor-grass-concrete', prompt: 'Clean concrete pavement edge meeting vibrant green grass, modern architectural urban nature transition, no people, no products' },
 ];
 
 async function generateImage(prompt: string, apiKey: string): Promise<string | null> {
