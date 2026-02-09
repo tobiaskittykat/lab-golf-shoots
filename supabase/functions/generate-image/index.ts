@@ -481,6 +481,14 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push("=== BACKGROUND/SETTING ===");
         sections.push(config.customBackgroundPrompt);
         sections.push("");
+      } else if (config.backgroundId === 'studio-auto') {
+        sections.push("=== BACKGROUND/SETTING ===");
+        sections.push("AI selects the most appropriate studio background for this product. Professional studio environment with suitable surface and backdrop.");
+        sections.push("");
+      } else if (config.backgroundId === 'outdoor-auto') {
+        sections.push("=== BACKGROUND/SETTING ===");
+        sections.push("AI selects the most appropriate outdoor/natural background for this product. Natural setting that complements the product's character.");
+        sections.push("");
       } else if (config.backgroundId && backgroundPresets[config.backgroundId]) {
         sections.push("=== BACKGROUND/SETTING ===");
         sections.push(backgroundPresets[config.backgroundId]);
