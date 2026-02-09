@@ -171,7 +171,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Sandy Beach', 
     category: 'outdoor', 
     thumbnail: outdoorBeach, 
-    prompt: 'soft sandy beach background, golden hour sunlight, ocean in distance, relaxed coastal vibe',
+    prompt: 'warm golden sand with natural ripple texture, soft golden hour light, distant ocean blur, raw coastal Mediterranean atmosphere, Birkenstock summer campaign',
     colorHint: 'linear-gradient(180deg, #87CEEB 0%, #F4A460 50%, #DEB887 100%)'
   },
   { 
@@ -179,7 +179,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Urban Street', 
     category: 'outdoor', 
     thumbnail: outdoorUrban, 
-    prompt: 'urban city street background, modern architecture, stylish metropolitan setting',
+    prompt: 'sun-warmed cobblestone European side street, aged sandstone walls, warm afternoon light with long shadows, lived-in urban character, Birkenstock city editorial',
     colorHint: 'linear-gradient(180deg, #708090 0%, #A9A9A9 100%)'
   },
   { 
@@ -187,7 +187,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Park Grass', 
     category: 'outdoor', 
     thumbnail: outdoorPark, 
-    prompt: 'lush green park setting, dappled sunlight through trees, natural fresh atmosphere',
+    prompt: 'wild meadow grass with wildflowers, dappled golden sunlight through mature trees, natural organic parkland, Birkenstock nature campaign',
     colorHint: 'linear-gradient(180deg, #90EE90 0%, #228B22 100%)'
   },
   { 
@@ -195,7 +195,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Café Terrace', 
     category: 'outdoor', 
     thumbnail: outdoorCafe, 
-    prompt: 'charming European café terrace, cobblestone street, bistro chairs, warm afternoon light',
+    prompt: 'weathered wooden bistro table on aged cobblestones, terracotta-toned walls, warm Mediterranean afternoon light, artisan cafe culture, Birkenstock European editorial',
     colorHint: 'linear-gradient(180deg, #F5DEB3 0%, #D2691E 100%)'
   },
   { 
@@ -203,7 +203,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Desert Dunes', 
     category: 'outdoor', 
     thumbnail: outdoorDesert, 
-    prompt: 'dramatic desert landscape, sand dunes, warm golden hour light, minimalist vast backdrop',
+    prompt: 'sculptural desert dune with wind-carved ridges, warm amber golden hour, vast minimalist landscape, raw earth textures, Birkenstock nature campaign',
     colorHint: 'linear-gradient(180deg, #EDC9AF 0%, #C19A6B 100%)'
   },
   { 
@@ -211,7 +211,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Forest Path', 
     category: 'outdoor', 
     thumbnail: outdoorForest, 
-    prompt: 'serene forest path, filtered sunlight through trees, natural earthy tones, peaceful setting',
+    prompt: 'dappled light through ancient oak canopy, moss-covered forest floor, rich earthy greens and browns, organic natural sanctuary, Birkenstock woodland editorial',
     colorHint: 'linear-gradient(180deg, #556B2F 0%, #2F4F4F 100%)'
   },
   { 
@@ -219,7 +219,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Rooftop', 
     category: 'outdoor', 
     thumbnail: outdoorRooftop, 
-    prompt: 'modern rooftop setting, city skyline in background, golden hour, urban lifestyle',
+    prompt: 'weathered terracotta rooftop terrace, potted olive trees, warm golden hour cityscape, Mediterranean lifestyle, Birkenstock summer editorial',
     colorHint: 'linear-gradient(180deg, #FFB347 0%, #708090 100%)'
   },
   { 
@@ -227,7 +227,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Poolside', 
     category: 'outdoor', 
     thumbnail: outdoorPool, 
-    prompt: 'luxury poolside setting, turquoise water, white deck, resort vibes, bright daylight',
+    prompt: 'natural stone pool edge with sun-warmed travertine deck, turquoise water reflections, Mediterranean resort warmth, Birkenstock summer campaign',
     colorHint: 'linear-gradient(180deg, #E0FFFF 0%, #40E0D0 100%)'
   },
   { 
@@ -235,7 +235,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Mountain Trail', 
     category: 'outdoor', 
     thumbnail: outdoorMountain, 
-    prompt: 'mountain hiking trail, scenic overlook, adventurous outdoor setting, natural beauty',
+    prompt: 'rugged mountain trail with worn natural stone, alpine wildflowers, expansive valley vista, raw outdoor adventure, Birkenstock hiking editorial',
     colorHint: 'linear-gradient(180deg, #87CEEB 0%, #708090 50%, #2F4F4F 100%)'
   },
   { 
@@ -243,7 +243,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Vineyard', 
     category: 'outdoor', 
     thumbnail: outdoorVineyard, 
-    prompt: 'rolling vineyard hills, golden afternoon light, Tuscan countryside aesthetic, sophisticated',
+    prompt: 'sun-drenched vineyard rows with gnarled old vines, golden Tuscan light, terracotta earth between rows, artisanal wine country, Birkenstock countryside editorial',
     colorHint: 'linear-gradient(180deg, #9ACD32 0%, #6B8E23 100%)'
   },
   { 
@@ -251,7 +251,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Boardwalk', 
     category: 'outdoor', 
     thumbnail: outdoorBoardwalk, 
-    prompt: 'wooden boardwalk by the sea, coastal breeze, vacation vibes, relaxed summer setting',
+    prompt: 'sun-bleached weathered timber boardwalk, natural wood grain and patina, coastal salt air atmosphere, Birkenstock seaside campaign',
     colorHint: 'linear-gradient(180deg, #87CEEB 0%, #DEB887 100%)'
   },
   { 
@@ -259,7 +259,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Street Market', 
     category: 'outdoor', 
     thumbnail: outdoorMarket, 
-    prompt: 'vibrant street market, colorful stalls, bustling atmosphere, authentic local setting',
+    prompt: 'artisan outdoor market with handwoven textiles and ceramics, warm natural materials, Mediterranean bazaar atmosphere, Birkenstock cultural editorial',
     colorHint: 'linear-gradient(135deg, #FF6347 0%, #FFD700 50%, #32CD32 100%)'
   },
   { 
@@ -267,7 +267,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Cactus Garden', 
     category: 'outdoor', 
     thumbnail: outdoorCactusGarden, 
-    prompt: 'southwestern desert setting with prickly pear cactus, sandy beige ground, natural desert flora backdrop',
+    prompt: 'southwestern desert garden with sculptural prickly pear cactus, warm sandy earth, terracotta and sage tones, raw natural desert flora, Birkenstock desert editorial',
     colorHint: 'linear-gradient(180deg, #8B9D83 0%, #D4C5A9 50%, #C8B896 100%)'
   },
   { 
@@ -275,7 +275,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Cracked Earth', 
     category: 'outdoor', 
     thumbnail: outdoorCrackedEarth, 
-    prompt: 'dry cracked earth surface, deep fissures in clay ground, dramatic arid landscape texture',
+    prompt: 'sun-baked cracked clay earth with deep fissures, warm ochre and sienna tones, raw elemental texture, Birkenstock earth editorial',
     colorHint: 'linear-gradient(180deg, #C8B896 0%, #A89968 100%)'
   },
   { 
@@ -283,7 +283,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Salt Flats', 
     category: 'outdoor', 
     thumbnail: outdoorSaltFlats, 
-    prompt: 'white crystalline salt flat surface, turquoise mineral deposits, otherworldly natural phenomenon',
+    prompt: 'crystalline salt flat surface with mineral deposits, otherworldly natural landscape, warm reflected light, raw geological wonder, Birkenstock nature editorial',
     colorHint: 'linear-gradient(135deg, #F0F8FF 0%, #B0E0E6 50%, #E0F7FA 100%)'
   },
   { 
@@ -291,7 +291,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Picnic Blanket', 
     category: 'outdoor', 
     thumbnail: outdoorPicnic, 
-    prompt: 'red gingham picnic blanket on green grass, casual outdoor lifestyle setting, summer day',
+    prompt: 'faded vintage gingham blanket on wild meadow grass, casual golden afternoon, handmade wicker basket vibe, Birkenstock lifestyle editorial',
     colorHint: 'linear-gradient(135deg, #DC143C 0%, #FFFFFF 25%, #DC143C 50%, #228B22 100%)'
   },
   { 
@@ -299,7 +299,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Rocky Shore', 
     category: 'outdoor', 
     thumbnail: outdoorRockyShore, 
-    prompt: 'natural limestone rock surface, turquoise water edge, spa-like serene coastal setting',
+    prompt: 'sun-warmed limestone rocks meeting clear turquoise shallows, natural coastal erosion texture, Mediterranean cove atmosphere, Birkenstock coastal editorial',
     colorHint: 'linear-gradient(180deg, #D3D3D3 0%, #40E0D0 100%)'
   },
   { 
@@ -307,7 +307,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Weathered Metal', 
     category: 'outdoor', 
     thumbnail: outdoorWeatheredMetal, 
-    prompt: 'oxidized metal surface with rust patina, golden hour tones, industrial artistic texture',
+    prompt: 'naturally oxidized copper and iron surface with warm patina, golden rust tones, industrial craft texture with organic aging, Birkenstock artisan editorial',
     colorHint: 'linear-gradient(135deg, #CD7F32 0%, #DAA520 50%, #B87333 100%)'
   },
   { 
@@ -315,7 +315,7 @@ export const outdoorBackgrounds: BackgroundPreset[] = [
     name: 'Grass Edge', 
     category: 'outdoor', 
     thumbnail: outdoorGrassConcrete, 
-    prompt: 'clean concrete pavement meets lush green grass, modern architectural transition, urban nature',
+    prompt: 'raw concrete slab edge meeting wild grass and clover, warm natural light, architectural meets organic, Birkenstock urban nature editorial',
     colorHint: 'linear-gradient(90deg, #228B22 0%, #C0C0C0 50%, #DCDCDC 100%)'
   },
 ];

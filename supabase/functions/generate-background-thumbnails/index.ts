@@ -20,30 +20,55 @@ const BACKGROUNDS = [
   { id: 'studio-terrazzo', prompt: 'Modern terrazzo surface with colorful stone chips, white base, contemporary design, clean, empty' },
   { id: 'studio-paper', prompt: 'Seamless cream paper photography backdrop, subtle texture, classic studio setup, soft shadows, empty' },
   
-  // Outdoor backgrounds (12)
-  { id: 'outdoor-beach', prompt: 'Sandy beach scene, golden sand, soft ocean waves in distance, golden hour sunlight, coastal atmosphere, no people' },
-  { id: 'outdoor-urban', prompt: 'Modern urban city street, contemporary architecture, clean sidewalk, stylish metropolitan setting, no people' },
-  { id: 'outdoor-park', prompt: 'Lush green park lawn, dappled sunlight through trees, fresh natural atmosphere, grass and foliage, no people' },
-  { id: 'outdoor-cafe', prompt: 'Charming European cafe terrace, cobblestone street, bistro setting, warm afternoon light, no people' },
-  { id: 'outdoor-desert', prompt: 'Dramatic desert sand dunes, warm golden light, minimalist vast landscape, natural curves, no people' },
-  { id: 'outdoor-forest', prompt: 'Serene forest path, filtered sunlight through trees, earthy natural tones, peaceful woodland, no people' },
-  { id: 'outdoor-rooftop', prompt: 'Modern rooftop terrace, city skyline in background, golden hour, urban lifestyle setting, no people' },
-  { id: 'outdoor-pool', prompt: 'Luxury poolside scene, turquoise water, white deck, resort atmosphere, bright daylight, no people' },
-  { id: 'outdoor-mountain', prompt: 'Mountain hiking trail scenic overlook, dramatic landscape, adventure outdoor setting, clear sky, no people' },
-  { id: 'outdoor-vineyard', prompt: 'Rolling vineyard hills, grapevines rows, golden afternoon light, Tuscan countryside aesthetic, no people' },
-  { id: 'outdoor-boardwalk', prompt: 'Wooden seaside boardwalk, ocean view, coastal breeze atmosphere, summer vacation vibes, no people' },
-  { id: 'outdoor-market', prompt: 'Vibrant street market scene, colorful stalls, bustling atmosphere backdrop, authentic local setting, no people' },
-  { id: 'outdoor-cactus-garden', prompt: 'Southwestern desert landscape with large prickly pear cactus plants, sandy beige ground, natural desert setting, no people, no products' },
-  { id: 'outdoor-cracked-earth', prompt: 'Dry cracked earth surface with deep fissures, drought affected clay ground, dramatic arid texture, no people, no products' },
-  { id: 'outdoor-salt-flats', prompt: 'White crystalline salt flat surface with turquoise and green mineral deposits, otherworldly geothermal landscape, no people, no products' },
-  { id: 'outdoor-picnic', prompt: 'Red and white gingham checked picnic blanket spread on green grass, casual summer outdoor setting, no people, no products' },
-  { id: 'outdoor-rocky-shore', prompt: 'Natural weathered limestone rock surface meeting turquoise clear water, serene coastal spa atmosphere, no people, no products' },
-  { id: 'outdoor-weathered-metal', prompt: 'Oxidized rusted metal surface with copper and golden patina, industrial artistic texture with warm tones, no people, no products' },
-  { id: 'outdoor-grass-concrete', prompt: 'Clean concrete pavement edge meeting vibrant green grass, modern architectural urban nature transition, no people, no products' },
+  // Outdoor backgrounds (19) - Birkenstock campaign editorial aesthetic
+  { id: 'outdoor-beach', prompt: 'Warm golden sand with natural ripple texture, soft golden hour light, distant ocean blur, raw coastal Mediterranean atmosphere, earthy muted tones, no people, no products' },
+  { id: 'outdoor-urban', prompt: 'Sun-warmed cobblestone European side street, aged sandstone walls, warm afternoon light with long shadows, lived-in urban character with patina, no people, no products' },
+  { id: 'outdoor-park', prompt: 'Wild meadow grass with wildflowers, dappled golden sunlight through mature oak trees, natural organic parkland, earthy greens, no people, no products' },
+  { id: 'outdoor-cafe', prompt: 'Weathered wooden bistro table on aged cobblestones, terracotta-toned Mediterranean walls, warm afternoon light, artisan cafe culture, no people, no products' },
+  { id: 'outdoor-desert', prompt: 'Sculptural desert dune with wind-carved ridges, warm amber golden hour, vast minimalist landscape, raw earth textures, no people, no products' },
+  { id: 'outdoor-forest', prompt: 'Dappled light through ancient oak canopy, moss-covered forest floor, rich earthy greens and browns, organic natural sanctuary, no people, no products' },
+  { id: 'outdoor-rooftop', prompt: 'Weathered terracotta rooftop terrace, potted olive trees, warm golden hour cityscape, Mediterranean lifestyle atmosphere, no people, no products' },
+  { id: 'outdoor-pool', prompt: 'Natural stone pool edge with sun-warmed travertine deck, turquoise water reflections, Mediterranean resort warmth, no people, no products' },
+  { id: 'outdoor-mountain', prompt: 'Rugged mountain trail with worn natural stone, alpine wildflowers, expansive valley vista, raw outdoor adventure atmosphere, no people, no products' },
+  { id: 'outdoor-vineyard', prompt: 'Sun-drenched vineyard rows with gnarled old vines, golden Tuscan light, terracotta earth between rows, artisanal wine country, no people, no products' },
+  { id: 'outdoor-boardwalk', prompt: 'Sun-bleached weathered timber boardwalk, natural wood grain and patina, coastal salt air atmosphere, raw seaside character, no people, no products' },
+  { id: 'outdoor-market', prompt: 'Artisan outdoor market with handwoven textiles and ceramics, warm natural materials, Mediterranean bazaar atmosphere, no people, no products' },
+  { id: 'outdoor-cactus-garden', prompt: 'Southwestern desert garden with sculptural prickly pear cactus, warm sandy earth, terracotta and sage tones, raw natural desert flora, no people, no products' },
+  { id: 'outdoor-cracked-earth', prompt: 'Sun-baked cracked clay earth with deep fissures, warm ochre and sienna tones, raw elemental texture, dramatic arid landscape, no people, no products' },
+  { id: 'outdoor-salt-flats', prompt: 'Crystalline salt flat surface with mineral deposits, otherworldly natural landscape, warm reflected light, raw geological wonder, no people, no products' },
+  { id: 'outdoor-picnic', prompt: 'Faded vintage gingham blanket on wild meadow grass, casual golden afternoon, handmade wicker basket vibe, relaxed editorial, no people, no products' },
+  { id: 'outdoor-rocky-shore', prompt: 'Sun-warmed limestone rocks meeting clear turquoise shallows, natural coastal erosion texture, Mediterranean cove atmosphere, no people, no products' },
+  { id: 'outdoor-weathered-metal', prompt: 'Naturally oxidized copper and iron surface with warm patina, golden rust tones, industrial craft texture with organic aging, no people, no products' },
+  { id: 'outdoor-grass-concrete', prompt: 'Raw concrete slab edge meeting wild grass and clover, warm natural light, architectural meets organic, earthy tones, no people, no products' },
 ];
 
-async function generateImage(prompt: string, apiKey: string): Promise<string | null> {
+async function generateImage(prompt: string, apiKey: string, isOutdoor: boolean): Promise<string | null> {
   try {
+    const styleInstructions = isOutdoor
+      ? `Generate a background preview image in the style of a Birkenstock campaign photograph.
+
+Setting: ${prompt}
+
+Style requirements:
+- Empty background only, absolutely no products, people, shoes, or objects
+- Natural, earthy, grounded aesthetic -- NOT stock photography
+- Warm natural lighting with organic textures visible
+- Editorial photography feel with tactile materiality
+- Muted, earthy color palette -- sand, terracotta, sage, stone, ochre
+- Raw textures and natural imperfections, not polished or sterile
+- 4:3 aspect ratio composition
+- Suitable as a small selection thumbnail`
+      : `Generate a simple, clean background preview image for product photography selection thumbnail. 
+            
+Setting: ${prompt}
+
+Style requirements:
+- Empty background only, absolutely no products, people, or objects
+- Soft, even lighting
+- 4:3 aspect ratio composition
+- Clean and professional
+- Suitable as a small selection thumbnail`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -55,16 +80,7 @@ async function generateImage(prompt: string, apiKey: string): Promise<string | n
         messages: [
           {
             role: "user",
-            content: `Generate a simple, clean background preview image for product photography selection thumbnail. 
-            
-Setting: ${prompt}
-
-Style requirements:
-- Empty background only, absolutely no products, people, or objects
-- Soft, even lighting
-- 4:3 aspect ratio composition
-- Clean and professional
-- Suitable as a small selection thumbnail`
+            content: styleInstructions
           }
         ],
         modalities: ["image", "text"]
@@ -171,7 +187,7 @@ serve(async (req) => {
       // Add delay between requests to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const imageData = await generateImage(bg.prompt, LOVABLE_API_KEY);
+      const imageData = await generateImage(bg.prompt, LOVABLE_API_KEY, bg.id.startsWith('outdoor-'));
       
       if (imageData) {
         const publicUrl = await uploadToStorage(supabase, imageData, bg.id);
