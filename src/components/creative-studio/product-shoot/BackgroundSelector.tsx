@@ -189,20 +189,8 @@ export const BackgroundSelector = ({
     <>
       <div className="grid grid-cols-4 gap-3">
         {visiblePresets.map(renderBackgroundCard)}
-        {/* Auto tile always last */}
-        {!showAllBackgrounds && renderAutoTile()}
+        {renderAutoTile()}
       </div>
-      {showAllBackgrounds && (
-        <div className="grid grid-cols-4 gap-3">
-          {/* When expanded, remaining presets are already shown above; Auto goes at the very end */}
-        </div>
-      )}
-      {/* When expanded, render Auto tile as the very last element */}
-      {showAllBackgrounds && (
-        <div className="grid grid-cols-4 gap-3">
-          {renderAutoTile()}
-        </div>
-      )}
       {hiddenCount > 0 && (
         <Button
           variant="ghost"
