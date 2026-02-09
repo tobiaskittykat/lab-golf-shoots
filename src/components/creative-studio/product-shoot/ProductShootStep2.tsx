@@ -17,7 +17,7 @@ import { OnFootConfigurator } from "./OnFootConfigurator";
 import { LifestyleConfigurator } from "./LifestyleConfigurator";
 import { ProductFocusConfigurator } from "./ProductFocusConfigurator";
 import { ProductAnglePreview } from "./ProductAnglePreview";
-import { ProductAngleViewer } from "./ProductAngleViewer";
+
 import { ShoeComponentsPanel } from "./ShoeComponentsPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -383,19 +383,6 @@ export const ProductShootStep2 = ({
           />
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-4">
-              {/* Selected Product Angle Viewer */}
-              {state.selectedProductId && selectedSku && (
-                <ProductAngleViewer
-                  skuId={state.selectedProductId}
-                  skuName={selectedSku.name}
-                  compositeImageUrl={selectedSku.composite_image_url}
-                  onEditClick={() => {
-                    setEditingSkuId(state.selectedProductId!);
-                    setShowEditSKUModal(true);
-                  }}
-                />
-              )}
-
               {/* Always show product grid - no conditional switch */}
               <div className="space-y-3">
                 {/* Recent Products Grid */}
@@ -464,7 +451,14 @@ export const ProductShootStep2 = ({
                               className="w-auto p-3"
                               sideOffset={8}
                             >
-                              <ProductAnglePreview skuId={sku.id} skuName={sku.name} />
+                              <ProductAnglePreview 
+                                skuId={sku.id} 
+                                skuName={sku.name}
+                                onEditClick={() => {
+                                  setEditingSkuId(sku.id);
+                                  setShowEditSKUModal(true);
+                                }}
+                              />
                             </HoverCardContent>
                           </HoverCard>
                         );
