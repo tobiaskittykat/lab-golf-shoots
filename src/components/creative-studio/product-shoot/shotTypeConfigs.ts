@@ -35,6 +35,12 @@ export function buildBackgroundSection(context: BackgroundContext): string[] {
   if (context.customBackgroundPrompt) {
     // Custom prompt overrides everything
     sections.push(`- ${context.customBackgroundPrompt}`);
+  } else if (context.backgroundId === 'studio-auto') {
+    sections.push("- AI selects the most appropriate studio background for this product");
+    sections.push("- Professional studio environment with suitable surface and backdrop");
+  } else if (context.backgroundId === 'outdoor-auto') {
+    sections.push("- AI selects the most appropriate outdoor/natural background for this product");
+    sections.push("- Natural setting that complements the product's character");
   } else if (context.backgroundId) {
     // Find the preset
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
@@ -42,8 +48,6 @@ export function buildBackgroundSection(context: BackgroundContext): string[] {
     if (preset) {
       sections.push(`- ${preset.prompt}`);
     }
-  } else if (context.settingType === 'auto') {
-    sections.push("- AI selects appropriate background for the product");
   } else if (context.settingType === 'studio') {
     // Default studio
     sections.push("- Clean professional studio environment");
@@ -74,8 +78,12 @@ export function buildLightingSection(context: BackgroundContext): string[] {
   
   const isOutdoor = context.settingType === 'outdoor' || context.backgroundId?.startsWith('outdoor-');
   const isStudio = context.settingType === 'studio' || context.backgroundId?.startsWith('studio-');
+  const isAuto = context.backgroundId?.endsWith('-auto');
   
-  if (isOutdoor) {
+  if (isAuto) {
+    // Auto mode - let AI decide lighting
+    sections.push("- Lighting appropriate to the setting, revealing material textures");
+  } else if (isOutdoor) {
     // Natural lighting with weather condition
     const weatherOpt = weatherConditionOptions.find(w => w.value === (context.weatherCondition || 'auto'));
     if (weatherOpt) {
@@ -88,7 +96,7 @@ export function buildLightingSection(context: BackgroundContext): string[] {
     sections.push("- Professional studio lighting, softbox diffusion");
     sections.push("- Controlled even illumination with soft shadows");
   } else {
-    // Auto - let AI decide
+    // Fallback
     sections.push("- Lighting appropriate to the setting");
   }
   
