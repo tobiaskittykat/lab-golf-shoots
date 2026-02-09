@@ -4,19 +4,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseSkuDisplayInfo, formatSkuAttributes } from "@/lib/skuDisplayUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Pencil, Expand } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProductAnglePreviewProps {
   skuId: string;
   skuName: string;
   onEditClick?: () => void;
+  onAngleChange?: (thumbnailUrl: string, fullUrl: string) => void;
 }
 
-export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAnglePreviewProps) => {
+export const ProductAnglePreview = ({ skuId, skuName, onEditClick, onAngleChange }: ProductAnglePreviewProps) => {
   const [activeAngleId, setActiveAngleId] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { data: angles = [], isLoading } = useQuery({
     queryKey: ['sku-angles-preview', skuId],
@@ -45,18 +44,13 @@ export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAngl
   const displayInfo = parseSkuDisplayInfo(skuName);
   const attributes = formatSkuAttributes(displayInfo);
 
-  const activeAngle = angles.find(a => a.id === activeAngleId);
-  const featuredUrl = activeAngle?.thumbnail_url;
-  const fullResUrl = activeAngle?.full_url || activeAngle?.thumbnail_url;
-
   if (isLoading) {
     return (
       <div className="space-y-2">
         <div className="text-sm font-medium">{displayInfo.modelName}</div>
-        <Skeleton className="w-full h-[140px] rounded-lg" />
         <div className="flex gap-2">
           {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="w-14 h-14 rounded-lg" />
+            <Skeleton key={i} className="w-12 h-12 rounded-lg" />
           ))}
         </div>
       </div>
@@ -65,8 +59,29 @@ export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAngl
 
   if (angles.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground">
-        No angles available
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="text-sm font-medium text-foreground">{displayInfo.modelName}</div>
+            {attributes && (
+              <div className="text-xs text-muted-foreground">{attributes}</div>
+            )}
+          </div>
+          {onEditClick && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick();
+              }}
+            >
+              <Pencil className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground">No angles available</div>
       </div>
     );
   }
@@ -96,27 +111,7 @@ export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAngl
         )}
       </div>
 
-      {/* Featured image — clickable for fullscreen */}
-      {featuredUrl && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFullscreen(true);
-          }}
-          className="group relative w-full rounded-lg overflow-hidden border border-border bg-muted cursor-zoom-in"
-        >
-          <img
-            src={featuredUrl}
-            alt={skuName}
-            className="w-full h-[140px] object-cover"
-          />
-          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <Expand className="w-3 h-3 text-white" />
-          </div>
-        </button>
-      )}
-
-      {/* Angle strip */}
+      {/* Angle strip — clickable thumbnails */}
       <div className="flex gap-1.5 flex-wrap max-w-[280px]">
         {angles.map(angle => (
           <button
@@ -124,6 +119,7 @@ export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAngl
             onClick={(e) => {
               e.stopPropagation();
               setActiveAngleId(angle.id);
+              onAngleChange?.(angle.thumbnail_url, angle.full_url || angle.thumbnail_url);
             }}
             className={cn(
               "relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
@@ -152,32 +148,6 @@ export const ProductAnglePreview = ({ skuId, skuName, onEditClick }: ProductAngl
       <div className="text-xs text-muted-foreground">
         {angles.length} angle{angles.length !== 1 ? 's' : ''}
       </div>
-
-      {/* Fullscreen Dialog */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{skuName}</DialogTitle>
-            <DialogDescription>Full size product image</DialogDescription>
-          </DialogHeader>
-          {fullResUrl && (
-            <img
-              src={fullResUrl}
-              alt={skuName}
-              className="w-full max-h-[70vh] object-contain bg-secondary"
-            />
-          )}
-          <div className="p-4">
-            <h3 className="font-semibold text-lg">{displayInfo.modelName}</h3>
-            {attributes && (
-              <p className="text-sm text-muted-foreground mt-1">{attributes}</p>
-            )}
-            {activeAngle?.angle && (
-              <p className="text-xs text-muted-foreground mt-1 capitalize">{activeAngle.angle} view</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

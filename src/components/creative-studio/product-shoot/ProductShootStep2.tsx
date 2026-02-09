@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check, Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, ImageIcon, Camera, Package, Settings2, Clock, Check, Pencil, Expand } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -96,6 +97,12 @@ export const ProductShootStep2 = ({
   const [attachReferenceImages, setAttachReferenceImages] = useState(
     state.attachReferenceImages ?? true
   );
+
+  // Angle override URLs — maps SKU ID to the angle selected in the popover
+  const [activeAngleUrls, setActiveAngleUrls] = useState<Record<string, { thumbnail: string; full: string }>>({});
+
+  // Fullscreen image dialog state
+  const [fullscreenImage, setFullscreenImage] = useState<{ url: string; skuName: string } | null>(null);
 
   // Shoe component analysis hooks
   const {
@@ -395,7 +402,9 @@ export const ProductShootStep2 = ({
                     <div className="grid grid-cols-3 gap-2">
                       {displayedProducts.map(sku => {
                         const isSelected = state.selectedProductId === sku.id;
-                        const imageUrl = (sku as any).display_image_url || sku.composite_image_url;
+                        const angleOverride = activeAngleUrls[sku.id];
+                        const defaultImageUrl = (sku as any).display_image_url || sku.composite_image_url;
+                        const imageUrl = angleOverride?.thumbnail || defaultImageUrl;
                         const displayInfo = parseSkuDisplayInfo(sku.name, sku.description as any);
                         const attributes = formatSkuAttributes(displayInfo);
                         
@@ -403,17 +412,28 @@ export const ProductShootStep2 = ({
                           <HoverCard key={sku.id} openDelay={300} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <button
-                                onClick={() => handleSkuSelect({
-                                  id: sku.id,
-                                  name: sku.name,
-                                  sku_code: sku.sku_code,
-                                  composite_image_url: sku.composite_image_url,
-                                  brand_id: sku.brand_id,
-                                  last_used_at: sku.last_used_at,
-                                  angles: [],
-                                }, null, undefined, undefined, false)} // Inline click does NOT change display order
+                                onClick={() => {
+                                  if (isSelected) {
+                                    // Already selected → open fullscreen
+                                    const fullUrl = angleOverride?.full || defaultImageUrl;
+                                    if (fullUrl) {
+                                      setFullscreenImage({ url: fullUrl, skuName: sku.name });
+                                    }
+                                  } else {
+                                    // Not selected → select it
+                                    handleSkuSelect({
+                                      id: sku.id,
+                                      name: sku.name,
+                                      sku_code: sku.sku_code,
+                                      composite_image_url: sku.composite_image_url,
+                                      brand_id: sku.brand_id,
+                                      last_used_at: sku.last_used_at,
+                                      angles: [],
+                                    }, null, undefined, undefined, false);
+                                  }
+                                }}
                                 className={cn(
-                                  "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                                  "group relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
                                   isSelected 
                                     ? "border-accent ring-2 ring-accent/30" 
                                     : "border-transparent hover:border-muted-foreground/30"
@@ -430,6 +450,12 @@ export const ProductShootStep2 = ({
                                 {isSelected && (
                                   <div className="absolute top-1 right-1 w-5 h-5 bg-accent rounded-full flex items-center justify-center">
                                     <Check className="w-3 h-3 text-white" />
+                                  </div>
+                                )}
+                                {/* Expand icon — visible on hover for selected product */}
+                                {isSelected && imageUrl && (
+                                  <div className="absolute top-1 left-1 w-5 h-5 rounded bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Expand className="w-3 h-3 text-white" />
                                   </div>
                                 )}
                                 {/* Name overlay */}
@@ -457,6 +483,12 @@ export const ProductShootStep2 = ({
                                 onEditClick={() => {
                                   setEditingSkuId(sku.id);
                                   setShowEditSKUModal(true);
+                                }}
+                                onAngleChange={(thumbnailUrl, fullUrl) => {
+                                  setActiveAngleUrls(prev => ({
+                                    ...prev,
+                                    [sku.id]: { thumbnail: thumbnailUrl, full: fullUrl },
+                                  }));
                                 }}
                               />
                             </HoverCardContent>
@@ -705,6 +737,33 @@ export const ProductShootStep2 = ({
           }}
         />
       )}
+
+      {/* Fullscreen Product Image Dialog */}
+      <Dialog open={!!fullscreenImage} onOpenChange={(open) => !open && setFullscreenImage(null)}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{fullscreenImage?.skuName}</DialogTitle>
+            <DialogDescription>Full size product image</DialogDescription>
+          </DialogHeader>
+          {fullscreenImage && (
+            <img
+              src={fullscreenImage.url}
+              alt={fullscreenImage.skuName}
+              className="w-full max-h-[70vh] object-contain bg-secondary"
+            />
+          )}
+          {fullscreenImage && (
+            <div className="p-4">
+              <h3 className="font-semibold text-lg">{parseSkuDisplayInfo(fullscreenImage.skuName).modelName}</h3>
+              {formatSkuAttributes(parseSkuDisplayInfo(fullscreenImage.skuName)) && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formatSkuAttributes(parseSkuDisplayInfo(fullscreenImage.skuName))}
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
