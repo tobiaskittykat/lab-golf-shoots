@@ -1,23 +1,32 @@
 
-
-# Fix: Move Shoe Components Chevron to Right Side
+# Fix: Click Image to Maximize, Checkmark for Selection
 
 ## Problem
 
-The "Shoe Components" collapsible header has its chevron arrow on the left side (next to the title), while all other collapsible sections (Shot Options, Background, Shot Type) place the chevron on the right side per the `CustomizationSection` pattern.
+Currently, clicking anywhere on the image card toggles selection (checkmark). The user wants clicking the image to **open the detail/maximize modal**, while the selection checkmark in the corner remains a separate interactive element for toggling selection.
 
 ## Fix
 
-**File:** `src/components/creative-studio/product-shoot/ShoeComponentsPanel.tsx`
+**File:** `src/components/creative-studio/GeneratedImageCard.tsx`
 
-Move the `ChevronDown`/`ChevronRight` icon from the left-side title group to the right side of the header row, after the Ref toggle and Reset button. This matches the `CustomizationSection` layout where:
-- Left side: icon + title + badge
-- Right side: action buttons + chevron
+1. **Change `handleClick`** (lines 116-129): Reverse the priority -- clicking the card body calls `onSelect` (opens detail modal) instead of `onToggleSelect`.
 
-Specifically in the `CollapsibleTrigger` button (lines 218-253):
-- Remove the chevron from the left `<div>` (lines 220-224)
-- Add the chevron as the last element on the right side, after the Ref toggle group
+2. **Add a dedicated selection checkbox** in the bottom-right corner of the image area. This small clickable checkmark button calls `onToggleSelect` with `e.stopPropagation()` so it doesn't also trigger the modal.
+
+3. **Remove the Eye (View Details) button** from the hover overlay since clicking the card itself now opens the modal -- the Eye button becomes redundant.
+
+### Updated click logic:
+```
+Card body click --> onSelect (maximize/detail modal)
+Bottom-right checkmark click --> onToggleSelect (selection)
+Hover overlay buttons --> Regenerate, Download, Delete (unchanged)
+```
+
+### Selection indicator:
+- Bottom-right corner: small circular checkbox, always visible when `onToggleSelect` is provided
+- When selected: accent-colored with checkmark
+- When not selected: semi-transparent circle that appears on hover
 
 | File | Change |
 |------|--------|
-| `ShoeComponentsPanel.tsx` | Move chevron from left title group to right side of header row |
+| `GeneratedImageCard.tsx` | Reverse click priority (card click = modal), add bottom-right selection checkbox, remove Eye button from overlay |
