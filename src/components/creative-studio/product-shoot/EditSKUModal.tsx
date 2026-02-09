@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AIAnalysisPanel } from './AIAnalysisPanel';
 
 interface Angle {
   id: string;
@@ -285,41 +286,11 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
                     </p>
                   </div>
 
-                  {/* AI Analysis Details - read-only structured metadata */}
-                  {(() => {
-                    const desc = skuData?.description as any;
-                    const hasDetails = desc && (
-                      desc.colors?.length > 0 ||
-                      desc.materials?.length > 0 ||
-                      desc.product_type ||
-                      desc.style_keywords?.length > 0 ||
-                      desc.hardware_finish
-                    );
-                    if (!hasDetails) return null;
-
-                    const fields: { label: string; value: string }[] = [];
-                    if (desc.colors?.length > 0) fields.push({ label: 'Colors', value: desc.colors.join(', ') });
-                    if (desc.materials?.length > 0) fields.push({ label: 'Materials', value: desc.materials.join(', ') });
-                    if (desc.product_type) fields.push({ label: 'Product Type', value: desc.product_type });
-                    if (desc.style_keywords?.length > 0) fields.push({ label: 'Style Keywords', value: desc.style_keywords.join(', ') });
-                    if (desc.hardware_finish) fields.push({ label: 'Hardware Finish', value: desc.hardware_finish });
-
-                    return (
-                      <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
-                        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                          AI Analysis Details
-                        </span>
-                        <div className="grid gap-1.5">
-                          {fields.map(({ label, value }) => (
-                            <div key={label} className="flex items-start gap-2 text-xs">
-                              <span className="text-muted-foreground font-medium min-w-[100px] flex-shrink-0">{label}</span>
-                              <span className="text-foreground/80">{value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {/* AI Analysis Details - full component breakdown */}
+                  <AIAnalysisPanel
+                    components={skuData?.components as any}
+                    description={skuData?.description as any}
+                  />
                 </div>
 
                 {/* Existing Angles */}
