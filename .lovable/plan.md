@@ -1,94 +1,84 @@
 
 
-# Fix: Multi-Shoe Hallucination + Keep 6 Reference Images
+# Show Full AI Analysis Details in Edit Product Modal
 
-## Summary
+## Problem
 
-The shot type descriptions themselves are well-written and detailed. The issue is that:
-- The Prompt Agent ignores shoe count from the shot direction and writes "a pair of..." for every shot
-- The image generator (Gemini 3 Pro) receives up to 10 reference images of the same shoe and interprets them as separate shoes
-- There is no explicit shoe-count enforcement at any layer
+The Edit Product modal currently shows a tiny "AI Analysis Details" box with only 5 fields from the `description` JSONB (colors, materials, product type, style keywords, hardware finish). But the `components` JSONB has much richer data that you can't see anywhere:
 
-We keep **up to 6 reference images** for detail fidelity, but add strict shoe-count rules at every layer.
+- Per-component breakdown: material, color, color hex swatch, confidence percentage, notes
+- Branding analysis: buckle engravings (exact text, style, location), footbed logo description, footbed text
+- Construction type (clog, two-strap, thong, etc.)
+- Analysis version and timestamp
 
-## Changes
+## What Changes
 
-### 1. Add `shoeCount` to Angle Configs + Inject Entity Count into Prompt Builders
+### Expand the "AI Analysis Details" section in EditSKUModal
 
-**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`
+Replace the current minimal 5-field display with a comprehensive, collapsible analysis panel that shows everything the AI detected:
 
-Add a `shoeCount: 1 | 2` property to each `productFocusAngleOptions` entry:
-- `hero`: 1
-- `side-profile`: 1
-- `detail-closeup`: 1
-- `top-down`: 2
-- `sole-view`: 2
-- `pair-shot`: 2
-- `lifestyle`: 2
+**Section 1: Component Breakdown**
+A table/grid showing each detected component (Upper, Footbed, Sole, Buckles, Lining, Heelstrap) with:
+- Color swatch (using the hex value)
+- Material name
+- Color name
+- Confidence score (as a subtle percentage badge)
+- Notes (if present, shown in smaller italic text below)
 
-Update `buildProductFocusPrompt` to inject an explicit entity count line right after the opening line:
+**Section 2: Construction & Classification**
+- Strap construction type (e.g., "clog", "two-strap", "thong")
+- Product type (from description)
+- Style keywords (from description)
+
+**Section 3: Branding Details** (only shown when branding data exists)
+- Buckle engravings: each engraving shown as a row with text, style, and location
+- Footbed logo description
+- Footbed text (size markings, brand text)
+- Other branding details
+
+**Section 4: Analysis Metadata**
+- Analysis version (e.g., "v1.3")
+- Analyzed at (formatted date/time)
+
+The entire section uses a collapsible accordion pattern -- collapsed by default to keep the modal clean, but expandable to reveal all details. The header shows a summary like "AI Analysis v1.3 -- 5 components detected" so you know at a glance what's there.
+
+## Technical Details
+
+### File: `src/components/creative-studio/product-shoot/EditSKUModal.tsx`
+
+Replace the current inline "AI Analysis Details" block (lines 289-322) with a new expanded component that:
+
+1. Reads both `skuData.components` (the rich component analysis) AND `skuData.description` (the product metadata)
+2. Renders a collapsible section using the existing Collapsible component from the UI library
+3. Shows color swatches using inline `backgroundColor` style (same pattern as `ShoeComponentsPanel`)
+4. Displays confidence as subtle badge (e.g., "95%" in a muted pill)
+5. Shows branding details in a structured list format
+6. Handles missing data gracefully -- each sub-section only renders if data exists
+
+The component data structure from the database:
+```text
+components: {
+  upper:    { material, color, colorHex, confidence, notes? }
+  footbed:  { material, color, colorHex, confidence, notes? }
+  sole:     { material, color, colorHex, confidence, notes? }
+  buckles?: { material, color, colorHex, confidence, notes? }
+  lining?:  { material, color, colorHex, confidence, notes? }
+  heelstrap?: { material, color, colorHex, confidence, notes? }
+  branding?: {
+    buckleEngravings?: [{ text, style, location }]
+    footbedLogo?: string
+    footbedText?: string
+    otherBranding?: string
+  }
+  strapConstruction?: string
+  analysisVersion?: string
+  analyzedAt?: string
+}
 ```
-ENTITY COUNT (MANDATORY): Exactly [1/2] shoe(s) in the frame. Do NOT add extra shoes beyond this count.
-```
 
-Update `buildOnFootPrompt` to add:
-```
-ENTITY COUNT (MANDATORY): Exactly 2 shoes (one pair worn on feet). Do NOT add extra loose shoes.
-```
-
-Update `buildLifestylePrompt` to add:
-```
-ENTITY COUNT (MANDATORY): Exactly 2 shoes (one pair worn by the model). Do NOT add extra loose shoes.
-```
-
-### 2. Add Entity Count Rule to Prompt Agent System Prompt
-
-**File:** `supabase/functions/generate-image/index.ts`
-
-Add a new critical rule to the prompt agent's system prompt (after rule 9, around line 709):
-
-```
-**ENTITY COUNT (CRITICAL)**:
-- The shot direction specifies how many shoes should appear. Respect this exactly.
-- For SINGLE SHOE angles (hero, side profile, detail close-up): Write "a single [Brand] [Model]" — NOT "a pair of". Only ONE shoe in frame.
-- For PAIR angles (top-down, sole-view, pair-shot, on-foot, full body): Write "a pair of [Brand] [Model]" — exactly TWO shoes.
-- NEVER describe more shoes than the entity count specifies.
-- If the brief says "ENTITY COUNT (MANDATORY): Exactly 1 shoe" — your prompt MUST describe a single shoe, singular language throughout.
-```
-
-### 3. Cap Reference Images to 6 for Image Generator + Add Clarifying Instruction
-
-**File:** `supabase/functions/generate-image/index.ts`
-
-In the `generateOne` function (line 1120), change the cap from 10 to 6:
-```typescript
-const attachCount = Math.min(productUrls.length, 6);
-```
-
-Update the fidelity instruction (line 1127-1130) to include entity-count awareness:
-```
-These [N] images show the SAME SINGLE product from different angles — they are NOT separate products. 
-Generate ONLY the number of shoes specified in the prompt text (1 or 2). 
-Do NOT interpret multiple reference angles as multiple separate shoes.
-```
-
-Keep prompt agent reference cap at 10 (it needs all angles for accurate material/detail description).
-
-### 4. Keep Prompt Agent References at Up To 10
-
-No change to the prompt agent section (line 740). The prompt agent (Gemini 2.5 Flash, text-only output) benefits from seeing all angles for accurate description. Only the image generator cap changes.
-
-## Files Changed
+### File changed
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` | Add `shoeCount` to angle options; inject entity count constraint into all 3 prompt builders |
-| `supabase/functions/generate-image/index.ts` | Add entity count rule to prompt agent; cap image generator refs to 6; add "same product, different angles" clarification with entity count |
+| `src/components/creative-studio/product-shoot/EditSKUModal.tsx` | Replace minimal AI Analysis box with full collapsible component breakdown showing all detected materials, colors, confidence scores, branding details, and construction metadata |
 
-## Expected Outcome
-
-- Hero, side-profile, detail shots: exactly 1 shoe in frame
-- Pair, sole, top-down, on-foot, full body shots: exactly 2 shoes
-- No more 3+ shoe compositions
-- Detail fidelity preserved with up to 6 reference images
-- Prompt agent still sees all angles (up to 10) for accurate text descriptions
