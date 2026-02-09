@@ -1,82 +1,107 @@
 
 
-# Remove Duplicate Image — Make Grid Thumbnail the Interactive Preview
+# Fix: Heelstrap Leaking into Arizona Prompts + Footbed Missing from Overrides
 
-## The Problem
+## What's Actually Happening
 
-Right now, hovering a product shows a popover with a **second big image** of the same product that's already visible in the grid. That's redundant — you're seeing the same shoe twice.
+I traced through the edge function logs and found the exact problem. Here's a real prompt from your Arizona EVA generation:
 
-## The Fix
+```
+=== PRODUCT COMPONENTS (from analysis) ===
+UPPER: EVA in Taupe
+FOOTBED: EVA in Taupe
+SOLE: EVA in Taupe
+BUCKLES: Matte Plastic in Translucent Brown
 
-The grid thumbnail **is** the big image. Enhance it directly:
-
-1. **Click the grid thumbnail to go fullscreen** (for the selected product)
-2. **Hover popover shows only the angle strip** — small thumbnails + product name + edit button (no featured image)
-3. **Clicking an angle in the popover swaps the grid thumbnail** to that angle (session only)
-
-## Layout Comparison
-
-```text
-BEFORE (hover popover):              AFTER (hover popover):
-+-------------------------------+    +-------------------------------+
-|  Gizeh              [Edit]    |    |  Gizeh              [Edit]    |
-|  Navy                         |    |  Navy                         |
-+-------------------------------+    +-------------------------------+
-|                               |    | [3/4] [Side] [Sole] [Top]    |
-|    (DUPLICATE big image)      |    +-------------------------------+
-|    Same shoe shown again      |    |  4 angles                     |
-|                               |    +-------------------------------+
-+-------------------------------+
-| [3/4] [Side] [Sole] [Top]    |    Grid thumbnail itself:
-+-------------------------------+    - Shows active angle (default 3/4)
-|  4 angles                     |    - Click = fullscreen (if selected)
-+-------------------------------+    - Click = select (if not selected)
+=== PRODUCT COMPONENT OVERRIDES ===
+UPPER: EVA in Wine Red (was: EVA in Taupe)
+SOLE: EVA in Wine Red (was: EVA in Taupe)
+BUCKLES: Matte Plastic (Coordinated) in Wine Red
+HEELSTRAP: EVA in Wine Red     <-- PHANTOM! Arizona has no heelstrap
 ```
 
-## Technical Details
+The database correctly has `heelstrap: null` for the Arizona. But when you used quick customization (e.g., "wine red"), the AI returned a heelstrap override anyway. Three things failed:
 
-### 1. `ProductAnglePreview.tsx` — Remove featured image, add angle callback
+1. **The quick customization AI** (`interpret-shoe-customization`) hallucinated a heelstrap override even though `currentComponents.heelstrap` was absent from the input
+2. **The client** (`useQuickCustomization.ts`) blindly applied it without checking if the shoe actually has that component
+3. **The prompt builder** (`generate-image/index.ts`, line 609) has an explicit `else if (override && !orig)` branch that includes overrides even when the original component doesn't exist -- it was designed for "additions" but becomes a loophole for phantom components
 
-Changes:
-- **Remove** the featured image section (the `button` with `h-[140px]` image, lines 99-117)
-- **Remove** the fullscreen Dialog (lines 156-180) — fullscreen moves to the parent
-- **Remove** `isFullscreen` state
-- **Add** new prop: `onAngleChange?: (thumbnailUrl: string, fullUrl: string) => void`
-- When a small angle thumbnail is clicked, call `onAngleChange` with that angle's URLs in addition to setting `activeAngleId`
-- Keep: header (name + edit button), angle strip (clickable thumbnails with active highlight), angle count
+## About the Footbed
 
-### 2. `ProductShootStep2.tsx` — Lift angle state, add fullscreen to grid
+The footbed IS in your prompt -- it's listed in the `PRODUCT COMPONENTS` section (`FOOTBED: EVA in Taupe`). It's just not in the OVERRIDES section because the AI correctly kept it unchanged (Rule 7: footbed stays EVA/cork unless explicitly requested). So the prompt agent does see it. This is working correctly.
 
-Changes:
-- **Add state**: `activeAngleUrls: Record<string, { thumbnail: string; full: string }>` — maps SKU ID to the currently selected angle's URLs
-- **Add state**: `fullscreenImage: { url: string; skuName: string; angle?: string } | null` — controls the fullscreen dialog
-- **Grid thumbnail image**: Instead of always using `display_image_url || composite_image_url`, check `activeAngleUrls[sku.id]?.thumbnail` first. This way, clicking an angle in the popover changes the grid image.
-- **Grid thumbnail click behavior**:
-  - If product is **already selected**: open fullscreen dialog (using `activeAngleUrls[sku.id]?.full` or the composite URL)
-  - If product is **not selected**: select it (existing behavior)
-- **Add expand icon**: Show a small zoom/expand icon overlay on the selected product's grid thumbnail (hover-visible, similar to `ReferenceThumbnail`)
-- **Pass `onAngleChange`** to `ProductAnglePreview`: when called, updates `activeAngleUrls` for that SKU
-- **Add fullscreen Dialog** in ProductShootStep2 (simple dialog with full-res image, same pattern as existing code)
+## About Sequential Generation
 
-### Files Changed
+Sequential generation is NOT the cause. Each sequential call uses the same `buildRequestBody` closure, which captures `originalComponents` and `componentOverrides` identically for every image. The heelstrap leak happens earlier, during the quick customization step, before any generation begins.
+
+## The Fix (3 layers of defense)
+
+### Layer 1: AI Instructions (prevent hallucination)
+
+**File:** `supabase/functions/interpret-shoe-customization/index.ts`
+
+Add a new critical rule to the system prompt:
+
+> "ONLY return components that are present and non-null in CURRENT SHOE COMPONENTS above. If a component (e.g., heelstrap) is missing from the current state, the shoe does NOT have that part -- do NOT include it in your response, even for 'all' requests."
+
+Update examples like "all black leather" to add "(if shoe has heelstrap)" qualifiers.
+
+### Layer 2: Client-side guard (catch any hallucination that slips through)
+
+**File:** `src/hooks/useQuickCustomization.ts`
+
+After the AI returns overrides (around line 102, after the retry loop), add a filter:
+
+```typescript
+// Filter out overrides for components the shoe doesn't have
+for (const key of Object.keys(validOverrides)) {
+  if (!currentComponents[key as ComponentType]) {
+    console.warn(`[QuickCustomization] Filtered phantom component: ${key}`);
+    delete validOverrides[key];
+  }
+}
+```
+
+### Layer 3: Prompt builder guard (last line of defense)
+
+**File:** `supabase/functions/generate-image/index.ts`
+
+Change line 609 from:
+```typescript
+} else if (override && !orig) {
+  changedComponents.push(`${type.toUpperCase()}: ...`);
+}
+```
+To:
+```typescript
+} else if (override && !orig) {
+  // Skip phantom overrides -- if the original shoe doesn't have this
+  // component, don't inject it into the prompt
+  console.warn(`Skipping phantom override for ${type} (no original component)`);
+}
+```
+
+### Layer 4: Analysis hint fix
+
+**File:** `supabase/functions/analyze-shoe-components/index.ts`
+
+Line 46 currently says: *"Sandals (Arizona, Florida) also have heelstraps."*
+
+Change to: *"Some sandals like the Florida and Milano have heelstraps. Slide sandals like the Arizona and Madrid do NOT have heelstraps -- they are open-back. Analyze the images to determine if a back strap is present."*
+
+This doesn't affect the current Arizona (already correctly analyzed as `heelstrap: null`), but prevents future re-analyses from making the same mistake.
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/product-shoot/ProductAnglePreview.tsx` | Remove featured image and fullscreen dialog; add `onAngleChange` prop |
-| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Add `activeAngleUrls` state for grid image swapping; add fullscreen dialog; split click behavior (select vs. expand) |
+| `supabase/functions/interpret-shoe-customization/index.ts` | Add critical rule: only return components present in currentComponents; update examples |
+| `src/hooks/useQuickCustomization.ts` | Add client-side guard to filter overrides for non-existent components |
+| `supabase/functions/generate-image/index.ts` | Change `override && !orig` branch to skip phantom overrides instead of including them |
+| `supabase/functions/analyze-shoe-components/index.ts` | Fix incorrect hint that Arizona has heelstraps |
 
-### Behavior Summary
+## Summary
 
-| Action | Unselected Product | Selected Product |
-|--------|-------------------|-----------------|
-| Click grid thumbnail | Selects the product | Opens fullscreen |
-| Hover grid thumbnail | Shows angle strip popover | Shows angle strip popover |
-| Click angle in popover | Swaps grid thumbnail image | Swaps grid thumbnail image |
-| Click edit in popover | Opens SKU editor | Opens SKU editor |
-
-### Edge Cases
-
-- **Default angle**: When a product first appears, `activeAngleUrls` has no entry for it, so the grid shows the composite image (existing behavior). The popover internally defaults to 3/4 via its own `activeAngleId` state. On first angle click, both sync up.
-- **HoverCard closing**: The `activeAngleId` inside `ProductAnglePreview` resets on each mount (popover open). But `activeAngleUrls` in the parent persists for the session, so the grid thumbnail stays on the last-clicked angle.
-- **No angles available**: Falls back to composite image for grid display; popover shows "No angles available" (existing behavior).
-
+- **Heelstrap in prompt**: Caused by the quick customization AI hallucinating a heelstrap override for a shoe that doesn't have one, with no guard at any level to catch it. Fixed at 3 layers.
+- **Footbed not in overrides**: This is correct behavior -- the footbed wasn't changed, so it's only listed in the base components section (which the prompt agent does see).
+- **Sequential generation**: Not related. The issue occurs during the customization step, before generation begins.
