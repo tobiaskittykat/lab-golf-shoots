@@ -322,6 +322,7 @@ export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: Backgrou
 
   // Build the evocative prompt
   const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
+ENTITY COUNT (MANDATORY): Exactly 2 shoes (one pair worn on feet). Do NOT add extra loose shoes.
 
 A close-up on-model product shot of a ${modelDesc} model wearing the footwear, photographed against ${backgroundDesc}.
 
@@ -396,6 +397,7 @@ export const productFocusAngleOptions = [
     prompt: null,
     narrative: null,
     thumbnail: null,
+    shoeCount: 1 as 1 | 2, // default for auto (will be overridden by random selection)
   },
   { 
     value: 'hero' as ProductFocusAngle, 
@@ -403,6 +405,7 @@ export const productFocusAngleOptions = [
     prompt: 'three-quarter front view at 45-degree angle, classic hero product shot showing depth and dimension, single shoe angled toward camera',
     narrative: 'the classic hero shot, camera positioned at a 45-degree angle to capture depth and dimension. A single shoe angled toward the lens, revealing both the lateral profile and the top of the footbed in one commanding frame. This is the definitive e-commerce angle — authoritative, dimensional, and immediately recognizable.',
     thumbnail: 'angle-hero.jpg',
+    shoeCount: 1 as 1 | 2,
   },
   { 
     value: 'side-profile' as ProductFocusAngle, 
@@ -410,6 +413,7 @@ export const productFocusAngleOptions = [
     prompt: 'pure lateral side profile view, single shoe centered, showing full silhouette from true side angle, product facing left',
     narrative: 'a pure lateral view capturing the full silhouette. A single shoe centered in frame, photographed from a true side angle with the product facing left. The entire profile line — from heel counter through the arch to the toe — reads as one clean, uninterrupted silhouette against the background.',
     thumbnail: 'angle-side-profile.jpg',
+    shoeCount: 1 as 1 | 2,
   },
   { 
     value: 'top-down' as ProductFocusAngle, 
@@ -417,6 +421,7 @@ export const productFocusAngleOptions = [
     prompt: 'overhead top-down view of pair, both shoes visible side by side, footbed and straps fully visible from above, embossed branding readable',
     narrative: 'shot from directly overhead, looking straight down at both shoes placed side by side. The footbed, straps, buckles, and any embossed branding are fully visible and readable from this bird\'s-eye perspective. The symmetry of the pair creates a graphic, almost architectural composition.',
     thumbnail: 'angle-top-down.jpg',
+    shoeCount: 2 as 1 | 2,
   },
   { 
     value: 'sole-view' as ProductFocusAngle, 
@@ -424,6 +429,7 @@ export const productFocusAngleOptions = [
     prompt: 'one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces',
     narrative: 'one shoe flipped upside down to reveal the outsole tread pattern and construction, while the second shoe sits right-side-up showing the footbed. The two are artfully arranged to present both the walking surface and the wearing surface in a single composition — a dual-perspective product story.',
     thumbnail: 'angle-sole.jpg',
+    shoeCount: 2 as 1 | 2,
   },
   { 
     value: 'detail-closeup' as ProductFocusAngle, 
@@ -431,6 +437,7 @@ export const productFocusAngleOptions = [
     prompt: 'extreme close-up cropped tight on buckle hardware, strap texture, and material details, macro-style product detail shot',
     narrative: 'cropped tight in a macro-style detail shot, filling the frame with buckle hardware, strap texture, and material grain. The camera is close enough to reveal stitching paths, metal finishes, and the subtle surface variation of the materials. This is about tactile intimacy — making the viewer feel the product\'s craftsmanship.',
     thumbnail: 'angle-detail.jpg',
+    shoeCount: 1 as 1 | 2,
   },
   { 
     value: 'pair-shot' as ProductFocusAngle, 
@@ -438,6 +445,7 @@ export const productFocusAngleOptions = [
     prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered',
     narrative: 'both shoes arranged at complementary angles, slightly staggered or overlapping to create depth and visual rhythm. The classic e-commerce pair composition — one shoe slightly forward and rotated, the other angled behind — producing a dynamic yet balanced arrangement that showcases the product from multiple perspectives simultaneously.',
     thumbnail: 'angle-pair.jpg',
+    shoeCount: 2 as 1 | 2,
   },
   { 
     value: 'lifestyle' as ProductFocusAngle, 
@@ -445,6 +453,7 @@ export const productFocusAngleOptions = [
     prompt: 'dynamic lifestyle composition with creative freedom, product artfully placed in context with props or environmental elements, editorial product photography with mood and atmosphere, AI determines optimal angle and arrangement',
     narrative: 'artfully placed in an environmental context with carefully chosen props and atmospheric elements. This is editorial product photography with mood and story — the shoes exist within a scene rather than isolation. The AI has creative freedom to determine the optimal angle, arrangement, and surrounding elements to create a compelling lifestyle narrative.',
     thumbnail: 'angle-lifestyle.jpg',
+    shoeCount: 2 as 1 | 2,
   },
 ];
 
@@ -525,8 +534,12 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   const angleNarrative = selectedAngle.narrative 
     || 'the classic hero shot, camera positioned at a 45-degree angle to capture depth and dimension';
 
+  // Determine shoe count from the selected angle
+  const shoeCount = (selectedAngle as any).shoeCount || 1;
+
   // Build the evocative prompt (matching On Foot / Full Body style)
   const prompt = `A single, high-resolution e-commerce product image (one frame only, no collage).
+ENTITY COUNT (MANDATORY): Exactly ${shoeCount} shoe(s) in the frame. Do NOT add extra shoes beyond this count.
 
 A product-only shot — NO hands, NO models, NO body parts, NO feet anywhere in the image. The footwear is the sole subject, photographed against ${backgroundDesc}.
 
@@ -747,6 +760,7 @@ export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: Ba
 
   // Build the evocative prompt
   const prompt = `A single, high-resolution e-commerce image (one frame only, no collage).
+ENTITY COUNT (MANDATORY): Exactly 2 shoes (one pair worn by the model). Do NOT add extra loose shoes.
 
 A full-body product-on-model shot, framed from upper chest or shoulders down to the feet, with the head cropped out of frame.
 

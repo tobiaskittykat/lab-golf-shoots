@@ -706,9 +706,14 @@ CRITICAL RULES:
 7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
 8. **TOE POST ACCURACY (THONG-STYLE SANDALS ONLY)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. ONLY thong-style sandals (e.g., Gizeh, Ramses) have a toe post. Crossover-strap sandals (e.g., Mayari) do NOT have a toe post — never describe one for those models.
 9. **BUCKLE SHAPE AND EMBOSSING FIDELITY** - When the user changes buckle material/color, change ONLY the surface finish. The buckle SHAPE, SIZE, proportions, and any EMBOSSED TEXT (from BRANDING DETAILS) must remain EXACTLY as shown in reference images. Never generate generic buckle shapes — always match the specific hardware design visible in the references.
-9. Be specific and evocative - use sensory language
-9. Keep it focused - one clear scene, not multiple concepts
-10. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
+10. **ENTITY COUNT (CRITICAL)**:
+   - The shot direction specifies how many shoes should appear. Respect this exactly.
+   - If the brief says "ENTITY COUNT (MANDATORY): Exactly 1 shoe" — your prompt MUST describe "a single [Brand] [Model]", using singular language throughout. Do NOT write "a pair of". Only ONE shoe in frame.
+   - If the brief says "ENTITY COUNT (MANDATORY): Exactly 2 shoes" — write "a pair of [Brand] [Model]" — exactly TWO shoes.
+   - NEVER describe more shoes than the entity count specifies. This is non-negotiable.
+11. Be specific and evocative - use sensory language
+12. Keep it focused - one clear scene, not multiple concepts
+13. Include quality indicators naturally (e.g., "editorial photography", "luxury lifestyle")
 11. Respect the Tonality - if "never rules" are specified, absolutely do NOT include those elements
 12. Match the target audience vibe without being heavy-handed
 13. **NEVER ECHO SECTION HEADERS** - Do NOT start your prompt with labels like "Product Focus:", "Product Category:", "Visual World:", "Campaign Concept:", "=== PRODUCT INTEGRITY ===" etc. Start DIRECTLY with the image description and weave all requirements naturally into the prose.
@@ -1117,7 +1122,8 @@ async function runBackgroundGeneration(params: {
           .filter((url: string) => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
 
         if (shouldAttachProductRefs && productUrls.length > 0) {
-          const attachCount = Math.min(productUrls.length, 10);
+          const attachCount = Math.min(productUrls.length, 6);
+          console.log(`[BG] Attaching ${attachCount} of ${productUrls.length} product refs to image generator (capped at 6)`);
           for (let i = 0; i < attachCount; i++) {
             messageContent.push({
               type: "image_url",
@@ -1126,7 +1132,7 @@ async function runBackgroundGeneration(params: {
           }
           messageContent.push({
             type: "text",
-            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) are PRODUCT REFERENCES showing different angles of the same product.\n\nMANDATORY REQUIREMENTS:\n- Preserve EXACT visual details: materials, textures, colors, hardware finishes\n- Match proportions and silhouette precisely\n- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy\n- Do NOT simplify, reimagine, or take creative liberties with these products\n- The products should look like they were photographed, not illustrated or reinterpreted\n- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
+            text: `⚠️ PRODUCT FIDELITY IS CRITICAL: The above ${attachCount} image(s) show the SAME SINGLE product from different angles — they are NOT separate products. Do NOT interpret multiple reference angles as multiple separate shoes.\n\nGenerate ONLY the number of shoes specified in the prompt text (1 or 2).\n\nMANDATORY REQUIREMENTS:\n- Preserve EXACT visual details: materials, textures, colors, hardware finishes\n- Match proportions and silhouette precisely\n- Render hardware (clasps, chains, buckles, magnetic closures) with photographic accuracy\n- Do NOT simplify, reimagine, or take creative liberties with these products\n- The products should look like they were photographed, not illustrated or reinterpreted\n- If the product has croc-embossed leather, show croc-embossed leather. If it has a gold chain, show a gold chain.`
           });
         } else if (!shouldAttachProductRefs && productUrls.length > 0) {
           console.log("[BG] ⚠️ SKIPPING PRODUCT IMAGE ATTACHMENTS - user toggled off");
