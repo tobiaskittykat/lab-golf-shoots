@@ -1,115 +1,78 @@
 
 
-# Infuse Birkenstock Campaign Aesthetic into Outdoor Backgrounds
+# Enhanced Product Thumbnail Viewer
 
-## Scope
+## What You'll Get
 
-**Outdoor backgrounds only** (19 total). Studio backgrounds stay untouched -- as your reference photos confirm, Birkenstock studio shoots use clean, bright white backdrops, so those prompts are already correct.
+The current product selection grid shows a composite thumbnail per product with a hover popover for angle previews. This plan replaces that with a richer, interactive product viewer for the **selected** product:
 
-## What's Wrong Today
+1. **Default 3/4 pair view as the big thumbnail** -- when a product is selected, the main large image defaults to the `3/4` angle (the pair shot). If no `3/4` angle exists, falls back to the first available angle or the composite image.
 
-The current outdoor prompts read like stock photography descriptions: "soft sandy beach background, golden hour sunlight, ocean in distance, relaxed coastal vibe." They produce generic travel-blog imagery rather than the grounded, tactile, editorially crafted settings that define Birkenstock campaign photography.
+2. **Clickable small angle thumbnails** -- a row of small angle thumbnails appears above the big image. Clicking one swaps the big thumbnail to that angle for the current session only (no database writes).
 
-## Birkenstock Outdoor DNA
+3. **Fullscreen view on big thumbnail click** -- clicking the large thumbnail opens a Dialog showing the full-resolution image.
 
-Every outdoor prompt will be rewritten with these principles drawn from actual Birkenstock campaigns:
+4. **Edit button on the angle strip** -- a small pencil/edit icon in the top-right corner of the angle thumbnail row opens the existing EditSKUModal for the selected product.
 
-- **Raw natural textures** over polished scenery -- sun-baked stone, wind-worn wood, wild meadow grass
-- **Earthy, muted tones** -- sand, terracotta, sage, ochre, stone grey -- not oversaturated postcard colors
-- **Editorial composition language** -- "soft depth of field," "natural imperfections," "organic irregularity"
-- **Mediterranean / European sensibility** -- cobblestones, aged sandstone, olive groves, artisan markets
-- **Grounded warmth** -- golden hour but not "vacation sunset"; more contemplative, quiet, crafted
+## UI Layout (Selected Product)
 
-## Changes (3 files + 19 thumbnail regenerations)
-
-### 1. `src/components/creative-studio/product-shoot/presets.ts`
-
-Rewrite the `prompt` field for all 19 outdoor backgrounds. Studio backgrounds remain unchanged.
-
-| ID | Current Prompt | New Birkenstock-Style Prompt |
-|---|---|---|
-| outdoor-beach | "soft sandy beach background, golden hour sunlight, ocean in distance, relaxed coastal vibe" | "warm golden sand with natural ripple texture, soft golden hour light, distant ocean blur, raw coastal Mediterranean atmosphere, Birkenstock summer campaign" |
-| outdoor-urban | "urban city street background, modern architecture, stylish metropolitan setting" | "sun-warmed cobblestone European side street, aged sandstone walls, warm afternoon light with long shadows, lived-in urban character, Birkenstock city editorial" |
-| outdoor-park | "lush green park setting, dappled sunlight through trees, natural fresh atmosphere" | "wild meadow grass with wildflowers, dappled golden sunlight through mature trees, natural organic parkland, Birkenstock nature campaign" |
-| outdoor-cafe | "charming European cafe terrace, cobblestone street, bistro chairs, warm afternoon light" | "weathered wooden bistro table on aged cobblestones, terracotta-toned walls, warm Mediterranean afternoon light, artisan cafe culture, Birkenstock European editorial" |
-| outdoor-desert | "dramatic desert landscape, sand dunes, warm golden hour light, minimalist vast backdrop" | "sculptural desert dune with wind-carved ridges, warm amber golden hour, vast minimalist landscape, raw earth textures, Birkenstock nature campaign" |
-| outdoor-forest | "serene forest path, filtered sunlight through trees, natural earthy tones, peaceful setting" | "dappled light through ancient oak canopy, moss-covered forest floor, rich earthy greens and browns, organic natural sanctuary, Birkenstock woodland editorial" |
-| outdoor-rooftop | "modern rooftop setting, city skyline in background, golden hour, urban lifestyle" | "weathered terracotta rooftop terrace, potted olive trees, warm golden hour cityscape, Mediterranean lifestyle, Birkenstock summer editorial" |
-| outdoor-pool | "luxury poolside setting, turquoise water, white deck, resort vibes, bright daylight" | "natural stone pool edge with sun-warmed travertine deck, turquoise water reflections, Mediterranean resort warmth, Birkenstock summer campaign" |
-| outdoor-mountain | "mountain hiking trail, scenic overlook, adventurous outdoor setting, natural beauty" | "rugged mountain trail with worn natural stone, alpine wildflowers, expansive valley vista, raw outdoor adventure, Birkenstock hiking editorial" |
-| outdoor-vineyard | "rolling vineyard hills, golden afternoon light, Tuscan countryside aesthetic, sophisticated" | "sun-drenched vineyard rows with gnarled old vines, golden Tuscan light, terracotta earth between rows, artisanal wine country, Birkenstock countryside editorial" |
-| outdoor-boardwalk | "wooden boardwalk by the sea, coastal breeze, vacation vibes, relaxed summer setting" | "sun-bleached weathered timber boardwalk, natural wood grain and patina, coastal salt air atmosphere, Birkenstock seaside campaign" |
-| outdoor-market | "vibrant street market, colorful stalls, bustling atmosphere, authentic local setting" | "artisan outdoor market with handwoven textiles and ceramics, warm natural materials, Mediterranean bazaar atmosphere, Birkenstock cultural editorial" |
-| outdoor-cactus-garden | "southwestern desert setting with prickly pear cactus, sandy beige ground, natural desert flora backdrop" | "southwestern desert garden with sculptural prickly pear cactus, warm sandy earth, terracotta and sage tones, raw natural desert flora, Birkenstock desert editorial" |
-| outdoor-cracked-earth | "dry cracked earth surface, deep fissures in clay ground, dramatic arid landscape texture" | "sun-baked cracked clay earth with deep fissures, warm ochre and sienna tones, raw elemental texture, Birkenstock earth editorial" |
-| outdoor-salt-flats | "white crystalline salt flat surface, turquoise mineral deposits, otherworldly natural phenomenon" | "crystalline salt flat surface with mineral deposits, otherworldly natural landscape, warm reflected light, raw geological wonder, Birkenstock nature editorial" |
-| outdoor-picnic | "red gingham picnic blanket on green grass, casual outdoor lifestyle setting, summer day" | "faded vintage gingham blanket on wild meadow grass, casual golden afternoon, handmade wicker basket vibe, Birkenstock lifestyle editorial" |
-| outdoor-rocky-shore | "natural limestone rock surface, turquoise water edge, spa-like serene coastal setting" | "sun-warmed limestone rocks meeting clear turquoise shallows, natural coastal erosion texture, Mediterranean cove atmosphere, Birkenstock coastal editorial" |
-| outdoor-weathered-metal | "oxidized metal surface with rust patina, golden hour tones, industrial artistic texture" | "naturally oxidized copper and iron surface with warm patina, golden rust tones, industrial craft texture with organic aging, Birkenstock artisan editorial" |
-| outdoor-grass-concrete | "clean concrete pavement meets lush green grass, modern architectural transition, urban nature" | "raw concrete slab edge meeting wild grass and clover, warm natural light, architectural meets organic, Birkenstock urban nature editorial" |
-
-### 2. `supabase/functions/generate-image/index.ts`
-
-Two changes:
-- **Update all 19 outdoor entries** in the `backgroundPresets` lookup (lines 225-236) with the same new Birkenstock-style prompts
-- **Add the 7 missing outdoor backgrounds** (`outdoor-cactus-garden`, `outdoor-cracked-earth`, `outdoor-salt-flats`, `outdoor-picnic`, `outdoor-rocky-shore`, `outdoor-weathered-metal`, `outdoor-grass-concrete`) that were never added to this file
-
-Studio entries remain unchanged.
-
-### 3. `supabase/functions/generate-background-thumbnails/index.ts`
-
-Two changes:
-- **Rewrite all 19 outdoor thumbnail prompts** (lines 24-42) with Birkenstock editorial language
-- **Update the generation style instructions** (line 58) to enforce Birkenstock campaign photography aesthetic for outdoor settings:
-
-```
-"Generate a background preview image in the style of a Birkenstock campaign photograph.
-
-Setting: {prompt}
-
-Style requirements:
-- Empty background only, absolutely no products, people, or objects
-- Natural, earthy, grounded aesthetic -- NOT stock photography
-- Warm natural lighting with organic textures visible
-- Editorial photography feel with tactile materiality
-- Muted, earthy color palette -- sand, terracotta, sage, stone
-- 4:3 aspect ratio composition
-- Suitable as a small selection thumbnail"
+```text
++------------------------------------------+
+| [3/4] [Side] [Top] [Sole]    [Edit icon] |  <-- small angle strip + edit button
++------------------------------------------+
+|                                          |
+|          (Large main thumbnail)          |  <-- clickable for fullscreen
+|          Shows selected angle            |
+|                                          |
++------------------------------------------+
+|  Arizona                                 |
+|  Taupe EVA                               |
++------------------------------------------+
 ```
 
-Studio backgrounds keep using the current neutral generation prompt.
+Below that, the 3-product selection grid stays as-is. The angle viewer only appears for the currently selected product.
 
-### 4. Regenerate all 19 outdoor thumbnails
+## Technical Details
 
-After deploying the updated edge function, trigger thumbnail generation for all outdoor backgrounds:
+### New Component: `ProductAngleViewer.tsx`
 
-```json
-POST /generate-background-thumbnails
-{
-  "ids": [
-    "outdoor-beach", "outdoor-urban", "outdoor-park", "outdoor-cafe",
-    "outdoor-desert", "outdoor-forest", "outdoor-rooftop", "outdoor-pool",
-    "outdoor-mountain", "outdoor-vineyard", "outdoor-boardwalk", "outdoor-market",
-    "outdoor-cactus-garden", "outdoor-cracked-earth", "outdoor-salt-flats",
-    "outdoor-picnic", "outdoor-rocky-shore", "outdoor-weathered-metal",
-    "outdoor-grass-concrete"
-  ]
-}
-```
+Create `src/components/creative-studio/product-shoot/ProductAngleViewer.tsx`:
 
-Download the generated images and replace all 19 `src/assets/backgrounds/outdoor-*.jpg` files.
+- **Props**: `skuId`, `skuName`, `compositeImageUrl`, `onEditClick`
+- **State**: `activeAngleId` (session-only, defaults to the `3/4` angle)
+- **Data**: Fetches angles from `scraped_products` where `sku_id = skuId` (reuses existing query key `sku-angles-preview`)
+- **Default selection logic**: On load, finds the angle where `angle === '3/4'`. If not found, uses the first angle. If no angles exist, falls back to `compositeImageUrl`.
+- **Small thumbnails**: Horizontal row of angle thumbnails (similar size to existing `ProductAnglePreview`), each clickable to set `activeAngleId`. The active one gets an accent border.
+- **Edit button**: A small `Pencil` icon button positioned at the top-right of the thumbnail strip.
+- **Big thumbnail**: Shows the `thumbnail_url` of the active angle. Clicking it opens a fullscreen Dialog.
+- **Fullscreen Dialog**: A simple `Dialog` with a large image (`object-contain`, max height 80vh), similar to the pattern already used in `ReferenceThumbnail.tsx`.
 
-## Files Changed
+### Changes to `ProductShootStep2.tsx`
+
+- Import the new `ProductAngleViewer` component
+- When a product is selected (`state.selectedProductId` exists), render `ProductAngleViewer` above the 3-product grid, passing:
+  - `skuId={state.selectedProductId}`
+  - `skuName={selectedSku?.name || ''}`
+  - `compositeImageUrl={selectedSku?.composite_image_url}`
+  - `onEditClick` that sets `editingSkuId` and opens `showEditSKUModal`
+- The existing HoverCard angle preview on the grid thumbnails remains unchanged (it's useful for non-selected products)
+
+### Changes to `index.ts` (barrel export)
+
+- Add `ProductAngleViewer` to the barrel exports
+
+### Files Changed
 
 | File | Change |
-|---|---|
-| `src/components/creative-studio/product-shoot/presets.ts` | Rewrite 19 outdoor `prompt` fields with Birkenstock editorial language (studio untouched) |
-| `supabase/functions/generate-image/index.ts` | Update 12 outdoor prompts + add 7 missing outdoor backgrounds to `backgroundPresets` lookup |
-| `supabase/functions/generate-background-thumbnails/index.ts` | Rewrite 19 outdoor thumbnail prompts + add Birkenstock-specific generation style for outdoor |
-| `src/assets/backgrounds/outdoor-*.jpg` (19 files) | Regenerate all outdoor thumbnails with Birkenstock aesthetic |
+|------|--------|
+| `src/components/creative-studio/product-shoot/ProductAngleViewer.tsx` | New component: interactive angle viewer with big thumbnail, angle strip, fullscreen, and edit button |
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Render `ProductAngleViewer` above the product grid when a product is selected |
+| `src/components/creative-studio/product-shoot/index.ts` | Add barrel export for `ProductAngleViewer` |
 
-## What Stays Unchanged
+### Key Decisions
 
-- All 10 studio backgrounds (prompts, thumbnails, and `generate-image` entries) -- Birkenstock studio shoots use clean white/neutral backdrops, which the current prompts already deliver
-- No frontend component changes needed -- BackgroundSelector automatically renders whatever is in the presets array
-- Weather condition system continues to work as-is with the new prompts
+- **Session-only state**: The active angle is stored in React state (`useState`), not persisted. Navigating away or selecting a different product resets it to the 3/4 default.
+- **3/4 default**: Uses `angle === '3/4'` from the database. This matches the existing angle convention seen in `scraped_products`.
+- **Reuses existing patterns**: Fullscreen dialog follows the same pattern as `ReferenceThumbnail.tsx`. Data fetching reuses the same query structure as `ProductAnglePreview`.
+- **No changes to data model**: Everything works with the existing `scraped_products` table and `angle` column.
+
