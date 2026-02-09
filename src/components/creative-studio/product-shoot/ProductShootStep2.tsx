@@ -654,9 +654,9 @@ export const ProductShootStep2 = ({
         open={showProductPickerModal}
         onOpenChange={setShowProductPickerModal}
         selectedSkuId={selectedSku?.id || null}
-        onSelectSku={(sku, components, overrides, attachRef) => 
-          handleSkuSelect(sku, components, overrides, attachRef, true)
-        } // Modal selection DOES update display order
+        onSelectSku={(sku) => 
+          handleSkuSelect(sku, null, undefined, undefined, true)
+        }
         onCreateNew={() => setShowCreateSKUModal(true)}
         onSmartUpload={() => setShowSmartUploadModal(true)}
       />
