@@ -11,6 +11,7 @@ export { ShoeComponentsPanel } from './ShoeComponentsPanel';
 export { ComponentOverridePopover } from './ComponentOverridePopover';
 
 export { ProductIntegrityBadge } from './ProductIntegrityBadge';
+export { ProductAngleViewer } from './ProductAngleViewer';
 export { ProductShootStep2, initialProductShootState } from './ProductShootStep2';
 
 // Types
