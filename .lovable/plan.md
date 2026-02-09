@@ -1,68 +1,39 @@
 
+# Default to Product Shoot with Product Focus
 
-# Product Selector Improvements
+Three small default/behavior changes across the Creative Studio.
 
-Three changes to the product selection experience:
+## 1. Default Creative Studio type to "Product Shot"
 
-## 1. Group Products by Model Type in the Product Picker Modal
+The Creative Studio currently defaults to the "Lifestyle" type chip. This changes the initial state so "Product Shot" is selected by default when the studio opens.
 
-Currently the "Browse All Products" modal shows the top 5 recently used, then groups products by the `category` field (which is just "product" for everything). This will change to:
+### File: `src/components/creative-studio/types.ts`
 
-- **Last Used**: Show only the top **3** recently used products (down from 5)
-- **Model Groups**: Below "Last Used", group products by their **model name** (e.g., Arizona, Boston, Gizeh, Mayari, Tokyo). Each recognized Birkenstock model gets its own section header.
-- **Other**: Products that don't match a known signature model go under "Other"
-- **Duplicates allowed**: A product can appear in both "Last Used" AND its model group section
+- Change `useCase: 'lifestyle'` to `useCase: 'product'` (line 283)
+- Change `selectedTypeCard: 'lifestyle'` to `selectedTypeCard: 'product'` (line 285)
 
-The model name will be extracted using the existing `parseSkuDisplayInfo()` utility, which already parses the second word of "Birkenstock Arizona..." as the model name.
+## 2. Make "Remix Existing" a "Coming Soon" option
 
-Known signature models: Arizona, Boston, Gizeh, Mayari, Tokyo, Madrid, Milano, Kyoto, Ramses, Yao, and any other model that appears more than once.
+The Remix card in the Product Shoot Step 1 selector will become non-clickable with a "Coming Soon" badge, similar to how the Localization and UGC type chips work in the header.
 
-### File: `src/components/creative-studio/product-shoot/ProductPickerModal.tsx`
+### File: `src/components/creative-studio/product-shoot/ProductShootSubtypeSelector.tsx`
 
-- Change `recentlyUsed` from `slice(0, 5)` to `slice(0, 3)`
-- Replace the category-based grouping (`groupedSkus`) with model-name-based grouping
-- Extract model name from each SKU using `parseSkuDisplayInfo(sku.name, sku.description).modelName`
-- Define a list of known signature models for grouping; anything else goes under "Other"
-- Remove the category filter chips (no longer relevant since we group by model, not by "category" field)
-- In the main list, do NOT filter out "Last Used" items from their model groups (allow duplicates)
+- Disable the Remix button (no `onClick`, add `cursor-not-allowed` and `opacity-50`)
+- Add a small "Coming Soon" badge in the corner or below the title
+- Since "New Shoot" is the only option, auto-select behavior stays as-is (shootMode defaults to `'new'`)
 
-## 2. Direct Selection on Click (No Two-Step Flow)
+## 3. Default shot type to "Product Focus"
 
-Currently, clicking a product in the ProductPickerModal opens a customization panel within the modal (select -> customize -> confirm). This is redundant because the `ShoeComponentsPanel` is already shown inline in ProductShootStep2 when a product is selected.
+The Product Shoot step 2 currently defaults to `productShotType: 'lifestyle'` (Full Body on Model). This changes it to `'product-focus'`.
 
-### File: `src/components/creative-studio/product-shoot/ProductPickerModal.tsx`
+### File: `src/components/creative-studio/product-shoot/types.ts`
 
-- Remove the `selectedSku` state and the entire "CUSTOMIZATION VIEW" section (the detail panel with ShoeComponentsPanel, confirm button, back button)
-- When clicking a product row, immediately call `onSelectSku(sku)` and close the modal (`onOpenChange(false)`)
-- Simplify `onSelectSku` callback signature: no longer needs to pass `components`, `overrides`, or `attachReferenceImages` (those are managed by the inline panel in Step2)
-- Remove imports for `ShoeComponentsPanel`, `useShoeComponents`, `useComponentOverrides`, and related types
+- Change `productShotType: 'lifestyle'` to `productShotType: 'product-focus'` in `initialProductShootState` (line 174)
 
-### File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`
-
-- Update the `onSelectSku` callback passed to `ProductPickerModal` to match the simplified signature (just receives the SKU)
-
-## 3. Show Full Detailed Product Description in Edit Modal
-
-Currently the EditSKUModal only shows/edits `description.summary`. The user wants to also see the full structured metadata: colors, materials, product type, style keywords, hardware finish.
-
-### File: `src/components/creative-studio/product-shoot/EditSKUModal.tsx`
-
-- Below the Product Description textarea, add a read-only "Detailed Analysis" section that displays the structured fields from the `description` JSONB:
-  - **Colors**: comma-separated list (e.g., "pearl white, brown, black")
-  - **Materials**: comma-separated list (e.g., "birko-flor, cork, EVA")
-  - **Product Type**: e.g., "sandal"
-  - **Style Keywords**: comma-separated (e.g., "thong, adjustable, buckle")
-  - **Hardware Finish**: e.g., "bronze"
-- These fields are displayed as labeled key-value pairs in a compact, read-only format (not editable individually -- they come from AI analysis and would require re-analysis to change). The summary textarea remains the editable field.
-- Style: subtle muted background panel with small text, labeled "AI Analysis Details"
-
-## Technical Details
-
-### Files changed
+## Files changed
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/product-shoot/ProductPickerModal.tsx` | Group by model name instead of category; reduce "recently used" to 3; remove customization step; direct-select on click |
-| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Update `onSelectSku` callback for ProductPickerModal to match simplified signature |
-| `src/components/creative-studio/product-shoot/EditSKUModal.tsx` | Add read-only "AI Analysis Details" section showing colors, materials, product_type, style_keywords, hardware_finish |
-
+| `src/components/creative-studio/types.ts` | Set `useCase` and `selectedTypeCard` defaults to `'product'` |
+| `src/components/creative-studio/product-shoot/ProductShootSubtypeSelector.tsx` | Disable Remix button, add "Coming Soon" badge |
+| `src/components/creative-studio/product-shoot/types.ts` | Set `productShotType` default to `'product-focus'` |
