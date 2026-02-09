@@ -1,78 +1,74 @@
 
 
-# Enhanced Product Thumbnail Viewer
+# Enhance the Hover Popover with Interactive Angle Viewer
 
-## What You'll Get
+## What Changes
 
-The current product selection grid shows a composite thumbnail per product with a hover popover for angle previews. This plan replaces that with a richer, interactive product viewer for the **selected** product:
+The product grid stays exactly as-is. The hover popover that appears when you hover over a product thumbnail gets upgraded with 4 new features:
 
-1. **Default 3/4 pair view as the big thumbnail** -- when a product is selected, the main large image defaults to the `3/4` angle (the pair shot). If no `3/4` angle exists, falls back to the first available angle or the composite image.
+1. **Default 3/4 featured image** at the top of the popover
+2. **Clickable angle thumbnails** that swap the featured image (session only)
+3. **Fullscreen dialog** when clicking the featured image
+4. **Edit button** (pencil icon) in the top-right corner to open the SKU editor
 
-2. **Clickable small angle thumbnails** -- a row of small angle thumbnails appears above the big image. Clicking one swaps the big thumbnail to that angle for the current session only (no database writes).
-
-3. **Fullscreen view on big thumbnail click** -- clicking the large thumbnail opens a Dialog showing the full-resolution image.
-
-4. **Edit button on the angle strip** -- a small pencil/edit icon in the top-right corner of the angle thumbnail row opens the existing EditSKUModal for the selected product.
-
-## UI Layout (Selected Product)
+## Popover Layout (Before vs After)
 
 ```text
-+------------------------------------------+
-| [3/4] [Side] [Top] [Sole]    [Edit icon] |  <-- small angle strip + edit button
-+------------------------------------------+
-|                                          |
-|          (Large main thumbnail)          |  <-- clickable for fullscreen
-|          Shows selected angle            |
-|                                          |
-+------------------------------------------+
-|  Arizona                                 |
-|  Taupe EVA                               |
-+------------------------------------------+
+BEFORE:                          AFTER:
++---------------------------+    +-------------------------------+
+|  Arizona                  |    |  Arizona              [Edit]  |
+|  Taupe EVA                |    |  Taupe EVA                    |
++---------------------------+    +-------------------------------+
+| [3/4] [Side] [Sole] [Top]|    |                               |
++---------------------------+    |    (Featured angle image)     |
+|  4 angles                 |    |    ~140px tall, clickable     |
++---------------------------+    |    for fullscreen             |
+                                 |                               |
+                                 +-------------------------------+
+                                 | [3/4] [Side] [Sole] [Top]     |
+                                 +-------------------------------+
+                                 |  4 angles                     |
+                                 +-------------------------------+
 ```
-
-Below that, the 3-product selection grid stays as-is. The angle viewer only appears for the currently selected product.
 
 ## Technical Details
 
-### New Component: `ProductAngleViewer.tsx`
+### 1. Enhance `ProductAnglePreview.tsx`
 
-Create `src/components/creative-studio/product-shoot/ProductAngleViewer.tsx`:
+This is the main change. The component gets upgraded from a static grid to an interactive viewer:
 
-- **Props**: `skuId`, `skuName`, `compositeImageUrl`, `onEditClick`
-- **State**: `activeAngleId` (session-only, defaults to the `3/4` angle)
-- **Data**: Fetches angles from `scraped_products` where `sku_id = skuId` (reuses existing query key `sku-angles-preview`)
-- **Default selection logic**: On load, finds the angle where `angle === '3/4'`. If not found, uses the first angle. If no angles exist, falls back to `compositeImageUrl`.
-- **Small thumbnails**: Horizontal row of angle thumbnails (similar size to existing `ProductAnglePreview`), each clickable to set `activeAngleId`. The active one gets an accent border.
-- **Edit button**: A small `Pencil` icon button positioned at the top-right of the thumbnail strip.
-- **Big thumbnail**: Shows the `thumbnail_url` of the active angle. Clicking it opens a fullscreen Dialog.
-- **Fullscreen Dialog**: A simple `Dialog` with a large image (`object-contain`, max height 80vh), similar to the pattern already used in `ReferenceThumbnail.tsx`.
+- Add `useState` for `activeAngleId` -- defaults to the angle where `angle === '3/4'`, falls back to first angle
+- Add `useState` for `isFullscreen` -- controls fullscreen dialog
+- Fetch `full_url` in addition to `thumbnail_url` from `scraped_products` (needed for fullscreen)
+- Add optional `onEditClick` prop for the edit button
+- Render a **featured image** (~140px height) at the top showing the active angle's thumbnail, clickable to open fullscreen
+- Make the small angle thumbnails **clickable** to swap the featured image
+- Add a **pencil icon button** next to the product name (top-right)
+- Add a **fullscreen Dialog** following the same pattern as `ReferenceThumbnail.tsx`
 
-### Changes to `ProductShootStep2.tsx`
+### 2. Clean up `ProductShootStep2.tsx`
 
-- Import the new `ProductAngleViewer` component
-- When a product is selected (`state.selectedProductId` exists), render `ProductAngleViewer` above the 3-product grid, passing:
-  - `skuId={state.selectedProductId}`
-  - `skuName={selectedSku?.name || ''}`
-  - `compositeImageUrl={selectedSku?.composite_image_url}`
-  - `onEditClick` that sets `editingSkuId` and opens `showEditSKUModal`
-- The existing HoverCard angle preview on the grid thumbnails remains unchanged (it's useful for non-selected products)
+- Remove the `ProductAngleViewer` import (line 20)
+- Remove the `ProductAngleViewer` block above the product grid (lines 386-397)
+- Pass `onEditClick` prop to `ProductAnglePreview` inside the `HoverCardContent` so the edit button triggers the `EditSKUModal`
 
-### Changes to `index.ts` (barrel export)
+### 3. Clean up `index.ts`
 
-- Add `ProductAngleViewer` to the barrel exports
+- Remove the `ProductAngleViewer` barrel export (line 14)
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/product-shoot/ProductAngleViewer.tsx` | New component: interactive angle viewer with big thumbnail, angle strip, fullscreen, and edit button |
-| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Render `ProductAngleViewer` above the product grid when a product is selected |
-| `src/components/creative-studio/product-shoot/index.ts` | Add barrel export for `ProductAngleViewer` |
+| `src/components/creative-studio/product-shoot/ProductAnglePreview.tsx` | Add featured image (default 3/4), clickable angle swapping, fullscreen dialog, edit button |
+| `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` | Remove `ProductAngleViewer` usage; pass `onEditClick` to `ProductAnglePreview` |
+| `src/components/creative-studio/product-shoot/index.ts` | Remove `ProductAngleViewer` export |
 
 ### Key Decisions
 
-- **Session-only state**: The active angle is stored in React state (`useState`), not persisted. Navigating away or selecting a different product resets it to the 3/4 default.
-- **3/4 default**: Uses `angle === '3/4'` from the database. This matches the existing angle convention seen in `scraped_products`.
-- **Reuses existing patterns**: Fullscreen dialog follows the same pattern as `ReferenceThumbnail.tsx`. Data fetching reuses the same query structure as `ProductAnglePreview`.
-- **No changes to data model**: Everything works with the existing `scraped_products` table and `angle` column.
+- **Session-only state**: The active angle lives in `useState` inside the popover. Each time the hover closes and reopens, it resets to the 3/4 default.
+- **3/4 default**: Matches `angle === '3/4'` from the database -- the pair shot.
+- **Fullscreen pattern**: Reuses the exact same Dialog approach from `ReferenceThumbnail.tsx` (max-w-2xl, object-contain, max-h-[70vh]).
+- **No new components**: Everything lives inside the enhanced `ProductAnglePreview`. The `ProductAngleViewer.tsx` file can be left as-is (dead code) or deleted -- it's no longer imported anywhere.
+- **Grid untouched**: The 3-product selection grid, HoverCard trigger, selection indicators -- all stay exactly the same.
 
