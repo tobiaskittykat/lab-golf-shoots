@@ -1,67 +1,115 @@
 
 
-# Fix Vegan Customization to Replace ALL Non-Vegan Components
+# Infuse Birkenstock Campaign Aesthetic into Outdoor Backgrounds
 
-## Problem
+## Scope
 
-When a user asks for a "vegan version" of a shoe, the AI customization agent often misses non-vegan components like suede lining, shearling, wool felt, or leather heelstraps. The current system prompt only has a vague rule: "For vegan/synthetic requests, use Birko-Flor or EVA materials" -- which doesn't give the AI enough guidance on which materials are non-vegan and what to replace them with.
+**Outdoor backgrounds only** (19 total). Studio backgrounds stay untouched -- as your reference photos confirm, Birkenstock studio shoots use clean, bright white backdrops, so those prompts are already correct.
 
-## Root Cause
+## What's Wrong Today
 
-The edge function `interpret-shoe-customization` lacks:
-1. An explicit list of non-vegan materials
-2. Clear instructions to scan ALL components and replace every non-vegan one
-3. Specific vegan substitutes for each component type
+The current outdoor prompts read like stock photography descriptions: "soft sandy beach background, golden hour sunlight, ocean in distance, relaxed coastal vibe." They produce generic travel-blog imagery rather than the grounded, tactile, editorially crafted settings that define Birkenstock campaign photography.
 
-## Solution
+## Birkenstock Outdoor DNA
 
-Update the system prompt in `supabase/functions/interpret-shoe-customization/index.ts` to replace the vague rule #9 with a comprehensive vegan customization rule that:
+Every outdoor prompt will be rewritten with these principles drawn from actual Birkenstock campaigns:
 
-- Defines which materials are **non-vegan**: Oiled Leather, Smooth Leather, Nubuck, Suede, Patent Leather, Shearling, Wool Felt, Shearling (Cream), Shearling (Black), and Exquisite (leather-wrapped footbed)
-- Instructs the AI to scan **every component** (upper, heelstrap, lining, footbed) and replace any non-vegan material
-- Provides specific vegan substitutes per component:
-  - **Upper**: Birko-Flor (or Birko-Flor Nubuck for nubuck-look, Birko-Flor Patent for patent-look, Birkibuc, EVA, Canvas, Recycled PET)
-  - **Heelstrap**: Birko-Flor or Birko-Flor Nubuck
-  - **Lining**: Microfiber or EVA (never suede, shearling, or wool felt)
-  - **Footbed**: Cork-Latex, Soft Footbed, or EVA (never Exquisite)
-  - **Sole**: already vegan (EVA, Rubber, Polyurethane, Cork) -- no change needed
-  - **Buckles**: already vegan -- no change needed
-- Keeps the original color when substituting materials (e.g., "Suede in Taupe" becomes "Birko-Flor in Taupe")
-- Adds a concrete example: `"vegan version"` with a suede upper + suede lining shows both changing
+- **Raw natural textures** over polished scenery -- sun-baked stone, wind-worn wood, wild meadow grass
+- **Earthy, muted tones** -- sand, terracotta, sage, ochre, stone grey -- not oversaturated postcard colors
+- **Editorial composition language** -- "soft depth of field," "natural imperfections," "organic irregularity"
+- **Mediterranean / European sensibility** -- cobblestones, aged sandstone, olive groves, artisan markets
+- **Grounded warmth** -- golden hour but not "vacation sunset"; more contemplative, quiet, crafted
 
-## Technical Details
+## Changes (3 files + 19 thumbnail regenerations)
 
-### File: `supabase/functions/interpret-shoe-customization/index.ts`
+### 1. `src/components/creative-studio/product-shoot/presets.ts`
 
-**Replace rule #9** (line ~193) with an expanded vegan rule block:
+Rewrite the `prompt` field for all 19 outdoor backgrounds. Studio backgrounds remain unchanged.
+
+| ID | Current Prompt | New Birkenstock-Style Prompt |
+|---|---|---|
+| outdoor-beach | "soft sandy beach background, golden hour sunlight, ocean in distance, relaxed coastal vibe" | "warm golden sand with natural ripple texture, soft golden hour light, distant ocean blur, raw coastal Mediterranean atmosphere, Birkenstock summer campaign" |
+| outdoor-urban | "urban city street background, modern architecture, stylish metropolitan setting" | "sun-warmed cobblestone European side street, aged sandstone walls, warm afternoon light with long shadows, lived-in urban character, Birkenstock city editorial" |
+| outdoor-park | "lush green park setting, dappled sunlight through trees, natural fresh atmosphere" | "wild meadow grass with wildflowers, dappled golden sunlight through mature trees, natural organic parkland, Birkenstock nature campaign" |
+| outdoor-cafe | "charming European cafe terrace, cobblestone street, bistro chairs, warm afternoon light" | "weathered wooden bistro table on aged cobblestones, terracotta-toned walls, warm Mediterranean afternoon light, artisan cafe culture, Birkenstock European editorial" |
+| outdoor-desert | "dramatic desert landscape, sand dunes, warm golden hour light, minimalist vast backdrop" | "sculptural desert dune with wind-carved ridges, warm amber golden hour, vast minimalist landscape, raw earth textures, Birkenstock nature campaign" |
+| outdoor-forest | "serene forest path, filtered sunlight through trees, natural earthy tones, peaceful setting" | "dappled light through ancient oak canopy, moss-covered forest floor, rich earthy greens and browns, organic natural sanctuary, Birkenstock woodland editorial" |
+| outdoor-rooftop | "modern rooftop setting, city skyline in background, golden hour, urban lifestyle" | "weathered terracotta rooftop terrace, potted olive trees, warm golden hour cityscape, Mediterranean lifestyle, Birkenstock summer editorial" |
+| outdoor-pool | "luxury poolside setting, turquoise water, white deck, resort vibes, bright daylight" | "natural stone pool edge with sun-warmed travertine deck, turquoise water reflections, Mediterranean resort warmth, Birkenstock summer campaign" |
+| outdoor-mountain | "mountain hiking trail, scenic overlook, adventurous outdoor setting, natural beauty" | "rugged mountain trail with worn natural stone, alpine wildflowers, expansive valley vista, raw outdoor adventure, Birkenstock hiking editorial" |
+| outdoor-vineyard | "rolling vineyard hills, golden afternoon light, Tuscan countryside aesthetic, sophisticated" | "sun-drenched vineyard rows with gnarled old vines, golden Tuscan light, terracotta earth between rows, artisanal wine country, Birkenstock countryside editorial" |
+| outdoor-boardwalk | "wooden boardwalk by the sea, coastal breeze, vacation vibes, relaxed summer setting" | "sun-bleached weathered timber boardwalk, natural wood grain and patina, coastal salt air atmosphere, Birkenstock seaside campaign" |
+| outdoor-market | "vibrant street market, colorful stalls, bustling atmosphere, authentic local setting" | "artisan outdoor market with handwoven textiles and ceramics, warm natural materials, Mediterranean bazaar atmosphere, Birkenstock cultural editorial" |
+| outdoor-cactus-garden | "southwestern desert setting with prickly pear cactus, sandy beige ground, natural desert flora backdrop" | "southwestern desert garden with sculptural prickly pear cactus, warm sandy earth, terracotta and sage tones, raw natural desert flora, Birkenstock desert editorial" |
+| outdoor-cracked-earth | "dry cracked earth surface, deep fissures in clay ground, dramatic arid landscape texture" | "sun-baked cracked clay earth with deep fissures, warm ochre and sienna tones, raw elemental texture, Birkenstock earth editorial" |
+| outdoor-salt-flats | "white crystalline salt flat surface, turquoise mineral deposits, otherworldly natural phenomenon" | "crystalline salt flat surface with mineral deposits, otherworldly natural landscape, warm reflected light, raw geological wonder, Birkenstock nature editorial" |
+| outdoor-picnic | "red gingham picnic blanket on green grass, casual outdoor lifestyle setting, summer day" | "faded vintage gingham blanket on wild meadow grass, casual golden afternoon, handmade wicker basket vibe, Birkenstock lifestyle editorial" |
+| outdoor-rocky-shore | "natural limestone rock surface, turquoise water edge, spa-like serene coastal setting" | "sun-warmed limestone rocks meeting clear turquoise shallows, natural coastal erosion texture, Mediterranean cove atmosphere, Birkenstock coastal editorial" |
+| outdoor-weathered-metal | "oxidized metal surface with rust patina, golden hour tones, industrial artistic texture" | "naturally oxidized copper and iron surface with warm patina, golden rust tones, industrial craft texture with organic aging, Birkenstock artisan editorial" |
+| outdoor-grass-concrete | "clean concrete pavement meets lush green grass, modern architectural transition, urban nature" | "raw concrete slab edge meeting wild grass and clover, warm natural light, architectural meets organic, Birkenstock urban nature editorial" |
+
+### 2. `supabase/functions/generate-image/index.ts`
+
+Two changes:
+- **Update all 19 outdoor entries** in the `backgroundPresets` lookup (lines 225-236) with the same new Birkenstock-style prompts
+- **Add the 7 missing outdoor backgrounds** (`outdoor-cactus-garden`, `outdoor-cracked-earth`, `outdoor-salt-flats`, `outdoor-picnic`, `outdoor-rocky-shore`, `outdoor-weathered-metal`, `outdoor-grass-concrete`) that were never added to this file
+
+Studio entries remain unchanged.
+
+### 3. `supabase/functions/generate-background-thumbnails/index.ts`
+
+Two changes:
+- **Rewrite all 19 outdoor thumbnail prompts** (lines 24-42) with Birkenstock editorial language
+- **Update the generation style instructions** (line 58) to enforce Birkenstock campaign photography aesthetic for outdoor settings:
 
 ```
-9. VEGAN / SYNTHETIC REQUESTS — scan ALL components and replace every non-vegan material:
-   NON-VEGAN MATERIALS: Oiled Leather, Smooth Leather, Nubuck, Suede, Patent Leather,
-   Shearling, Shearling (Cream), Shearling (Black), Wool Felt, Exquisite (leather-wrapped).
-   VEGAN SUBSTITUTES BY COMPONENT:
-     - upper: Birko-Flor (default), Birko-Flor Nubuck (if original was Nubuck),
-              Birko-Flor Patent (if original was Patent Leather), Birkibuc, EVA, Canvas, Recycled PET
-     - heelstrap: Birko-Flor (default), Birko-Flor Nubuck
-     - lining: Microfiber (default), EVA
-     - footbed: keep Cork-Latex or Soft Footbed (both vegan); replace Exquisite with Cork-Latex
-     - sole: already vegan (no change)
-     - buckles: already vegan (no change)
-   PRESERVE the original COLOR when swapping materials (e.g., Suede/Taupe -> Birko-Flor/Taupe).
-   If user specifies a color too (e.g., "vegan in black"), apply both the vegan material swap AND the color.
+"Generate a background preview image in the style of a Birkenstock campaign photograph.
+
+Setting: {prompt}
+
+Style requirements:
+- Empty background only, absolutely no products, people, or objects
+- Natural, earthy, grounded aesthetic -- NOT stock photography
+- Warm natural lighting with organic textures visible
+- Editorial photography feel with tactile materiality
+- Muted, earthy color palette -- sand, terracotta, sage, stone
+- 4:3 aspect ratio composition
+- Suitable as a small selection thumbnail"
 ```
 
-**Add a vegan example** to the examples section (line ~224):
+Studio backgrounds keep using the current neutral generation prompt.
 
-```
-- "vegan version" (current: upper Suede/Taupe, lining Suede/Taupe, heelstrap Suede/Taupe)
-  -> upper: Birko-Flor/Taupe/#B8A99A, heelstrap: Birko-Flor/Taupe/#B8A99A, lining: Microfiber/Taupe/#B8A99A
+### 4. Regenerate all 19 outdoor thumbnails
+
+After deploying the updated edge function, trigger thumbnail generation for all outdoor backgrounds:
+
+```json
+POST /generate-background-thumbnails
+{
+  "ids": [
+    "outdoor-beach", "outdoor-urban", "outdoor-park", "outdoor-cafe",
+    "outdoor-desert", "outdoor-forest", "outdoor-rooftop", "outdoor-pool",
+    "outdoor-mountain", "outdoor-vineyard", "outdoor-boardwalk", "outdoor-market",
+    "outdoor-cactus-garden", "outdoor-cracked-earth", "outdoor-salt-flats",
+    "outdoor-picnic", "outdoor-rocky-shore", "outdoor-weathered-metal",
+    "outdoor-grass-concrete"
+  ]
+}
 ```
 
-### Files changed
+Download the generated images and replace all 19 `src/assets/backgrounds/outdoor-*.jpg` files.
+
+## Files Changed
 
 | File | Change |
-|------|--------|
-| `supabase/functions/interpret-shoe-customization/index.ts` | Replace vague rule #9 with comprehensive vegan material mapping; add vegan example |
+|---|---|
+| `src/components/creative-studio/product-shoot/presets.ts` | Rewrite 19 outdoor `prompt` fields with Birkenstock editorial language (studio untouched) |
+| `supabase/functions/generate-image/index.ts` | Update 12 outdoor prompts + add 7 missing outdoor backgrounds to `backgroundPresets` lookup |
+| `supabase/functions/generate-background-thumbnails/index.ts` | Rewrite 19 outdoor thumbnail prompts + add Birkenstock-specific generation style for outdoor |
+| `src/assets/backgrounds/outdoor-*.jpg` (19 files) | Regenerate all outdoor thumbnails with Birkenstock aesthetic |
 
-No frontend changes needed -- the customization hook and UI already handle any overrides the AI returns. This is purely a prompt improvement in the edge function.
+## What Stays Unchanged
+
+- All 10 studio backgrounds (prompts, thumbnails, and `generate-image` entries) -- Birkenstock studio shoots use clean white/neutral backdrops, which the current prompts already deliver
+- No frontend component changes needed -- BackgroundSelector automatically renders whatever is in the presets array
+- Weather condition system continues to work as-is with the new prompts
