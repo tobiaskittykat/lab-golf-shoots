@@ -1,57 +1,36 @@
 
 
-# Move "Auto" Tile to Last Position in Background Grid
+# Fix: Auto Tile on Same Row When Expanded
 
-## Change from Previous Plan
+## Problem
 
-The Auto tile will be the **last tile** in each tab's grid instead of the first. This keeps the curated presets front-and-center while offering the AI option at the end.
+When the background grid is expanded ("Show More"), the Auto tile renders in its own separate `<div className="grid ...">`, forcing it onto a new row even if there's space in the last row of presets.
 
-## Visual Result
+## Fix
 
-**Studio tab (collapsed):**
-`[White Cyclorama] [Black Void] [Warm Gradient] [Auto (AI)]`
+**File:** `src/components/creative-studio/product-shoot/BackgroundSelector.tsx`
 
-**Outdoor tab (collapsed):**
-`[Sandy Beach] [Urban Street] [Park Grass] [Auto (AI)]`
+Simplify `renderGrid()` to use a single grid that always contains all visible presets plus the Auto tile at the end. Remove the separate expanded grid divs.
 
-When expanded, the Auto tile remains at the very end after all presets.
+Current structure (lines 188-226):
+```tsx
+// Collapsed: one grid with presets + auto
+// Expanded: one grid with presets, then a SEPARATE grid just for auto
+```
 
-The Auto tile will have a Wand2 icon with a subtle gradient background to distinguish it from the photo-based tiles. Same selection pattern (accent border + checkmark).
+New structure:
+```tsx
+<div className="grid grid-cols-4 gap-3">
+  {visiblePresets.map(renderBackgroundCard)}
+  {renderAutoTile()}
+</div>
+```
 
-## Technical Changes
+One grid, always. The Auto tile naturally flows as the last item in the grid, filling into whatever column is available.
 
-### File 1: `src/components/creative-studio/product-shoot/BackgroundSelector.tsx`
-
-1. **Remove** the standalone Auto button above the tabs
-2. **Append an Auto tile** as the last item in the background grid for both tabs
-   - Uses ID `studio-auto` or `outdoor-auto`
-   - When clicked: sets `settingType` to `studio`/`outdoor` and `backgroundId` to the auto ID
-3. **Adjust visible count logic**: The Auto tile is always shown (appended after the sliced presets). In collapsed view: 3 presets + Auto tile = 4 tiles. In expanded view: all presets + Auto tile.
-4. **Update tab change logic**: When switching tabs, default to `studio-auto` or `outdoor-auto` if no specific background is selected
-
-### File 2: `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`
-
-Update `buildBackgroundSection` to handle `studio-auto` and `outdoor-auto` background IDs, translating them to appropriate prompt instructions.
-
-### File 3: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`
-
-Update badge logic to check if `backgroundId` ends with `-auto` instead of `settingType === 'auto'`.
-
-### File 4: `src/components/creative-studio/product-shoot/types.ts`
-
-Remove `'auto'` from the `SettingType` union -- becomes just `'studio' | 'outdoor'`.
-
-### File 5: `supabase/functions/generate-image/index.ts`
-
-Handle new `studio-auto` and `outdoor-auto` background IDs in the generation logic.
-
-## Files Changed
+Also removes the empty intermediate grid div (lines 195-199) that renders nothing.
 
 | File | Change |
 |------|--------|
-| `BackgroundSelector.tsx` | Remove standalone Auto button; append Auto tile as last item in each tab grid; adjust visible count so Auto is always shown |
-| `shotTypeConfigs.ts` | Handle `studio-auto` / `outdoor-auto` in prompt building |
-| `ProductShootStep2.tsx` | Update badge logic for `-auto` suffix |
-| `types.ts` | Remove `'auto'` from `SettingType` union |
-| `generate-image/index.ts` | Handle new auto background IDs |
+| `BackgroundSelector.tsx` | Collapse `renderGrid()` into a single grid containing presets + Auto tile together |
 
