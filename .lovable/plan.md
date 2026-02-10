@@ -1,48 +1,46 @@
 
 
-# Fix: Auto Background Should Randomly Pick a Specific Preset
+# Fix: Replace "Embossed" with Material-Neutral Buckle Branding Term
 
-## Root Cause
+## Problem
 
-When the user selects "Auto (AI)" on the Outdoor tab, the system sends `outdoor-auto` as the `backgroundId`. Both the client-side prompt builder and the server-side `=== BACKGROUND/SETTING ===` section then inject a vague instruction like:
+The prompts currently use "embossed" to describe buckle text. This is inaccurate for plastic buckles (which have molded/imprinted text) and can confuse the AI into rendering raised lettering or metallic-looking engravings on matte plastic hardware.
 
-> "AI selects the most appropriate outdoor/natural background for this product"
+## Terminology
 
-This is too weak -- the Prompt Agent defaults to studio-like settings because "outdoor" isn't concrete enough to override its training bias toward clean product photography.
+- **Metal buckles**: text is "engraved" (incised into the surface)
+- **Plastic buckles**: text is "molded" or "imprinted" (formed into the plastic)
+- **Material-neutral**: "inscribed" works universally -- it means "marked with text" without implying a specific technique
 
-When the user selects a **specific** outdoor preset (e.g., `outdoor-park`), it works perfectly because the prompt contains vivid, concrete text like "wild meadow grass with wildflowers, dappled golden sunlight through mature trees."
+The plan uses **"inscribed"** as the universal term in prompt-facing text, since it's neutral and accurate for both metal and plastic.
 
-## Solution
+## Changes
 
-When `outdoor-auto` or `studio-auto` is received, **randomly pick a specific preset** from the matching category and use its full descriptive prompt. This gives the AI a concrete, vivid setting every time, while still providing variety across a batch.
+### 1. `src/lib/birkenstockMaterials.ts` (~lines 256-261)
 
-### Changes
+Replace the buckle override preservation warning:
+- "BUCKLE SHAPE AND EMBOSSING" --> "BUCKLE SHAPE AND INSCRIPTIONS"
+- "any EMBOSSED TEXT" --> "any INSCRIBED TEXT"
 
-**File: `supabase/functions/generate-image/index.ts`**
+### 2. `supabase/functions/generate-image/index.ts` (~lines 676-678)
 
-1. Add two arrays of outdoor and studio preset keys extracted from the `backgroundPresets` object
-2. In the `outdoor-auto` branch (~line 488), randomly select one key from the outdoor array and use `backgroundPresets[randomKey]` as the description
-3. In the `studio-auto` branch (~line 484), randomly select one key from the studio array and use its description
-4. Log which preset was randomly selected for debugging
+Same replacement in the server-side buckle shape preservation block:
+- "BUCKLE SHAPE AND EMBOSSING" --> "BUCKLE SHAPE AND INSCRIPTIONS"
+- "EMBOSSED TEXT" --> "INSCRIBED TEXT"
 
-**File: `src/components/creative-studio/product-shoot/shotTypeConfigs.ts`**
+### 3. `supabase/functions/analyze-shoe-components/index.ts` (~lines 65-68)
 
-Same approach in all three prompt builders (`buildOnFootPrompt`, `buildProductFocusPrompt`, `buildLifestylePrompt`):
+Update the analysis system prompt to use consistent terminology:
+- Change "embossed" references for buckles to "engraved" (for metal) or keep as "inscribed" generically
+- The engraving style field in tool output already uses flexible descriptions like "embossed serif capitals" -- this stays as-is since it's AI-detected per image, but the instruction text should stop suggesting "embossed" as the default
 
-1. In the `outdoor-auto` branch, randomly pick from `outdoorBackgrounds` array (already imported) and use that preset's `.prompt` value
-2. In the `studio-auto` branch, randomly pick from `studioBackgrounds` and use its `.prompt` value
-3. Also resolve the appropriate weather/lighting for the randomly selected preset
+### 4. `supabase/functions/generate-image/index.ts` (~line 723-730)
 
-This ensures both the inline prose prompt AND the server-side BACKGROUND/SETTING section contain the same concrete, vivid description -- matching the behavior that already works for specific presets.
-
-### What stays the same
-
-- The Auto (AI) tile UI and state management (still sends `outdoor-auto` / `studio-auto`)
-- Specific preset selection (unchanged -- already works)
-- Custom background prompt (unchanged)
+In the Prompt Agent system instructions, the branding fidelity section references "engravings" which is fine for metal. No change needed there -- those are already correct for the metal case, and the per-buckle style field from analysis will specify the actual technique.
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-image/index.ts` | Randomly resolve `outdoor-auto` and `studio-auto` to a specific preset from the matching category |
-| `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` | Same random resolution in all three prompt builder functions |
+| `src/lib/birkenstockMaterials.ts` | Replace "EMBOSSING" / "EMBOSSED TEXT" with "INSCRIPTIONS" / "INSCRIBED TEXT" in buckle override warning |
+| `supabase/functions/generate-image/index.ts` | Same replacement in server-side buckle shape block |
+| `supabase/functions/analyze-shoe-components/index.ts` | Update instruction text to avoid suggesting "embossed" as default for buckle text |
 
