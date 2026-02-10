@@ -62,9 +62,9 @@ Carefully inspect ALL visible branding, logos, text, and engravings across the s
 ⚠️ PRECISION IS CRITICAL: Read the EXACT text on each element. "BIRKEN" is NOT the same as "BIRKENSTOCK". "BIRK" is NOT the same as "BIRKEN". Report EXACTLY what you see — character by character.
 
 For Birkenstock models, pay close attention to:
-- **Footbed text**: Usually "BIRKENSTOCK" + "MADE IN GERMANY" embossed on the footbed. Report exact words.
-- **Footbed logo**: The Birkenstock footprint logo — describe its appearance (stamped, embossed, color).
-- **Buckle engravings**: Each buckle bar may have DIFFERENT text. Many models do NOT say "BIRKENSTOCK" on buckles. Instead they often have abbreviated text like "BIRKEN" on the larger buckle and "BIRK" on the smaller buckle bar. Inspect each buckle individually and report the EXACT text on each.
+- **Footbed text**: Usually "BIRKENSTOCK" + "MADE IN GERMANY" stamped/printed on the footbed. Report exact words.
+- **Footbed logo**: The Birkenstock footprint logo — describe its appearance (stamped, printed, color).
+- **Buckle inscriptions**: Each buckle bar may have DIFFERENT text. Many models do NOT say "BIRKENSTOCK" on buckles. Instead they often have abbreviated text like "BIRKEN" on the larger buckle and "BIRK" on the smaller buckle bar. On metal buckles this is engraved; on plastic buckles it is molded/imprinted. Inspect each buckle individually and report the EXACT text on each.
 - If text is not clearly legible, report what you can see and note uncertainty.
 
 IMPORTANT:
@@ -166,7 +166,7 @@ const TOOL_DEFINITION = {
         properties: {
           footbedText: { 
             type: "string", 
-            description: "Exact text embossed/printed on the footbed (e.g., 'BIRKENSTOCK' + 'MADE IN GERMANY')" 
+            description: "Exact text stamped/printed on the footbed (e.g., 'BIRKENSTOCK' + 'MADE IN GERMANY')" 
           },
           footbedLogo: { 
             type: "string", 
@@ -179,8 +179,8 @@ const TOOL_DEFINITION = {
               type: "object",
               properties: {
                 location: { type: "string", description: "Which buckle (e.g., 'larger strap buckle bar', 'smaller buckle bar', 'single buckle')" },
-                text: { type: "string", description: "EXACT text engraved (e.g., 'BIRKEN', 'BIRK', 'BIRKENSTOCK')" },
-                style: { type: "string", description: "Engraving style (e.g., 'embossed serif capitals', 'debossed sans-serif')" }
+                text: { type: "string", description: "EXACT text inscribed (e.g., 'BIRKEN', 'BIRK', 'BIRKENSTOCK')" },
+                style: { type: "string", description: "Inscription style (e.g., 'engraved serif capitals', 'molded sans-serif', 'debossed block letters')" }
               },
               required: ["location", "text", "style"]
             }
