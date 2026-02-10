@@ -1,32 +1,59 @@
 
-# Fix: Click Image to Maximize, Checkmark for Selection
+
+# Smart Branding: Shot-Type-Aware Prompt Injection
 
 ## Problem
 
-Currently, clicking anywhere on the image card toggles selection (checkmark). The user wants clicking the image to **open the detail/maximize modal**, while the selection checkmark in the corner remains a separate interactive element for toggling selection.
+The branding details section (footbed wordmarks like "42 BIRKEN 270 Soft Footbed Made in Germany", footbed logos, etc.) is injected into every prompt regardless of shot type. This:
+- Wastes prompt tokens on invisible elements (footbed is hidden in on-foot/on-model shots)
+- Confuses the AI generator, which tries to render text it can't place
+- AI image generators struggle to reliably render long stamped text anyway
 
-## Fix
+## Solution
 
-**File:** `src/components/creative-studio/GeneratedImageCard.tsx`
+Make the branding injection in `generate-image/index.ts` conditional on the shot type. The analysis continues to capture full branding data -- we only filter what enters the prompt.
 
-1. **Change `handleClick`** (lines 116-129): Reverse the priority -- clicking the card body calls `onSelect` (opens detail modal) instead of `onToggleSelect`.
+### Branding rules by shot type:
 
-2. **Add a dedicated selection checkbox** in the bottom-right corner of the image area. This small clickable checkmark button calls `onToggleSelect` with `e.stopPropagation()` so it doesn't also trigger the modal.
+| Shot Type | Buckle Engravings | Footbed Text/Logo |
+|-----------|------------------|-------------------|
+| On-Foot | Yes (visible) | No (hidden by foot) |
+| Full Body / Lifestyle | Yes (visible) | No (hidden by foot) |
+| Product Focus | Yes | Simplified + dynamic (see below) |
 
-3. **Remove the Eye (View Details) button** from the hover overlay since clicking the card itself now opens the modal -- the Eye button becomes redundant.
+### Dynamic footbed descriptor (Product Focus only)
 
-### Updated click logic:
+Instead of injecting the full verbose text, use the analyzed footbed material dynamically:
+
 ```
-Card body click --> onSelect (maximize/detail modal)
-Bottom-right checkmark click --> onToggleSelect (selection)
-Hover overlay buttons --> Regenerate, Download, Delete (unchanged)
+"Footbed: branded {footbed.material} footbed with maker's stamp and logo (as shown in reference images)"
 ```
 
-### Selection indicator:
-- Bottom-right corner: small circular checkbox, always visible when `onToggleSelect` is provided
-- When selected: accent-colored with checkmark
-- When not selected: semi-transparent circle that appears on hover
+Examples:
+- "branded Cork-Latex footbed with maker's stamp and logo (as shown in reference images)"
+- "branded EVA footbed with maker's stamp and logo (as shown in reference images)"
+- "branded Soft Footbed footbed with maker's stamp and logo (as shown in reference images)"
+
+The material value comes from the existing analyzed shoe components data (`components.footbed.material`), so no hardcoding.
+
+### What changes
+
+**File: `supabase/functions/generate-image/index.ts`**
+
+1. Read the current shot type from `request.productShootConfig?.visualShotType`
+2. Always include buckle engravings (short text, visible on all shots)
+3. For footbed branding:
+   - `onFoot` or `lifestyle`: Skip entirely
+   - `productFocus`: Build a simplified descriptor using the actual footbed material from analyzed components
+4. Soften the Prompt Agent instructions: remove emphasis on footbed text fidelity, keep buckle engraving accuracy, add instruction to defer footbed branding to reference images
+
+### What stays the same
+
+- The `analyze-shoe-components` function continues to capture full branding metadata (valuable for Edit SKU modal and future use)
+- Buckle engraving injection remains unchanged
+- The `defaultPrompts.ts` branding fidelity rules for buckles remain
 
 | File | Change |
 |------|--------|
-| `GeneratedImageCard.tsx` | Reverse click priority (card click = modal), add bottom-right selection checkbox, remove Eye button from overlay |
+| `supabase/functions/generate-image/index.ts` | Conditionally inject branding by shot type; use dynamic footbed material for product focus descriptor; skip footbed for on-foot/lifestyle; soften prompt agent footbed instructions |
+
