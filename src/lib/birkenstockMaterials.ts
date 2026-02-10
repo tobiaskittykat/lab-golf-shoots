@@ -256,8 +256,8 @@ export function buildComponentOverridePrompt(
   // Buckle shape/embossing preservation when buckle overrides are present
   if (overrides.buckles) {
     lines.push("");
-    lines.push("⚠️ BUCKLE SHAPE AND EMBOSSING: Change ONLY the material and color.");
-    lines.push("The buckle SHAPE, SIZE, and any EMBOSSED TEXT must remain EXACTLY");
+    lines.push("⚠️ BUCKLE SHAPE AND INSCRIPTIONS: Change ONLY the material and color.");
+    lines.push("The buckle SHAPE, SIZE, and any INSCRIBED TEXT must remain EXACTLY");
     lines.push("as shown in the reference images.");
   }
   

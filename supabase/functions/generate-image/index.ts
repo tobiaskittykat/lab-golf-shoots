@@ -670,11 +670,11 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
           }
         }
         
-        // Buckle shape and embossing preservation
+         // Buckle shape and inscriptions preservation
         if (overrides.buckles) {
           sections.push("");
-          sections.push("⚠️ BUCKLE SHAPE AND EMBOSSING: Change ONLY the material and color of the buckles.");
-          sections.push("The buckle SHAPE, SIZE, and any EMBOSSED TEXT must remain EXACTLY as shown in the reference images.");
+          sections.push("⚠️ BUCKLE SHAPE AND INSCRIPTIONS: Change ONLY the material and color of the buckles.");
+          sections.push("The buckle SHAPE, SIZE, and any INSCRIBED TEXT must remain EXACTLY as shown in the reference images.");
           sections.push("Engraving text and style are specified in the BRANDING DETAILS section above — preserve them precisely.");
         }
         
@@ -739,7 +739,7 @@ CRITICAL RULES:
 6. Weave in 2-3 specific elements from BOTH the Visual World AND moodboard analysis, but let moodboard dominate the "feel"
 7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
 8. **TOE POST ACCURACY (THONG-STYLE SANDALS ONLY)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. ONLY thong-style sandals (e.g., Gizeh, Ramses) have a toe post. Crossover-strap sandals (e.g., Mayari) do NOT have a toe post — never describe one for those models.
-9. **BUCKLE SHAPE AND EMBOSSING FIDELITY** - When the user changes buckle material/color, change ONLY the surface finish. The buckle SHAPE, SIZE, proportions, and any EMBOSSED TEXT (from BRANDING DETAILS) must remain EXACTLY as shown in reference images. Never generate generic buckle shapes — always match the specific hardware design visible in the references.
+9. **BUCKLE SHAPE AND INSCRIPTION FIDELITY** - When the user changes buckle material/color, change ONLY the surface finish. The buckle SHAPE, SIZE, proportions, and any INSCRIBED TEXT (from BRANDING DETAILS) must remain EXACTLY as shown in reference images. Never generate generic buckle shapes — always match the specific hardware design visible in the references.
 10. **ENTITY COUNT (CRITICAL)**:
    - The shot direction specifies how many shoes should appear. Respect this exactly.
    - If the brief says "ENTITY COUNT (MANDATORY): Exactly 1 shoe" — your prompt MUST describe "a single [Brand] [Model]", using singular language throughout. Do NOT write "a pair of". Only ONE shoe in frame.
@@ -841,7 +841,7 @@ OVERRIDE RULES:
   - "Silver toe post pin (matching the Silver buckle hardware)"
   - Always describe toe post strap color AND pin/rivet finish explicitly when TOE POST entries exist
   - NEVER describe a toe post for crossover-strap models (e.g., Mayari) — they don't have one
-- For BUCKLE OVERRIDES: change ONLY color/material; preserve original buckle SHAPE, SIZE, and EMBOSSED TEXT from references`;
+- For BUCKLE OVERRIDES: change ONLY color/material; preserve original buckle SHAPE, SIZE, and INSCRIBED TEXT from references`;
       }
       
       // Add PROMPT-ONLY MODE instructions if reference images disabled for generator
@@ -857,7 +857,7 @@ EXTRA DETAIL REQUIREMENTS:
 - Describe textures precisely: "soft napped suede with visible grain", "smooth full-grain leather with subtle sheen"
 - Specify hardware finishes: "brushed antique brass with matte finish", "polished silver with mirror-like reflection"
 - Detail proportions: "chunky 1.5-inch platform sole", "wide rounded toe box"
-- Describe branding elements: "embossed BIRKENSTOCK wordmark in classic serif typography on the cork footbed"
+- Describe branding elements: "inscribed BIRKENSTOCK wordmark in classic serif typography on the cork footbed"
 - Include construction details: "double-stitched welt", "contoured cork-latex footbed with anatomical arch support"
 
 The more specific your descriptions, the better the image generator can recreate this product without visual reference.`;
