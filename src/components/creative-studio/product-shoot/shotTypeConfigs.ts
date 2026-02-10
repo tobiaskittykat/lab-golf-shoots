@@ -313,6 +313,12 @@ export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: Backgrou
   } else if (bgContext?.customBackgroundPrompt) {
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures';
+  } else if (bgContext?.backgroundId === 'outdoor-auto') {
+    backgroundDesc = 'a natural outdoor setting that complements the product — the AI selects the most appropriate outdoor environment';
+    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+  } else if (bgContext?.backgroundId === 'studio-auto') {
+    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
+    lightingDesc = 'professional studio lighting with soft shadows';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
@@ -508,6 +514,7 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   // Determine background description
   let backgroundDesc = 'a clean, neutral studio background with soft shadows grounding the product';
   let lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination with soft shadows';
+  let isOutdoorSetting = false;
   
   if (bgContext?.backgroundId === 'studio-white') {
     backgroundDesc = 'a pure white seamless studio background with a visible floor plane and soft, natural contact shadows';
@@ -515,13 +522,20 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   } else if (bgContext?.customBackgroundPrompt) {
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures and finishes';
+  } else if (bgContext?.backgroundId === 'outdoor-auto') {
+    backgroundDesc = 'a natural outdoor surface that complements the product — the AI selects the most appropriate outdoor environment';
+    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+    isOutdoorSetting = true;
+  } else if (bgContext?.backgroundId === 'studio-auto') {
+    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
+    lightingDesc = 'professional studio lighting with soft shadows';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
     if (preset) {
       backgroundDesc = preset.prompt.toLowerCase();
-      const isOutdoor = bgContext.backgroundId.startsWith('outdoor-');
-      if (isOutdoor) {
+      isOutdoorSetting = bgContext.backgroundId.startsWith('outdoor-');
+      if (isOutdoorSetting) {
         const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
         lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
       } else {
@@ -545,11 +559,17 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
   // Determine shoe count from the selected angle
   const shoeCount = (selectedAngle as any).shoeCount || 1;
 
+  // Scale instruction for outdoor backgrounds to prevent giant-shoe-on-street effect
+  const scaleInstruction = isOutdoorSetting
+    ? `\n\nSCALE & PERSPECTIVE (CRITICAL)\nThe shoe must appear at its real-world physical size relative to the environment. Imagine the shoe placed on a tabletop-sized section of this surface, shot as a close-up product photograph — NOT a shoe placed in the middle of a vast landscape. The camera is close to the product. Surface texture (e.g., cobblestones, sand grains, wood planks) should appear at a scale consistent with a shoe resting on them naturally.`
+    : '';
+
   // Build the evocative prompt (matching On Foot / Full Body style)
   const prompt = `A single, high-resolution e-commerce product image (one frame only, no collage).
 ENTITY COUNT (MANDATORY): Exactly ${shoeCount} shoe(s) in the frame. Do NOT add extra shoes beyond this count.
 
 A product-only shot — NO hands, NO models, NO body parts, NO feet anywhere in the image. The footwear is the sole subject, photographed against ${backgroundDesc}.
+${scaleInstruction}
 
 COMPOSITION & CAMERA ANGLE
 The composition is ${angleNarrative}
@@ -746,6 +766,12 @@ export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: Ba
   } else if (bgContext?.customBackgroundPrompt) {
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures';
+  } else if (bgContext?.backgroundId === 'outdoor-auto') {
+    backgroundDesc = 'a natural outdoor setting that complements the product — the AI selects the most appropriate outdoor environment';
+    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+  } else if (bgContext?.backgroundId === 'studio-auto') {
+    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
+    lightingDesc = 'professional studio lighting with soft shadows';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
