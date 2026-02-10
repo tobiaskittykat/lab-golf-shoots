@@ -1,59 +1,26 @@
 
 
-# Smart Branding: Shot-Type-Aware Prompt Injection
+# Fix: Shot-Type String Mismatch in Branding Filter
 
-## Problem
+## Root Cause
 
-The branding details section (footbed wordmarks like "42 BIRKEN 270 Soft Footbed Made in Germany", footbed logos, etc.) is injected into every prompt regardless of shot type. This:
-- Wastes prompt tokens on invisible elements (footbed is hidden in on-foot/on-model shots)
-- Confuses the AI generator, which tries to render text it can't place
-- AI image generators struggle to reliably render long stamped text anyway
+The branding filter we just added is checking for camelCase values (`'onFoot'`, `'productFocus'`, `'lifestyle'`) but the UI sends kebab-case values (`'on-foot'`, `'product-focus'`, `'lifestyle'`).
 
-## Solution
+This means the condition never matches for on-foot or product-focus shots, falling through to the `else` branch which injects the full verbose footbed branding -- exactly what we see in your prompt.
 
-Make the branding injection in `generate-image/index.ts` conditional on the shot type. The analysis continues to capture full branding data -- we only filter what enters the prompt.
+## Fix
 
-### Branding rules by shot type:
+**File: `supabase/functions/generate-image/index.ts` (~line 550)**
 
-| Shot Type | Buckle Engravings | Footbed Text/Logo |
-|-----------|------------------|-------------------|
-| On-Foot | Yes (visible) | No (hidden by foot) |
-| Full Body / Lifestyle | Yes (visible) | No (hidden by foot) |
-| Product Focus | Yes | Simplified + dynamic (see below) |
+Update the string comparisons to use the correct kebab-case values that the UI actually sends:
 
-### Dynamic footbed descriptor (Product Focus only)
+- `'onFoot'` --> `'on-foot'`
+- `'productFocus'` --> `'product-focus'`
+- `'lifestyle'` stays the same (already matches)
 
-Instead of injecting the full verbose text, use the analyzed footbed material dynamically:
-
-```
-"Footbed: branded {footbed.material} footbed with maker's stamp and logo (as shown in reference images)"
-```
-
-Examples:
-- "branded Cork-Latex footbed with maker's stamp and logo (as shown in reference images)"
-- "branded EVA footbed with maker's stamp and logo (as shown in reference images)"
-- "branded Soft Footbed footbed with maker's stamp and logo (as shown in reference images)"
-
-The material value comes from the existing analyzed shoe components data (`components.footbed.material`), so no hardcoding.
-
-### What changes
-
-**File: `supabase/functions/generate-image/index.ts`**
-
-1. Read the current shot type from `request.productShootConfig?.visualShotType`
-2. Always include buckle engravings (short text, visible on all shots)
-3. For footbed branding:
-   - `onFoot` or `lifestyle`: Skip entirely
-   - `productFocus`: Build a simplified descriptor using the actual footbed material from analyzed components
-4. Soften the Prompt Agent instructions: remove emphasis on footbed text fidelity, keep buckle engraving accuracy, add instruction to defer footbed branding to reference images
-
-### What stays the same
-
-- The `analyze-shoe-components` function continues to capture full branding metadata (valuable for Edit SKU modal and future use)
-- Buckle engraving injection remains unchanged
-- The `defaultPrompts.ts` branding fidelity rules for buckles remain
+This is a one-line-level fix in the conditional block.
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-image/index.ts` | Conditionally inject branding by shot type; use dynamic footbed material for product focus descriptor; skip footbed for on-foot/lifestyle; soften prompt agent footbed instructions |
+| `supabase/functions/generate-image/index.ts` | Fix shot type string values from camelCase to kebab-case (`'on-foot'`, `'product-focus'`) in the branding filter conditional |
 
