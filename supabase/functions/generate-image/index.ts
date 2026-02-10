@@ -481,13 +481,21 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         sections.push("=== BACKGROUND/SETTING ===");
         sections.push(config.customBackgroundPrompt);
         sections.push("");
-      } else if (config.backgroundId === 'studio-auto') {
+    } else if (config.backgroundId === 'studio-auto') {
+        // Randomly pick a specific studio preset for concrete, vivid direction
+        const studioKeys = Object.keys(backgroundPresets).filter(k => k.startsWith('studio-') && k !== 'studio-auto');
+        const randomStudioKey = studioKeys[Math.floor(Math.random() * studioKeys.length)];
+        console.log(`[Auto Background] studio-auto resolved to: ${randomStudioKey}`);
         sections.push("=== BACKGROUND/SETTING ===");
-        sections.push("AI selects the most appropriate studio background for this product. Professional studio environment with suitable surface and backdrop.");
+        sections.push(backgroundPresets[randomStudioKey]);
         sections.push("");
       } else if (config.backgroundId === 'outdoor-auto') {
+        // Randomly pick a specific outdoor preset for concrete, vivid direction
+        const outdoorKeys = Object.keys(backgroundPresets).filter(k => k.startsWith('outdoor-'));
+        const randomOutdoorKey = outdoorKeys[Math.floor(Math.random() * outdoorKeys.length)];
+        console.log(`[Auto Background] outdoor-auto resolved to: ${randomOutdoorKey}`);
         sections.push("=== BACKGROUND/SETTING ===");
-        sections.push("AI selects the most appropriate outdoor/natural background for this product. Natural setting that complements the product's character.");
+        sections.push(backgroundPresets[randomOutdoorKey]);
         sections.push("");
       } else if (config.backgroundId && backgroundPresets[config.backgroundId]) {
         sections.push("=== BACKGROUND/SETTING ===");
