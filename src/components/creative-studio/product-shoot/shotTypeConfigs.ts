@@ -36,11 +36,11 @@ export function buildBackgroundSection(context: BackgroundContext): string[] {
     // Custom prompt overrides everything
     sections.push(`- ${context.customBackgroundPrompt}`);
   } else if (context.backgroundId === 'studio-auto') {
-    sections.push("- AI selects the most appropriate studio background for this product");
-    sections.push("- Professional studio environment with suitable surface and backdrop");
+    const randomStudio = studioBackgrounds[Math.floor(Math.random() * studioBackgrounds.length)];
+    sections.push(`- ${randomStudio.prompt}`);
   } else if (context.backgroundId === 'outdoor-auto') {
-    sections.push("- AI selects the most appropriate outdoor/natural background for this product");
-    sections.push("- Natural setting that complements the product's character");
+    const randomOutdoor = outdoorBackgrounds[Math.floor(Math.random() * outdoorBackgrounds.length)];
+    sections.push(`- ${randomOutdoor.prompt}`);
   } else if (context.backgroundId) {
     // Find the preset
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
@@ -314,11 +314,14 @@ export function buildOnFootPrompt(config: OnFootShotConfig, bgContext?: Backgrou
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures';
   } else if (bgContext?.backgroundId === 'outdoor-auto') {
-    backgroundDesc = 'a natural outdoor setting that complements the product — the AI selects the most appropriate outdoor environment';
-    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+    const randomOutdoor = outdoorBackgrounds[Math.floor(Math.random() * outdoorBackgrounds.length)];
+    backgroundDesc = randomOutdoor.prompt.toLowerCase();
+    const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+    lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
   } else if (bgContext?.backgroundId === 'studio-auto') {
-    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
-    lightingDesc = 'professional studio lighting with soft shadows';
+    const randomStudio = studioBackgrounds[Math.floor(Math.random() * studioBackgrounds.length)];
+    backgroundDesc = randomStudio.prompt.toLowerCase();
+    lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
@@ -523,12 +526,15 @@ export function buildProductFocusPrompt(config: ProductFocusShotConfig, bgContex
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures and finishes';
   } else if (bgContext?.backgroundId === 'outdoor-auto') {
-    backgroundDesc = 'a natural outdoor surface that complements the product — the AI selects the most appropriate outdoor environment';
-    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+    const randomOutdoor = outdoorBackgrounds[Math.floor(Math.random() * outdoorBackgrounds.length)];
+    backgroundDesc = randomOutdoor.prompt.toLowerCase();
     isOutdoorSetting = true;
+    const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+    lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
   } else if (bgContext?.backgroundId === 'studio-auto') {
-    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
-    lightingDesc = 'professional studio lighting with soft shadows';
+    const randomStudio = studioBackgrounds[Math.floor(Math.random() * studioBackgrounds.length)];
+    backgroundDesc = randomStudio.prompt.toLowerCase();
+    lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
@@ -767,11 +773,14 @@ export function buildLifestylePrompt(config: LifestyleShotConfig, bgContext?: Ba
     backgroundDesc = bgContext.customBackgroundPrompt;
     lightingDesc = 'lighting appropriate to the setting, revealing material textures';
   } else if (bgContext?.backgroundId === 'outdoor-auto') {
-    backgroundDesc = 'a natural outdoor setting that complements the product — the AI selects the most appropriate outdoor environment';
-    lightingDesc = 'natural outdoor lighting appropriate to the setting';
+    const randomOutdoor = outdoorBackgrounds[Math.floor(Math.random() * outdoorBackgrounds.length)];
+    backgroundDesc = randomOutdoor.prompt.toLowerCase();
+    const weatherOpt = weatherConditionOptions.find(w => w.value === (bgContext.weatherCondition || 'sunny'));
+    lightingDesc = weatherOpt?.lightingPrompt || 'natural outdoor lighting';
   } else if (bgContext?.backgroundId === 'studio-auto') {
-    backgroundDesc = 'a professional studio environment — the AI selects the most appropriate studio backdrop and surface';
-    lightingDesc = 'professional studio lighting with soft shadows';
+    const randomStudio = studioBackgrounds[Math.floor(Math.random() * studioBackgrounds.length)];
+    backgroundDesc = randomStudio.prompt.toLowerCase();
+    lightingDesc = 'professional studio lighting, softbox diffusion, controlled even illumination';
   } else if (bgContext?.backgroundId) {
     const allBackgrounds = [...studioBackgrounds, ...outdoorBackgrounds];
     const preset = allBackgrounds.find(bg => bg.id === bgContext.backgroundId);
