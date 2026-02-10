@@ -547,10 +547,10 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         
         // Footbed text/logo: skip for on-foot/lifestyle (hidden by foot),
         // use simplified dynamic descriptor for productFocus
-        if (visualShotType === 'onFoot' || visualShotType === 'lifestyle') {
+        if (visualShotType === 'on-foot' || visualShotType === 'lifestyle') {
           // Footbed is hidden — skip entirely
           console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}`);
-        } else if (visualShotType === 'productFocus') {
+        } else if (visualShotType === 'product-focus') {
           // Use dynamic material from analyzed components instead of verbose text
           const footbedMaterial = orig.footbed?.material || 'cork';
           sections.push(`Footbed: branded ${footbedMaterial} footbed with maker's stamp and logo (as shown in reference images)`);
