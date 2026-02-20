@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { AIAnalysisPanel } from './AIAnalysisPanel';
+import { EditableAnalysisPanel, ComponentsJson, DescriptionJson } from './EditableAnalysisPanel';
 
 interface Angle {
   id: string;
@@ -47,6 +47,10 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
   const [deletedAngleIds, setDeletedAngleIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editedComponents, setEditedComponents] = useState<ComponentsJson | null>(null);
+  const [editedDescription, setEditedDescription] = useState<DescriptionJson | null>(null);
+  const [originalComponents, setOriginalComponents] = useState<ComponentsJson | null>(null);
+  const [originalDescription, setOriginalDescription] = useState<DescriptionJson | null>(null);
 
   // Fetch SKU data with angles
   const { data: skuData, isLoading } = useQuery({
@@ -81,11 +85,17 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
     if (skuData) {
       setName(skuData.name);
       setSkuCode(skuData.sku_code || '');
-      const desc = skuData.description as any;
-      setDescription(desc?.summary || '');
+      const rawDesc = skuData.description as any;
+      setDescription(rawDesc?.summary || '');
       setAngles(skuData.angles);
       setDeletedAngleIds([]);
       setPendingUploads([]);
+      const comps = (skuData.components as ComponentsJson) || null;
+      const descJson = (skuData.description as DescriptionJson) || null;
+      setEditedComponents(comps ? JSON.parse(JSON.stringify(comps)) : null);
+      setEditedDescription(descJson ? JSON.parse(JSON.stringify(descJson)) : null);
+      setOriginalComponents(comps ? JSON.parse(JSON.stringify(comps)) : null);
+      setOriginalDescription(descJson ? JSON.parse(JSON.stringify(descJson)) : null);
     }
   }, [skuData]);
 
@@ -157,18 +167,20 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
         });
       }
 
-      // 3. Update SKU metadata if changed
-      const existingDesc = skuData.description as any;
-      const originalSummary = existingDesc?.summary || '';
-      const metaChanged = name !== skuData.name || skuCode !== (skuData.sku_code || '') || description !== originalSummary;
-      
-      if (metaChanged) {
-        const updatedDescription = { ...(existingDesc || {}), summary: description };
-        await supabase
-          .from('product_skus')
-          .update({ name, sku_code: skuCode || null, description: updatedDescription })
-          .eq('id', skuId);
+      // 3. Update SKU metadata + edited analysis
+      const finalDescription = { ...(editedDescription || {}), summary: description };
+      const updatePayload: any = {
+        name,
+        sku_code: skuCode || null,
+        description: finalDescription,
+      };
+      if (editedComponents) {
+        updatePayload.components = editedComponents;
       }
+      await supabase
+        .from('product_skus')
+        .update(updatePayload)
+        .eq('id', skuId);
 
       // Clean up preview URLs
       pendingUploads.forEach(p => URL.revokeObjectURL(p.previewUrl));
@@ -286,10 +298,14 @@ export function EditSKUModal({ open, onClose, skuId, onUpdated, onDeleted }: Edi
                     </p>
                   </div>
 
-                  {/* AI Analysis Details - full component breakdown */}
-                  <AIAnalysisPanel
-                    components={skuData?.components as any}
-                    description={skuData?.description as any}
+                  {/* Editable AI Analysis - full component breakdown */}
+                  <EditableAnalysisPanel
+                    components={editedComponents}
+                    description={editedDescription}
+                    onComponentsChange={setEditedComponents}
+                    onDescriptionChange={setEditedDescription}
+                    originalComponents={originalComponents}
+                    originalDescription={originalDescription}
                   />
                 </div>
 
