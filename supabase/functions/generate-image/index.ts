@@ -1174,6 +1174,18 @@ async function runBackgroundGeneration(params: {
         }
       }
       
+      // Add product identity for extra AI signal
+      if (body.productIdentity) {
+        const pi = body.productIdentity;
+        const identity = [pi.brandName, pi.modelName].filter(Boolean).join(' ');
+        const attrs = [pi.color, pi.material].filter(Boolean).join(' ');
+        if (identity) {
+          remixParts.push(`The replacement product is: ${identity}${attrs ? ` in ${attrs}` : ''}.`);
+        }
+      } else if (body.productNames?.length) {
+        remixParts.push(`The replacement product is: ${body.productNames[0]}.`);
+      }
+
       if (body.remixRemoveText) {
         remixParts.push("ALSO: Remove any text, logos, watermarks, or ad copy overlaid on the image. Inpaint those areas to match the surrounding background seamlessly.");
       }
