@@ -588,7 +588,7 @@ export const ProductShootStep2 = ({
             icon={ImageIcon} 
             title="Background" 
             section="background"
-            badge={state.backgroundId?.endsWith('-auto') ? 'Auto' : state.backgroundId ? 'Selected' : undefined}
+            badge={state.backgroundId?.endsWith('-auto') ? 'Auto' : state.backgroundId?.startsWith('custom-') ? 'Custom' : state.backgroundId ? 'Selected' : undefined}
           />
           <CollapsibleContent>
             <div className="px-4 pb-4">

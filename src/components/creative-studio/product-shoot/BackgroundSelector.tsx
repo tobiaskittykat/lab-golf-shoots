@@ -1,11 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { Check, Wand2, Cloud, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
 import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
+import { useCustomBackgrounds, CustomBackground } from "@/hooks/useCustomBackgrounds";
+import { useBrands } from "@/hooks/useBrands";
+import { CreateCustomBackgroundModal } from "./CreateCustomBackgroundModal";
+import { toast } from "@/hooks/use-toast";
 
 const LAST_USED_BG_KEY = 'product-shoot-last-bg';
 const PRESET_VISIBLE_COUNT = 3; // 3 presets + 1 Auto tile = 4 tiles in first row
@@ -31,16 +35,22 @@ export const BackgroundSelector = ({
   onCustomPromptChange,
   onWeatherChange,
 }: BackgroundSelectorProps) => {
+  const { currentBrand } = useBrands();
+  const { backgrounds: customBackgrounds, isLoading: loadingCustom, createBackground, deleteBackground } = useCustomBackgrounds(currentBrand?.id);
+
   // Determine initial tab from current selection
   const getInitialTab = () => {
+    if (selectedBackgroundId?.startsWith('custom-')) return 'custom';
     if (selectedBackgroundId?.startsWith('outdoor-')) return 'outdoor';
     if (selectedBackgroundId?.startsWith('studio-') || settingType === 'studio') return 'studio';
     if (settingType === 'outdoor') return 'outdoor';
+    if (settingType === 'custom') return 'custom';
     return 'studio';
   };
   
-  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor'>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor' | 'custom'>(getInitialTab());
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Get last used background from localStorage
   const lastUsedBgId = useMemo(() => {
@@ -64,7 +74,9 @@ export const BackgroundSelector = ({
 
   // Sync tab when background selection changes externally
   useEffect(() => {
-    if (selectedBackgroundId?.startsWith('outdoor-')) {
+    if (selectedBackgroundId?.startsWith('custom-')) {
+      setActiveTab('custom');
+    } else if (selectedBackgroundId?.startsWith('outdoor-')) {
       setActiveTab('outdoor');
     } else if (selectedBackgroundId?.startsWith('studio-')) {
       setActiveTab('studio');
@@ -72,12 +84,17 @@ export const BackgroundSelector = ({
   }, [selectedBackgroundId]);
 
   const handleTabChange = (value: string) => {
-    const tab = value as 'studio' | 'outdoor';
+    const tab = value as 'studio' | 'outdoor' | 'custom';
     setActiveTab(tab);
     onSettingTypeChange(tab);
     setShowAllBackgrounds(false);
-    // If switching tabs and no matching background selected, select first preset
-    if (tab === 'outdoor' && !selectedBackgroundId?.startsWith('outdoor-')) {
+    
+    if (tab === 'custom') {
+      // For custom tab, select first custom bg or clear
+      if (customBackgrounds.length > 0 && !selectedBackgroundId?.startsWith('custom-')) {
+        onBackgroundSelect(`custom-${customBackgrounds[0].id}`);
+      }
+    } else if (tab === 'outdoor' && !selectedBackgroundId?.startsWith('outdoor-')) {
       onBackgroundSelect(outdoorBackgrounds[0].id);
     } else if (tab === 'studio' && !selectedBackgroundId?.startsWith('studio-')) {
       onBackgroundSelect(studioBackgrounds[0].id);
@@ -90,9 +107,8 @@ export const BackgroundSelector = ({
     if (!lastUsedBgId) return baseList;
     
     const lastUsedIndex = baseList.findIndex(bg => bg.id === lastUsedBgId);
-    if (lastUsedIndex <= 0) return baseList; // Already first or not found
+    if (lastUsedIndex <= 0) return baseList;
     
-    // Move last used to front
     const sorted = [...baseList];
     const [lastUsed] = sorted.splice(lastUsedIndex, 1);
     sorted.unshift(lastUsed);
@@ -107,7 +123,7 @@ export const BackgroundSelector = ({
   const hiddenCount = sortedBackgrounds.length - PRESET_VISIBLE_COUNT;
   const isOutdoorBackground = selectedBackgroundId?.startsWith('outdoor-') || settingType === 'outdoor';
 
-  const autoTileId = activeTab === 'studio' ? 'studio-auto' : 'outdoor-auto';
+  const autoTileId = activeTab === 'studio' ? 'studio-auto' : activeTab === 'outdoor' ? 'outdoor-auto' : 'custom-auto';
   const isAutoSelected = selectedBackgroundId === autoTileId;
 
   const renderBackgroundCard = (bg: BackgroundPreset) => {
@@ -123,7 +139,6 @@ export const BackgroundSelector = ({
             : 'border-border hover:border-accent/40'
         }`}
       >
-        {/* Thumbnail image or gradient fallback */}
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
@@ -132,20 +147,70 @@ export const BackgroundSelector = ({
               : (bg.colorHint || 'linear-gradient(135deg, #f5f5f5, #e0e0e0)') 
           }}
         />
-        
-        {/* Overlay with name */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
         <div className="absolute bottom-0 left-0 right-0 p-2">
           <span className="text-xs font-medium text-white">{bg.name}</span>
         </div>
-        
-        {/* Selection check */}
         {isSelected && (
           <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
             <Check className="w-3 h-3 text-accent-foreground" />
           </div>
         )}
+      </button>
+    );
+  };
+
+  const renderCustomCard = (bg: CustomBackground) => {
+    const bgId = `custom-${bg.id}`;
+    const isSelected = selectedBackgroundId === bgId;
+    
+    return (
+      <button
+        key={bg.id}
+        onClick={() => {
+          onBackgroundSelect(bgId);
+          // Also set the custom prompt so the generation pipeline can use it
+          onCustomPromptChange(bg.prompt);
+        }}
+        className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all group ${
+          isSelected 
+            ? 'border-accent ring-2 ring-accent/20' 
+            : 'border-border hover:border-accent/40'
+        }`}
+      >
+        {bg.thumbnail_url ? (
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ background: `url(${bg.thumbnail_url}) center/cover no-repeat` }}
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-muted to-accent/10" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-2">
+          <span className="text-xs font-medium text-white truncate block">{bg.name}</span>
+        </div>
+        {isSelected && (
+          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+            <Check className="w-3 h-3 text-accent-foreground" />
+          </div>
+        )}
+        {/* Delete button on hover */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Delete "${bg.name}"?`)) {
+              deleteBackground.mutate(bg.id);
+              if (isSelected) {
+                onBackgroundSelect('');
+                onCustomPromptChange('');
+              }
+            }
+          }}
+          className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+        >
+          <X className="w-3 h-3 text-white" />
+        </button>
       </button>
     );
   };
@@ -163,10 +228,7 @@ export const BackgroundSelector = ({
           : 'border-border hover:border-accent/40'
       }`}
     >
-      {/* Gradient background to distinguish from photo tiles */}
       <div className="absolute inset-0 bg-gradient-to-br from-accent/20 via-muted to-accent/10" />
-      
-      {/* Icon + label */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
           isAutoSelected ? 'bg-accent text-accent-foreground' : 'bg-background/80 text-muted-foreground'
@@ -175,8 +237,6 @@ export const BackgroundSelector = ({
         </div>
         <span className="text-xs font-medium text-foreground">Auto (AI)</span>
       </div>
-      
-      {/* Selection check */}
       {isAutoSelected && (
         <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
           <Check className="w-3 h-3 text-accent-foreground" />
@@ -185,7 +245,20 @@ export const BackgroundSelector = ({
     </button>
   );
 
-  const renderGrid = () => (
+  const renderNewBackgroundTile = () => (
+    <button
+      key="new-custom"
+      onClick={() => setShowCreateModal(true)}
+      className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center gap-1.5"
+    >
+      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+        <Plus className="w-4 h-4 text-muted-foreground" />
+      </div>
+      <span className="text-xs font-medium text-muted-foreground">New Background</span>
+    </button>
+  );
+
+  const renderPresetGrid = () => (
     <>
       <div className="grid grid-cols-4 gap-3">
         {visiblePresets.map(renderBackgroundCard)}
@@ -214,21 +287,53 @@ export const BackgroundSelector = ({
     </>
   );
 
+  const renderCustomGrid = () => (
+    <div className="grid grid-cols-4 gap-3">
+      {customBackgrounds.map(renderCustomCard)}
+      {renderNewBackgroundTile()}
+    </div>
+  );
+
+  const handleCreateSave = (data: {
+    name: string;
+    prompt: string;
+    thumbnail_url: string | null;
+    reference_urls: string[];
+    ai_analysis: Record<string, any> | null;
+  }) => {
+    createBackground.mutate(data, {
+      onSuccess: (newBg) => {
+        setShowCreateModal(false);
+        onBackgroundSelect(`custom-${newBg.id}`);
+        onCustomPromptChange(data.prompt);
+        toast({ title: "Custom background saved!" });
+      },
+      onError: () => {
+        toast({ title: "Failed to save background", variant: "destructive" });
+      },
+    });
+  };
+
   return (
     <div className="space-y-4">
-      {/* Tabs for Studio / Outdoor */}
+      {/* Tabs for Studio / Outdoor / Custom */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="studio">Studio</TabsTrigger>
           <TabsTrigger value="outdoor">Outdoor</TabsTrigger>
+          <TabsTrigger value="custom">Custom</TabsTrigger>
         </TabsList>
         
         <TabsContent value="studio" className="mt-4 space-y-3">
-          {renderGrid()}
+          {renderPresetGrid()}
         </TabsContent>
         
         <TabsContent value="outdoor" className="mt-4 space-y-3">
-          {renderGrid()}
+          {renderPresetGrid()}
+        </TabsContent>
+
+        <TabsContent value="custom" className="mt-4 space-y-3">
+          {renderCustomGrid()}
         </TabsContent>
       </Tabs>
 
@@ -258,18 +363,28 @@ export const BackgroundSelector = ({
         </div>
       )}
 
-      {/* Custom background prompt */}
-      <div className="pt-2">
-        <label className="text-sm font-medium text-muted-foreground mb-2 block">
-          Or describe a custom background
-        </label>
-        <Input
-          value={customBackgroundPrompt || ''}
-          onChange={(e) => onCustomPromptChange(e.target.value)}
-          placeholder="e.g., rustic Italian villa courtyard at sunset"
-          className="text-sm"
-        />
-      </div>
+      {/* Custom background prompt - only show for non-custom tabs */}
+      {activeTab !== 'custom' && (
+        <div className="pt-2">
+          <label className="text-sm font-medium text-muted-foreground mb-2 block">
+            Or describe a custom background
+          </label>
+          <Input
+            value={customBackgroundPrompt || ''}
+            onChange={(e) => onCustomPromptChange(e.target.value)}
+            placeholder="e.g., rustic Italian villa courtyard at sunset"
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      {/* Create Custom Background Modal */}
+      <CreateCustomBackgroundModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onSave={handleCreateSave}
+        isSaving={createBackground.isPending}
+      />
     </div>
   );
 };

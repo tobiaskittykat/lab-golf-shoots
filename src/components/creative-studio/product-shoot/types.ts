@@ -7,7 +7,7 @@ export type ShootMode = 'new' | 'remix';
 export type RecolorOption = 'none' | 'pre-generation' | 'during-generation';
 
 // Setting type for backgrounds
-export type SettingType = 'studio' | 'outdoor';
+export type SettingType = 'studio' | 'outdoor' | 'custom';
 
 // Weather condition for outdoor backgrounds
 export type WeatherCondition = 'auto' | 'sunny' | 'overcast' | 'golden-hour' | 'cloudy' | 'dappled';

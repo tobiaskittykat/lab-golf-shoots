@@ -137,6 +137,45 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_backgrounds: {
+        Row: {
+          ai_analysis: Json | null
+          brand_id: string
+          created_at: string
+          id: string
+          name: string
+          prompt: string
+          reference_urls: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          brand_id: string
+          created_at?: string
+          id?: string
+          name: string
+          prompt: string
+          reference_urls?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          brand_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          prompt?: string
+          reference_urls?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_moodboards: {
         Row: {
           brand_id: string | null
