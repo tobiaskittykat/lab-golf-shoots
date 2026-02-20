@@ -1,48 +1,60 @@
 
 
-# Redesign Buckle Engravings Section for Detailed Editing
+# Add Branding Style to Footbed Logo & Text
 
 ## Problem
-Each buckle engraving is currently a single cramped row with three tiny inline inputs ("Text", "Style", "Location") that are hard to read and interact with. There's no labeling, no guidance, and the fields are too narrow (w-24, w-28) to show real content.
+The buckle engravings section has a dedicated "Style" field (inscribed, embossed, molded), but the footbed logo and footbed text fields have no way to specify how the branding is applied -- stamped, embossed, printed, debossed, etc. This matters for prompt accuracy since the AI generator needs to know the rendering method.
 
 ## Solution
-Replace the inline row layout with a **card-per-engraving** design where each engraving gets its own bordered card with properly labeled fields stacked vertically.
+Add a "Branding Method" dropdown/input to both the Footbed Logo and Footbed Text fields so users can specify the application technique.
 
-### New Engraving Card Layout
+### Updated Footbed Branding Layout
 
-Each engraving becomes a card with:
-- **Header row**: "Engraving #1" title + Delete button
-- **Inscription Text**: Full-width Input with label and placeholder (e.g., "BIRKENSTOCK")
-- **Two-column row**: Style (dropdown-like input with placeholder "e.g., inscribed, embossed") + Location (placeholder "e.g., single buckle, left strap")
-- Proper spacing, text-sm sizing, clear labels above every field
-
-### Visual Layout per Card
 ```text
-+------------------------------------------+
-| Engraving 1                          [X] |
-|                                          |
-| Inscription Text                         |
-| [BIRKENSTOCK________________________]    |
-|                                          |
-| Style                  Location          |
-| [inscribed___]         [single buckle__] |
-+------------------------------------------+
+Footbed Logo
+[Birkenstock footprint logo___________________]
+
+Logo Method
+[stamped in dark ink_________________________]
+
+Footbed Text
+[BIRKENSTOCK                                  ]
+[MADE IN GERMANY                              ]
+
+Text Method
+[embossed / heat-stamped_____________________]
 ```
 
-## Technical Details
+## What Changes
+
+### Data Model Update
+Add two new optional fields to the branding object in the JSONB `components` column (no DB migration needed -- it's flexible JSON):
+- `footbedLogoMethod`: string (e.g., "stamped", "printed", "embossed", "debossed")
+- `footbedTextMethod`: string (e.g., "heat-stamped", "embossed", "printed")
 
 ### File: `src/components/creative-studio/product-shoot/EditableAnalysisPanel.tsx`
+- Add `footbedLogoMethod` and `footbedTextMethod` to the `BrandingData` interface
+- Add a `FieldRow` for "Logo Method" below the Footbed Logo field with placeholder "e.g., stamped in dark ink, printed, embossed"
+- Add a `FieldRow` for "Text Method" below the Footbed Text field with placeholder "e.g., heat-stamped, embossed, debossed"
+- Wire both to `updateBranding()` like the existing fields
 
-**Changes to the Buckle Engravings section (lines ~449-488):**
+### File: `src/components/creative-studio/product-shoot/AIAnalysisPanel.tsx` (read-only panel)
+- Display the method next to the logo/text values when present (e.g., "Footprint logo -- stamped in dark ink")
 
-1. Replace the flat `flex items-center` row per engraving with a card-style `div` containing:
-   - A header with "Engraving {i+1}" label and the delete button
-   - A full-width `FieldRow` for "Inscription Text" (currently `text` field) with placeholder "e.g., BIRKENSTOCK"
-   - A 2-column grid with `FieldRow` for "Style" (placeholder "e.g., inscribed, embossed, molded") and "Location" (placeholder "e.g., single buckle, left strap, right strap")
+### File: `supabase/functions/analyze-shoe-components/index.ts`
+- Add `footbedLogoMethod` and `footbedTextMethod` to the JSON schema so Gemini Vision also extracts the application method during auto-analysis
 
-2. Update the "Add" button to say "+ Add Engraving" for clarity
+### File: `supabase/functions/generate-image/index.ts`
+- Include the method in prompt injection: instead of just "stamped text", use the specific method from branding data (e.g., "heat-stamped text" or "embossed text")
 
-3. Update the empty state text from "No engravings detected" to "No engravings detected. Click 'Add Engraving' to add one."
+### Files Summary
 
-No other files need changes -- the data structure (`{ text, style, location }`) remains the same.
+| File | Change |
+|------|--------|
+| `src/components/creative-studio/product-shoot/EditableAnalysisPanel.tsx` | Add footbedLogoMethod and footbedTextMethod fields to BrandingData interface and UI |
+| `src/components/creative-studio/product-shoot/AIAnalysisPanel.tsx` | Display method in read-only view |
+| `supabase/functions/analyze-shoe-components/index.ts` | Add method fields to Vision schema |
+| `supabase/functions/generate-image/index.ts` | Use method in prompt text |
+
+No database migration needed -- components column is JSONB and accepts any structure.
 
