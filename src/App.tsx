@@ -16,6 +16,7 @@ import BatchGenerate from "./pages/BatchGenerate";
 import Settings from "./pages/Settings";
 import Gallery from "./pages/Gallery";
 import Products from "./pages/Products";
+import ProductEdit from "./pages/ProductEdit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +100,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Products />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/products/:id"
+                element={
+                  <ProtectedRoute>
+                    <ProductEdit />
                   </ProtectedRoute>
                 }
               />

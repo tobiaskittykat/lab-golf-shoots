@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBrands } from '@/hooks/useBrands';
 import { toast } from 'sonner';
 import { parseSkuDisplayInfo, formatSkuSubtitle } from '@/lib/skuDisplayUtils';
-import { EditSKUModal } from '@/components/creative-studio/product-shoot/EditSKUModal';
 import { SmartUploadModal } from '@/components/creative-studio/product-shoot/SmartUploadModal';
 import { CreateSKUModal } from '@/components/creative-studio/product-shoot/CreateSKUModal';
 
@@ -43,7 +42,6 @@ export default function Products() {
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
   const [smartUploadOpen, setSmartUploadOpen] = useState(false);
   const [createSkuOpen, setCreateSkuOpen] = useState(false);
 
@@ -277,7 +275,7 @@ export default function Products() {
                       variant="ghost"
                       size="icon"
                       className="h-9 w-9"
-                      onClick={() => setEditingSkuId(sku.id)}
+                      onClick={() => navigate(`/products/${sku.id}`)}
                       title="Edit product"
                     >
                       <Pencil className="w-4 h-4" />
@@ -320,15 +318,6 @@ export default function Products() {
       </main>
 
       {/* Modals */}
-      {editingSkuId && (
-        <EditSKUModal
-          open={!!editingSkuId}
-          onClose={() => setEditingSkuId(null)}
-          skuId={editingSkuId}
-          onUpdated={() => queryClient.invalidateQueries({ queryKey: ['products-page-skus'] })}
-          onDeleted={() => queryClient.invalidateQueries({ queryKey: ['products-page-skus'] })}
-        />
-      )}
       <SmartUploadModal open={smartUploadOpen} onOpenChange={setSmartUploadOpen} />
       <CreateSKUModal
         open={createSkuOpen}
