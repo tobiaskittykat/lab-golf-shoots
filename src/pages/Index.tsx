@@ -48,7 +48,8 @@ import {
   MessageSquare,
   ChevronUp,
   X,
-  FileText
+  FileText,
+  Package
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -65,6 +66,7 @@ const navItems = [
   { id: "notifications", label: "Notifications", icon: Bell, badge: 9 },
   { id: "visual-editor", label: "Visual Editor", icon: PenTool },
   { id: "gallery", label: "Gallery", icon: GalleryHorizontal, href: "/gallery" },
+  { id: "products", label: "Products", icon: Package, href: "/products" },
   { id: "task-lists", label: "Task Lists", icon: ListTodo },
   { id: "users", label: "Users", icon: Users },
   { id: "settings", label: "AI Settings", icon: Settings2, href: "/settings" },
