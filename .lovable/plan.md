@@ -1,57 +1,64 @@
 
 
-# Editable AI Analysis in Edit Product Modal
+# Fix Memory Limit Failures in Image Generation
 
-## Overview
-Transform the currently read-only AI Analysis panel in the Edit Product modal into a fully editable interface. Users will be able to correct any AI-detected values -- component materials, colors, branding text (buckle engravings, footbed text), construction type, and classification metadata. Changes are saved back to the `product_skus.components` and `product_skus.description` JSONB columns.
+## Problem
+The `generate-image` edge function crashes with "Memory limit exceeded" when generating 4 images in parallel. Each image holds large base64 data (~5-10MB for 4K) plus multiple product reference images in memory simultaneously. When the function crashes, the error handler never runs, leaving rows stuck in `pending` status until client-side polling times out (150s).
 
-## What Changes
+## Root Cause
+Line 1370: `await Promise.all(pendingIds.map((id, i) => generateOne(id, i)))` -- all 4 images are generated concurrently, meaning 4 large base64 image responses are held in memory at the same time.
 
-### 1. Replace read-only `AIAnalysisPanel` with new `EditableAnalysisPanel`
+## Solution: Sequential Generation + Stuck Row Cleanup
 
-A new component that renders the same data but with inline editing:
+### 1. Sequential generation in edge function
 
-**Component Breakdown (upper, footbed, sole, buckles, lining, heelstrap):**
-- Material: text input (editable)
-- Color: text input (editable)  
-- Color Hex: small color swatch + text input (editable)
-- Confidence: read-only badge (no need to edit)
-- Notes: text input (editable)
+Replace `Promise.all` (line 1370) with a simple sequential loop:
 
-**Branding Details:**
-- Buckle Engravings: each engraving row has editable `text`, `style`, and `location` fields. Add/remove engraving rows.
-- Footbed Logo: text input
-- Footbed Text: textarea (multi-line, e.g. "BIRKENSTOCK\nMADE IN GERMANY")
-- Other Branding: text input
+```text
+// Before (crashes with 4 parallel images):
+await Promise.all(pendingIds.map((id, i) => generateOne(id, i)));
 
-**Construction and Classification:**
-- Strap Construction: text input
-- Product Type: text input
-- Hardware Finish: text input
-- Colors: comma-separated text input
-- Materials: comma-separated text input
-- Style Keywords: comma-separated text input
+// After (one at a time, each base64 is GC'd before the next):
+for (let i = 0; i < pendingIds.length; i++) {
+  await generateOne(pendingIds[i], i);
+}
+```
 
-### 2. State management in `EditSKUModal`
+This ensures only one large base64 image is in memory at a time. Each image's data is garbage-collected after upload before the next one starts. No reduction in reference images attached -- the prompt agent and product refs stay exactly the same.
 
-- Add `editedComponents` and `editedDescription` state objects initialized from `skuData`
-- Track changes against original to enable the Save button
-- On save, write the edited JSONB back to `product_skus.components` and `product_skus.description`
+### 2. Stuck row cleanup
 
-### 3. UX Details
+Add a cleanup step at the start of `runBackgroundGeneration` that marks any `pending` rows older than 3 minutes as `failed`. This prevents stale rows from accumulating when crashes do happen:
 
-- Each field shows a subtle pencil icon or edit affordance on hover
-- Fields use compact inline inputs (not form fields with labels stacked above) to keep the panel dense
-- A "Reset to AI values" button restores the original analyzed data if the user wants to undo manual edits
-- The panel remains collapsible (starts collapsed) as it does today
-- Sections that have user edits show a small "Edited" badge on the section header
+```text
+// Clean up old stuck pending rows for this user
+await bgSupabase
+  .from('generated_images')
+  .update({ status: 'failed', error_message: 'Generation timed out (server)' })
+  .eq('user_id', userId)
+  .eq('status', 'pending')
+  .lt('created_at', new Date(Date.now() - 3 * 60 * 1000).toISOString());
+```
+
+### 3. Client-side polling: reduce timeout
+
+Reduce polling timeout from 150s to 120s (since sequential generation of 4 images at ~30-60s each could take up to ~4 minutes, but with cleanup in place, stuck rows get resolved faster). Actually, keep at 150s since sequential 4x could take ~2-4 min. The cleanup handles the edge case.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/creative-studio/product-shoot/EditableAnalysisPanel.tsx` | **New** -- editable version of AIAnalysisPanel |
-| `src/components/creative-studio/product-shoot/EditSKUModal.tsx` | Replace `AIAnalysisPanel` with `EditableAnalysisPanel`, add state for edited components/description, save edited JSONB on submit |
+| `supabase/functions/generate-image/index.ts` | Replace `Promise.all` with sequential loop; add stuck-row cleanup at start of background generation |
 
-No database or edge function changes needed -- this edits existing JSONB columns (`components`, `description`) on the `product_skus` table.
+## What Does NOT Change
+- Number of product reference images attached (stays at up to 6)
+- Prompt agent logic
+- Image quality or resolution
+- Client-side polling logic (stays at 150s timeout, 4s interval)
+
+## Tradeoff
+Sequential generation means total batch time increases from ~60s (parallel) to ~120-240s (sequential). But this is acceptable because:
+- Images appear progressively as each one completes (the client polls every 4s)
+- The alternative (parallel) crashes and produces zero images
+- Users already see individual images appear via the `onRowReady` callback pattern
 
