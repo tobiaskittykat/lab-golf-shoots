@@ -451,39 +451,47 @@ export function EditableAnalysisPanel({
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-xs text-muted-foreground">Buckle Engravings</Label>
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={addEngraving}>
-                        <Plus className="w-3.5 h-3.5" /> Add
+                        <Plus className="w-3.5 h-3.5" /> Add Engraving
                       </Button>
                     </div>
                     {(branding?.buckleEngravings || []).length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {(branding?.buckleEngravings || []).map((eng, i) => (
-                          <div key={i} className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
-                            <Input
+                          <div key={i} className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-foreground">Engraving {i + 1}</span>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeEngraving(i)}>
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                            <FieldRow
+                              label="Inscription Text"
                               value={eng.text || ''}
-                              onChange={(e) => updateEngraving(i, 'text', e.target.value)}
-                              placeholder="Text"
-                              className="h-8 text-sm flex-1 font-mono"
+                              onChange={(v) => updateEngraving(i, 'text', v)}
+                              placeholder="e.g., BIRKENSTOCK"
+                              id={`engraving-${i}-text`}
                             />
-                            <Input
-                              value={eng.style || ''}
-                              onChange={(e) => updateEngraving(i, 'style', e.target.value)}
-                              placeholder="Style"
-                              className="h-8 text-sm w-24"
-                            />
-                            <Input
-                              value={eng.location || ''}
-                              onChange={(e) => updateEngraving(i, 'location', e.target.value)}
-                              placeholder="Location"
-                              className="h-8 text-sm w-28"
-                            />
-                            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeEngraving(i)}>
-                              <X className="w-3.5 h-3.5" />
-                            </Button>
+                            <div className="grid grid-cols-2 gap-3">
+                              <FieldRow
+                                label="Style"
+                                value={eng.style || ''}
+                                onChange={(v) => updateEngraving(i, 'style', v)}
+                                placeholder="e.g., inscribed, embossed, molded"
+                                id={`engraving-${i}-style`}
+                              />
+                              <FieldRow
+                                label="Location"
+                                value={eng.location || ''}
+                                onChange={(v) => updateEngraving(i, 'location', v)}
+                                placeholder="e.g., single buckle, left strap"
+                                id={`engraving-${i}-location`}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">No engravings detected</p>
+                      <p className="text-xs text-muted-foreground italic">No engravings detected. Click '+ Add Engraving' to add one.</p>
                     )}
                   </div>
 
