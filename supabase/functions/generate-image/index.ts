@@ -658,9 +658,21 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
           // Footbed is hidden — skip entirely
           console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}`);
         } else if (visualShotType === 'product-focus') {
-          // Use dynamic material from analyzed components instead of verbose text
           const footbedMaterial = orig.footbed?.material || 'cork';
-          sections.push(`Footbed: branded ${footbedMaterial} footbed with maker's stamp and logo (as shown in reference images)`);
+          if (branding.footbedText) {
+            const footbedLines = branding.footbedText.split('\n').filter(Boolean);
+            if (footbedLines.length > 1) {
+              const described = footbedLines.map((line: string) => `"${line.trim()}"`).join(', ');
+              sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text (multi-line stamp): ${described}`);
+            } else {
+              sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text: "${branding.footbedText}"`);
+            }
+          } else {
+            sections.push(`Footbed: branded ${footbedMaterial} footbed with maker's stamp (as shown in reference images)`);
+          }
+          if (branding.footbedLogo) {
+            sections.push(`Footbed logo: ${branding.footbedLogo}`);
+          }
         } else {
           // No shot type specified or unknown — include full branding as before
           if (branding.footbedText) {
