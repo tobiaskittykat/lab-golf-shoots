@@ -201,7 +201,10 @@ export const ImageDetailModal = ({
     productReferenceUrls?: string[]; 
     moodboardUrl?: string;
     shotTypePrompt?: string;
+    sourceImageUrl?: string;
   } | undefined;
+  
+  const sourceImageUrl = settingsRefs?.sourceImageUrl;
   
   const productUrls = settingsRefs?.productReferenceUrls?.length 
     ? settingsRefs.productReferenceUrls 
@@ -212,7 +215,7 @@ export const ImageDetailModal = ({
     (image.contextReferenceUrl ? [image.contextReferenceUrl] : []);
 
   // Check if we have any references to show
-  const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0;
+  const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0 || !!sourceImageUrl;
 
   return (
     <>
@@ -319,6 +322,36 @@ export const ImageDetailModal = ({
                                 onError={() => handleImageError(resolvedMoodboardUrl)}
                               />
                               {/* Expand hint */}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Expand className="w-5 h-5 text-white" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Source Image (Base) */}
+                    {sourceImageUrl && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">Source Image (Base)</p>
+                        <div 
+                          className="aspect-video rounded-lg overflow-hidden border border-border bg-secondary/30 relative group cursor-pointer"
+                          onClick={() => !failedImages.has(sourceImageUrl) && setExpandedImageUrl(sourceImageUrl)}
+                        >
+                          {failedImages.has(sourceImageUrl) ? (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <AlertCircle className="w-5 h-5 mr-2" />
+                              <span className="text-xs">Couldn't load</span>
+                            </div>
+                          ) : (
+                            <>
+                              <img
+                                src={sourceImageUrl}
+                                alt="Source image (base)"
+                                className="w-full h-full object-cover"
+                                onError={() => handleImageError(sourceImageUrl)}
+                              />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <Expand className="w-5 h-5 text-white" />
                               </div>
