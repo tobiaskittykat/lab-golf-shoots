@@ -91,7 +91,8 @@ export interface ProductShootState {
   shootMode: ShootMode;
   
   // Remix mode
-  remixSourceImage?: string;
+  remixSourceImages: string[];
+  remixRemoveText: boolean;
   remixChanges: RemixChanges;
   
   // Product with recolor (now supports SKU)
@@ -159,6 +160,8 @@ export interface ProductIntegrityResult {
 // Initial product shoot state
 export const initialProductShootState: ProductShootState = {
   shootMode: 'new',
+  remixSourceImages: [],
+  remixRemoveText: false,
   remixChanges: {},
   productRecolorOption: 'none',
   settingType: 'studio', // Default to studio with white cyclorama
