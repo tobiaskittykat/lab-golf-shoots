@@ -48,6 +48,10 @@ export const RemixStep2 = ({
   const { user } = useAuth();
   const { currentBrand } = useBrands();
 
+  // Defensive defaults for remix fields that may be undefined on older state objects
+  const remixSourceImages = state.remixSourceImages ?? [];
+  const remixRemoveText = state.remixRemoveText ?? false;
+
   const [openSections, setOpenSections] = useState({
     source: true,
     product: true,
@@ -218,7 +222,7 @@ export const RemixStep2 = ({
     
     if (validFiles.length === 0) return;
     
-    const currentCount = state.remixSourceImages.length;
+    const currentCount = remixSourceImages.length;
     const remaining = MAX_SOURCE_IMAGES - currentCount;
     const toUpload = validFiles.slice(0, remaining);
     
@@ -244,16 +248,16 @@ export const RemixStep2 = ({
     
     if (uploadedUrls.length > 0) {
       onStateChange({
-        remixSourceImages: [...state.remixSourceImages, ...uploadedUrls],
+        remixSourceImages: [...remixSourceImages, ...uploadedUrls],
       });
     }
     
     setIsUploading(false);
-  }, [user?.id, state.remixSourceImages, onStateChange]);
+  }, [user?.id, remixSourceImages, onStateChange]);
 
   const handleRemoveSource = (index: number) => {
     onStateChange({
-      remixSourceImages: state.remixSourceImages.filter((_, i) => i !== index),
+      remixSourceImages: remixSourceImages.filter((_, i) => i !== index),
     });
   };
 
@@ -315,7 +319,7 @@ export const RemixStep2 = ({
             icon={Upload}
             title="Source Images"
             section="source"
-            badge={state.remixSourceImages.length > 0 ? `${state.remixSourceImages.length} uploaded` : undefined}
+            badge={remixSourceImages.length > 0 ? `${remixSourceImages.length} uploaded` : undefined}
           />
           <CollapsibleContent>
             <div className="px-4 pb-4 space-y-3">
@@ -329,10 +333,10 @@ export const RemixStep2 = ({
                   isDragging
                     ? "border-accent bg-accent/5"
                     : "border-border hover:border-muted-foreground/40",
-                  state.remixSourceImages.length >= MAX_SOURCE_IMAGES && "opacity-50 pointer-events-none"
+                  remixSourceImages.length >= MAX_SOURCE_IMAGES && "opacity-50 pointer-events-none"
                 )}
                 onClick={() => {
-                  if (state.remixSourceImages.length >= MAX_SOURCE_IMAGES) return;
+                  if (remixSourceImages.length >= MAX_SOURCE_IMAGES) return;
                   const input = document.createElement('input');
                   input.type = 'file';
                   input.accept = 'image/png,image/jpeg,image/webp';
@@ -356,9 +360,9 @@ export const RemixStep2 = ({
               </div>
 
               {/* Uploaded thumbnails */}
-              {state.remixSourceImages.length > 0 && (
+              {remixSourceImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
-                  {state.remixSourceImages.map((url, idx) => (
+                  {remixSourceImages.map((url, idx) => (
                     <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-border">
                       <img src={url} alt={`Source ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
@@ -494,7 +498,7 @@ export const RemixStep2 = ({
                   </p>
                 </div>
                 <Switch
-                  checked={state.remixRemoveText}
+                  checked={remixRemoveText}
                   onCheckedChange={(v) => onStateChange({ remixRemoveText: v })}
                 />
               </div>
@@ -559,9 +563,9 @@ export const RemixStep2 = ({
               </div>
               
               {/* Total images info */}
-              {state.remixSourceImages.length > 0 && (
+              {remixSourceImages.length > 0 && (
                 <p className="text-xs text-muted-foreground border-t border-border pt-3">
-                  Total: {state.remixSourceImages.length} source{state.remixSourceImages.length > 1 ? 's' : ''} × {imageCount} = <strong>{state.remixSourceImages.length * imageCount} images</strong>
+                  Total: {remixSourceImages.length} source{remixSourceImages.length > 1 ? 's' : ''} × {imageCount} = <strong>{remixSourceImages.length * imageCount} images</strong>
                 </p>
               )}
             </div>
