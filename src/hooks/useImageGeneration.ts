@@ -496,8 +496,43 @@ export function useImageGeneration() {
       // === ASYNC IMAGE GENERATION: Edge function returns pendingIds, we poll for results ===
       let allPendingIds: string[] = [];
 
+      // === REMIX MODE: one request per source image ===
+      if (state.useCase === 'product' && state.productShoot?.shootMode === 'remix' && state.productShoot.remixSourceImages.length > 0) {
+        const sourceImages = state.productShoot.remixSourceImages;
+        console.log(`Remix mode: sending ${sourceImages.length} source images × ${state.imageCount} each`);
+        
+        const BATCH_SIZE = 2;
+        for (let batchStart = 0; batchStart < sourceImages.length; batchStart += BATCH_SIZE) {
+          const batchEnd = Math.min(batchStart + BATCH_SIZE, sourceImages.length);
+          const batchPromises: Promise<any>[] = [];
+          
+          for (let i = batchStart; i < batchEnd; i++) {
+            const remixBody = {
+              ...buildRequestBody(null, state.imageCount),
+              remixMode: true,
+              remixRemoveText: state.productShoot.remixRemoveText ?? false,
+              editMode: true,
+              sourceImageUrl: sourceImages[i],
+              // Override prompt — the edge function will build the remix prompt
+              prompt: 'Remix: swap footwear with selected product',
+            };
+            batchPromises.push(
+              supabase.functions.invoke('generate-image', { body: remixBody })
+            );
+          }
+          
+          const batchResults = await Promise.all(batchPromises);
+          for (const result of batchResults) {
+            if (result.data?.pendingIds) {
+              allPendingIds.push(...result.data.pendingIds);
+            } else if (result.error) {
+              console.error('Remix request failed:', result.error);
+            }
+          }
+        }
+      }
       // Sequential generation: multiple requests with different shot type prompts
-      if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
+      else if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
         console.log(`Sequential mode: sending ${state.imageCount} async requests in batches`);
         const BATCH_SIZE = 2;
         for (let batchStart = 0; batchStart < state.imageCount; batchStart += BATCH_SIZE) {

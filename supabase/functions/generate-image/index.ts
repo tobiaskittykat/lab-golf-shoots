@@ -200,6 +200,10 @@ interface GenerateImageRequest {
   
   // Toggle to attach reference images (default: true)
   attachReferenceImages?: boolean;
+  
+  // Remix mode (shoe swap on existing creative)
+  remixMode?: boolean;
+  remixRemoveText?: boolean;
 }
 
 // AI model mapping
@@ -1112,8 +1116,39 @@ async function runBackgroundGeneration(params: {
     console.log("[BG] Starting background generation for", pendingIds.length, "images");
     console.log("[BG] Model:", selectedModel, "| Moodboard:", moodboardUrl || "NONE");
 
-    // Craft refined prompt (can take a few seconds)
-    const refinedPrompt = await craftPromptWithAgent(body, apiKey);
+    // === REMIX MODE: bypass prompt agent, use direct editing prompt ===
+    let refinedPrompt: string;
+    if (body.remixMode) {
+      const remixParts: string[] = [
+        "Edit this image: replace the footwear/shoes with the EXACT product shown in the reference images.",
+        "Keep the model, pose, background, lighting, and composition IDENTICAL. Only change the shoes.",
+        "The replacement shoes must match the reference images precisely — same silhouette, materials, colors, hardware, and proportions.",
+      ];
+      
+      // Component overrides for color/material changes
+      if (body.componentOverrides) {
+        const overrideParts: string[] = [];
+        for (const [part, override] of Object.entries(body.componentOverrides)) {
+          if (override && (override.material || override.color)) {
+            const desc = [override.color, override.material].filter(Boolean).join(' ');
+            overrideParts.push(`${part}: ${desc}`);
+          }
+        }
+        if (overrideParts.length > 0) {
+          remixParts.push(`IMPORTANT COLOR/MATERIAL CHANGES: Apply these modifications to the replacement shoe — ${overrideParts.join('; ')}. Use contrast language: render these instead of whatever the reference images show.`);
+        }
+      }
+      
+      if (body.remixRemoveText) {
+        remixParts.push("ALSO: Remove any text, logos, watermarks, or ad copy overlaid on the image. Inpaint those areas to match the surrounding background seamlessly.");
+      }
+      
+      refinedPrompt = remixParts.join('\n\n');
+      console.log("[BG] Remix mode — using direct editing prompt (no prompt agent)");
+    } else {
+      // Craft refined prompt (can take a few seconds)
+      refinedPrompt = await craftPromptWithAgent(body, apiKey);
+    }
     console.log("[BG] Refined prompt:", refinedPrompt);
 
     // Generate each image in parallel
@@ -1126,15 +1161,17 @@ async function runBackgroundGeneration(params: {
           { type: "text", text: refinedPrompt }
         ];
 
-        // Add source image for editing (image-to-image)
-        if (body.editMode && body.sourceImageUrl && body.sourceImageUrl.startsWith('http')) {
+        // Add source image for editing (image-to-image) — used by both editMode and remixMode
+        if ((body.editMode || body.remixMode) && body.sourceImageUrl && body.sourceImageUrl.startsWith('http')) {
           messageContent.unshift({
             type: "image_url",
             image_url: { url: body.sourceImageUrl }
           });
           messageContent.unshift({
             type: "text",
-            text: "Edit the following image according to these instructions:"
+            text: body.remixMode 
+              ? "Replace the shoes/footwear in this image with the product shown in the reference images below:"
+              : "Edit the following image according to these instructions:"
           });
         }
 

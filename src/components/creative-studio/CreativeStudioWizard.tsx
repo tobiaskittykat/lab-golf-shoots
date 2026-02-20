@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { smoothScrollTo } from "@/lib/utils";
-import { ProductShootSubtypeSelector, ProductShootStep2, ProductShootIndicators } from "./product-shoot";
+import { ProductShootSubtypeSelector, ProductShootStep2, ProductShootIndicators, RemixStep2 } from "./product-shoot";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -840,29 +840,38 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                     />
                     
                     <div style={{ paddingBottom: footerHeight + 24 }}>
-                      <ProductShootStep2
-                        state={state.productShoot}
-                        onStateChange={handleProductShootUpdate}
-                        selectedProduct={
-                          state.productReferences.length > 0
-                            ? {
-                                id: state.productReferences[0],
-                                name: 'Selected Product',
-                                thumbnailUrl: state.displayedProductIds.length > 0 
-                                  ? state.displayedProductIds[0] 
-                                  : '',
-                              }
-                            : undefined
-                        }
-                        onProductSelect={() => {
-                          // Will integrate with product picker modal
-                        }}
-                        imageCount={state.imageCount}
-                        resolution={state.resolution}
-                        aspectRatio={state.aspectRatio}
-                        sequentialGeneration={state.sequentialGeneration}
-                        onOutputSettingsChange={(updates) => handleUpdate(updates)}
-                      />
+                      {state.productShoot.shootMode === 'remix' ? (
+                        <RemixStep2
+                          state={state.productShoot}
+                          onStateChange={handleProductShootUpdate}
+                          imageCount={state.imageCount}
+                          resolution={state.resolution}
+                          aspectRatio={state.aspectRatio}
+                          onOutputSettingsChange={(updates) => handleUpdate(updates)}
+                        />
+                      ) : (
+                        <ProductShootStep2
+                          state={state.productShoot}
+                          onStateChange={handleProductShootUpdate}
+                          selectedProduct={
+                            state.productReferences.length > 0
+                              ? {
+                                  id: state.productReferences[0],
+                                  name: 'Selected Product',
+                                  thumbnailUrl: state.displayedProductIds.length > 0 
+                                    ? state.displayedProductIds[0] 
+                                    : '',
+                                }
+                              : undefined
+                          }
+                          onProductSelect={() => {}}
+                          imageCount={state.imageCount}
+                          resolution={state.resolution}
+                          aspectRatio={state.aspectRatio}
+                          sequentialGeneration={state.sequentialGeneration}
+                          onOutputSettingsChange={(updates) => handleUpdate(updates)}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

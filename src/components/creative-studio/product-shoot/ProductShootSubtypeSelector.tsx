@@ -56,23 +56,27 @@ export const ProductShootSubtypeSelector = ({
           </p>
         </button>
         
-        {/* Remix Existing Card - Coming Soon */}
-        <div
-          className="flex-1 p-6 rounded-2xl border-2 border-border bg-card opacity-50 cursor-not-allowed text-left relative"
+        {/* Remix Existing Card */}
+        <button
+          onClick={() => handleSelect('remix')}
+          className={`flex-1 p-6 rounded-2xl border-2 transition-all duration-200 text-left group ${
+            selectedMode === 'remix'
+              ? 'border-accent bg-accent/10 shadow-md'
+              : 'border-border bg-card hover:border-accent/40 hover:shadow-sm'
+          }`}
         >
-          <div className="absolute top-3 right-3">
-            <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Coming Soon
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-muted text-muted-foreground">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
+            selectedMode === 'remix'
+              ? 'bg-accent text-accent-foreground'
+              : 'bg-muted text-muted-foreground group-hover:bg-accent/20'
+          }`}>
             <RefreshCw className="w-6 h-6" />
           </div>
           <h3 className="font-semibold text-foreground mb-1">Remix Existing</h3>
           <p className="text-sm text-muted-foreground">
-            Start from a previous shoot or upload a reference to modify
+            Upload an ad creative and swap the shoes with your product
           </p>
-        </div>
+        </button>
       </div>
     </div>
   );
