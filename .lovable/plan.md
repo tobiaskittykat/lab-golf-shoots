@@ -1,42 +1,44 @@
 
 
-# Add "Last Used" Colors Section to Component Override Popover
+# Fix: Inject Actual Footbed Branding Text for Product-Focus Shots
 
-## Overview
-Replace the current flat grid of the first 10 color presets with two distinct sections:
-1. **Last Used** -- the 5 most recently applied colors (persisted in localStorage)
-2. **Standard Colors** -- the full Birkenstock color palette
+## Problem
 
-## Changes
+Line 660-663 of `supabase/functions/generate-image/index.ts` uses a generic descriptor for product-focus shots:
 
-### File: `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx`
+```
+Footbed: branded Cork-latex footbed with maker's stamp and logo (as shown in reference images)
+```
 
-**1. Add localStorage persistence for recent colors**
+The Prompt Agent receives no actual text (like "BIRKENSTOCK", "MADE IN GERMANY"), so it omits footbed inscriptions from the refined prompt entirely.
 
-- Define a localStorage key: `'component-override-recent-colors'`
-- On mount, read the stored array (max 5 entries, each with `name` and `hex`)
-- When the user clicks "Apply" with a color change, prepend the selected color to the recent list (deduplicating by hex), trim to 5, and save back to localStorage
+## Fix
 
-**2. Restructure the color picker UI**
+### File: `supabase/functions/generate-image/index.ts` (lines 660-663)
 
-Replace the current layout (first 10 swatches + "More colors..." expandable) with:
+Replace the generic descriptor with logic that includes the real `branding.footbedText` and `branding.footbedLogo` when available:
 
-- **"Last Used" row** (only shown if there are recent colors): 5 swatches in a single row with a "LAST USED" label
-- **"Standard Colors" section**: All `COLOR_PRESETS` shown in a scrollable grid (no more "More colors..." accordion -- just show them all in a scrollable area with max-height)
+```typescript
+} else if (visualShotType === 'product-focus') {
+  const footbedMaterial = orig.footbed?.material || 'cork';
+  if (branding.footbedText) {
+    const footbedLines = branding.footbedText.split('\n').filter(Boolean);
+    if (footbedLines.length > 1) {
+      const described = footbedLines.map((line: string) => `"${line.trim()}"`).join(', ');
+      sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text (multi-line stamp): ${described}`);
+    } else {
+      sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text: "${branding.footbedText}"`);
+    }
+  } else {
+    sections.push(`Footbed: branded ${footbedMaterial} footbed with maker's stamp (as shown in reference images)`);
+  }
+  if (branding.footbedLogo) {
+    sections.push(`Footbed logo: ${branding.footbedLogo}`);
+  }
+}
+```
 
-**3. Update `handleApply`**
+This keeps the dynamic material name (e.g., "EVA", "Cork-latex") while restoring the actual analyzed inscription text. Falls back to generic descriptor only when no footbed text was analyzed.
 
-Before closing, save the applied color to the recent colors list in localStorage.
-
-### No other files change
-
-This is a UI-only change within the popover component. The color data structure (`COLOR_PRESETS`) in `birkenstockMaterials.ts` stays the same.
-
-## Technical Details
-
-- Recent colors stored as JSON in localStorage under key `'component-override-recent-colors'`
-- Format: `[{ name: "Hot Pink", hex: "#FF69B4" }, ...]` -- max 5 entries
-- Deduplication by hex value (case-insensitive)
-- Custom hex colors are stored too (name will be "Custom" or the resolved preset name)
-- If localStorage is unavailable, the section simply won't appear (graceful fallback)
+The edge function will be redeployed automatically after the change.
 
