@@ -1132,6 +1132,22 @@ async function runBackgroundGeneration(params: {
   const { pendingIds, body, userId, supabaseUrl, supabaseServiceKey, apiKey, selectedModel } = params;
   const bgSupabase = createClient(supabaseUrl, supabaseServiceKey);
 
+  // Clean up old stuck pending rows for this user (prevents stale rows from crashed runs)
+  try {
+    const { data: stuckRows } = await bgSupabase
+      .from('generated_images')
+      .update({ status: 'failed', error_message: 'Generation timed out (server)' })
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .lt('created_at', new Date(Date.now() - 3 * 60 * 1000).toISOString())
+      .select('id');
+    if (stuckRows && stuckRows.length > 0) {
+      console.log(`[BG] Cleaned up ${stuckRows.length} stuck pending rows`);
+    }
+  } catch (cleanupErr) {
+    console.warn("[BG] Stuck row cleanup failed (non-fatal):", cleanupErr);
+  }
+
   try {
     const moodboardUrl = body.moodboardUrl || body.moodboard?.thumbnail || body.moodboard?.url;
     console.log("[BG] Starting background generation for", pendingIds.length, "images");
@@ -1366,8 +1382,11 @@ async function runBackgroundGeneration(params: {
       }
     };
 
-    // Generate all images in parallel
-    await Promise.all(pendingIds.map((id, i) => generateOne(id, i)));
+    // Generate images sequentially to avoid memory limit exceeded errors
+    // Each image's base64 data is GC'd after upload before the next one starts
+    for (let i = 0; i < pendingIds.length; i++) {
+      await generateOne(pendingIds[i], i);
+    }
     console.log(`[BG] Background generation complete`);
 
   } catch (err) {
