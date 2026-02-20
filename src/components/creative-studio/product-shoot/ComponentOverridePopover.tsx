@@ -293,7 +293,7 @@ export function ComponentOverridePopover({
                       value={customHex}
                       onChange={(e) => handleCustomHexChange(e.target.value)}
                       className="pl-6 h-8 text-xs font-mono"
-                      maxLength={6}
+                      maxLength={7}
                     />
                   </div>
                   <label
