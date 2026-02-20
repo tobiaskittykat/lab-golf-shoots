@@ -42,6 +42,29 @@ export function ComponentOverridePopover({
   const [selectedHex, setSelectedHex] = useState(override?.colorHex || currentColorHex || '');
   const [customHex, setCustomHex] = useState('');
 
+  const RECENT_COLORS_KEY = 'component-override-recent-colors';
+  type RecentColor = { name: string; hex: string };
+
+  const [recentColors, setRecentColors] = useState<RecentColor[]>(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_COLORS_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed.slice(0, 5);
+      }
+    } catch {}
+    return [];
+  });
+
+  const saveRecentColor = (name: string, hex: string) => {
+    if (!hex) return;
+    try {
+      const deduped = [{ name, hex }, ...recentColors.filter(c => c.hex.toUpperCase() !== hex.toUpperCase())].slice(0, 5);
+      setRecentColors(deduped);
+      localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(deduped));
+    } catch {}
+  };
+
   const materials = getMaterialsForComponent(componentType);
   const isModified = selectedMaterial !== currentMaterial || selectedColor !== currentColor;
   
@@ -113,6 +136,10 @@ export function ComponentOverridePopover({
         color: selectedColor,
         colorHex: selectedHex || undefined,
       });
+      // Save to recent colors
+      if (selectedColor && selectedHex) {
+        saveRecentColor(selectedColor, selectedHex);
+      }
     } else {
       onApply(null);
     }
@@ -232,36 +259,43 @@ export function ComponentOverridePopover({
             ) : (
               /* Normal color picker */
               <>
-                {/* Color swatches */}
-                <div className="grid grid-cols-5 gap-1.5">
-                  {COLOR_PRESETS.slice(0, 10).map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => handleColorPresetClick(preset)}
-                      className={cn(
-                        'relative w-full aspect-square rounded-md border-2 transition-all',
-                        selectedColor === preset.name
-                          ? 'border-accent ring-1 ring-accent/30 scale-105'
-                          : 'border-transparent hover:border-border'
-                      )}
-                      style={{ backgroundColor: preset.hex }}
-                      title={preset.name}
-                    >
-                      {selectedColor === preset.name && (
-                        <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {/* Last Used colors */}
+                {recentColors.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Last Used</p>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {recentColors.map((rc, i) => (
+                        <button
+                          key={`recent-${i}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(rc.name);
+                            setSelectedHex(rc.hex);
+                            setCustomHex('');
+                          }}
+                          className={cn(
+                            'relative w-full aspect-square rounded-md border-2 transition-all',
+                            selectedColor === rc.name && selectedHex === rc.hex
+                              ? 'border-accent ring-1 ring-accent/30 scale-105'
+                              : 'border-transparent hover:border-border'
+                          )}
+                          style={{ backgroundColor: rc.hex }}
+                          title={rc.name}
+                        >
+                          {selectedColor === rc.name && selectedHex === rc.hex && (
+                            <Check className="w-3 h-3 absolute inset-0 m-auto text-white drop-shadow-md" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                {/* Show more colors */}
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                    More colors...
-                  </summary>
-                  <div className="grid grid-cols-5 gap-1.5 mt-2">
-                    {COLOR_PRESETS.slice(10).map((preset) => (
+                {/* Standard Colors */}
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Standard Colors</p>
+                  <div className="grid grid-cols-5 gap-1.5 max-h-[120px] overflow-y-auto pr-0.5">
+                    {COLOR_PRESETS.map((preset) => (
                       <button
                         key={preset.name}
                         type="button"
@@ -281,7 +315,7 @@ export function ComponentOverridePopover({
                       </button>
                     ))}
                   </div>
-                </details>
+                </div>
 
                 {/* Custom hex input + native picker */}
                 <div className="flex items-center gap-2 pt-2">
