@@ -95,12 +95,14 @@ export function ComponentOverridePopover({
     setCustomHex('');
   };
 
-  const handleCustomHexChange = (hex: string) => {
-    setCustomHex(hex);
-    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-      const preset = findColorPreset(hex);
+  const handleCustomHexChange = (raw: string) => {
+    const stripped = raw.replace(/^#/, '');
+    setCustomHex(stripped);
+    if (/^[0-9A-Fa-f]{6}$/.test(stripped)) {
+      const fullHex = '#' + stripped.toUpperCase();
+      const preset = findColorPreset(fullHex);
       setSelectedColor(preset?.name || 'Custom');
-      setSelectedHex(hex);
+      setSelectedHex(fullHex);
     }
   };
 
@@ -281,25 +283,31 @@ export function ComponentOverridePopover({
                   </div>
                 </details>
 
-                {/* Custom hex input */}
+                {/* Custom hex input + native picker */}
                 <div className="flex items-center gap-2 pt-2">
                   <div className="relative flex-1">
-                    <Pipette className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted-foreground">#</span>
                     <Input
                       type="text"
-                      placeholder="#FFFFFF"
+                      placeholder="FFFFFF"
                       value={customHex}
                       onChange={(e) => handleCustomHexChange(e.target.value)}
-                      className="pl-8 h-8 text-xs font-mono"
-                      maxLength={7}
+                      className="pl-6 h-8 text-xs font-mono"
+                      maxLength={6}
                     />
                   </div>
-                  {selectedHex && (
-                    <div
-                      className="w-8 h-8 rounded-md border border-border"
-                      style={{ backgroundColor: selectedHex }}
+                  <label
+                    className="relative w-8 h-8 rounded-md border border-border cursor-pointer flex-shrink-0 overflow-hidden"
+                    style={{ backgroundColor: selectedHex || '#888888' }}
+                    title="Open color picker"
+                  >
+                    <input
+                      type="color"
+                      value={selectedHex || '#888888'}
+                      onChange={(e) => handleCustomHexChange(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                  )}
+                  </label>
                 </div>
                 
                 <p className="text-[10px] text-muted-foreground">
