@@ -21,7 +21,9 @@ interface ComponentData {
 interface BrandingData {
   buckleEngravings?: Array<{ text?: string; style?: string; location?: string }>;
   footbedLogo?: string;
+  footbedLogoMethod?: string;
   footbedText?: string;
+  footbedTextMethod?: string;
   otherBranding?: string;
 }
 
@@ -501,12 +503,26 @@ export function EditableAnalysisPanel({
                     onChange={(v) => updateBranding('footbedLogo', v)}
                     id="branding-logo"
                   />
+                  <FieldRow
+                    label="Logo Method"
+                    value={branding?.footbedLogoMethod || ''}
+                    onChange={(v) => updateBranding('footbedLogoMethod', v)}
+                    placeholder="e.g., stamped in dark ink, printed, embossed"
+                    id="branding-logo-method"
+                  />
                   <FieldTextarea
                     label="Footbed Text"
                     value={branding?.footbedText || ''}
                     onChange={(v) => updateBranding('footbedText', v)}
                     placeholder="e.g. BIRKENSTOCK&#10;MADE IN GERMANY"
                     id="branding-text"
+                  />
+                  <FieldRow
+                    label="Text Method"
+                    value={branding?.footbedTextMethod || ''}
+                    onChange={(v) => updateBranding('footbedTextMethod', v)}
+                    placeholder="e.g., heat-stamped, embossed, debossed"
+                    id="branding-text-method"
                   />
                   <FieldRow
                     label="Other Branding"

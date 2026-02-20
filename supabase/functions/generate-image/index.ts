@@ -659,33 +659,37 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
           console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}`);
         } else if (visualShotType === 'product-focus') {
           const footbedMaterial = orig.footbed?.material || 'cork';
+          const textMethod = branding.footbedTextMethod || 'stamped';
           if (branding.footbedText) {
             const footbedLines = branding.footbedText.split('\n').filter(Boolean);
             if (footbedLines.length > 1) {
               const described = footbedLines.map((line: string) => `"${line.trim()}"`).join(', ');
-              sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text (multi-line stamp): ${described}`);
+              sections.push(`Footbed: branded ${footbedMaterial} footbed with ${textMethod} text (multi-line stamp): ${described}`);
             } else {
-              sections.push(`Footbed: branded ${footbedMaterial} footbed with stamped text: "${branding.footbedText}"`);
+              sections.push(`Footbed: branded ${footbedMaterial} footbed with ${textMethod} text: "${branding.footbedText}"`);
             }
           } else {
             sections.push(`Footbed: branded ${footbedMaterial} footbed with maker's stamp (as shown in reference images)`);
           }
           if (branding.footbedLogo) {
-            sections.push(`Footbed logo: ${branding.footbedLogo}`);
+            const logoMethod = branding.footbedLogoMethod ? ` (${branding.footbedLogoMethod})` : '';
+            sections.push(`Footbed logo: ${branding.footbedLogo}${logoMethod}`);
           }
         } else {
           // No shot type specified or unknown — include full branding as before
+          const textMethod = branding.footbedTextMethod || 'stamped';
           if (branding.footbedText) {
             const footbedLines = branding.footbedText.split('\n').filter(Boolean);
             if (footbedLines.length > 1) {
               const described = footbedLines.map((line: string) => `"${line.trim()}"`).join(', ');
-              sections.push(`Footbed text (multi-line stamp): ${described}`);
+              sections.push(`Footbed text (multi-line ${textMethod}): ${described}`);
             } else {
-              sections.push(`Footbed text: ${branding.footbedText}`);
+              sections.push(`Footbed text (${textMethod}): ${branding.footbedText}`);
             }
           }
           if (branding.footbedLogo) {
-            sections.push(`Footbed logo: ${branding.footbedLogo}`);
+            const logoMethod = branding.footbedLogoMethod ? ` (${branding.footbedLogoMethod})` : '';
+            sections.push(`Footbed logo: ${branding.footbedLogo}${logoMethod}`);
           }
         }
         

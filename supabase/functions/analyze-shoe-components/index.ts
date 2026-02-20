@@ -168,9 +168,17 @@ const TOOL_DEFINITION = {
             type: "string", 
             description: "Exact text stamped/printed on the footbed (e.g., 'BIRKENSTOCK' + 'MADE IN GERMANY')" 
           },
+          footbedTextMethod: {
+            type: "string",
+            description: "How the footbed text is applied (e.g., 'heat-stamped', 'embossed', 'printed', 'debossed')"
+          },
           footbedLogo: { 
             type: "string", 
-            description: "Description of the footbed logo (e.g., 'Footprint logo stamped in dark ink')" 
+            description: "Description of the footbed logo (e.g., 'Footprint logo')" 
+          },
+          footbedLogoMethod: {
+            type: "string",
+            description: "How the footbed logo is applied (e.g., 'stamped in dark ink', 'embossed', 'printed', 'debossed')"
           },
           buckleEngravings: {
             type: "array",

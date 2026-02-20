@@ -15,7 +15,9 @@ interface ComponentData {
 interface BrandingData {
   buckleEngravings?: Array<{ text?: string; style?: string; location?: string }>;
   footbedLogo?: string;
+  footbedLogoMethod?: string;
   footbedText?: string;
+  footbedTextMethod?: string;
   otherBranding?: string;
 }
 
@@ -260,7 +262,10 @@ export function AIAnalysisPanel({ components, description }: AIAnalysisPanelProp
                       <span className="text-muted-foreground font-medium min-w-[100px] flex-shrink-0">
                         Footbed Logo
                       </span>
-                      <span className="text-foreground/80">{branding!.footbedLogo}</span>
+                      <span className="text-foreground/80">
+                        {branding!.footbedLogo}
+                        {branding!.footbedLogoMethod && ` — ${branding!.footbedLogoMethod}`}
+                      </span>
                     </div>
                   )}
 
@@ -271,6 +276,7 @@ export function AIAnalysisPanel({ components, description }: AIAnalysisPanelProp
                       </span>
                       <span className="text-foreground/80 whitespace-pre-line">
                         {branding!.footbedText}
+                        {branding!.footbedTextMethod && ` — ${branding!.footbedTextMethod}`}
                       </span>
                     </div>
                   )}
