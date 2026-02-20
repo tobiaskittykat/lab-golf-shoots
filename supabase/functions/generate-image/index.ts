@@ -212,6 +212,101 @@ const modelMap: Record<string, string> = {
   'nano-banana': 'google/gemini-2.5-flash-image-preview',
 };
 
+// === Shared helpers for override prompt construction ===
+
+// Resolve "Custom" hex colors to human-readable names
+function getColorDescription(override: { color: string; colorHex?: string }): string {
+  if (override.color !== 'Custom' && override.color !== 'custom') {
+    return override.color;
+  }
+  if (!override.colorHex) {
+    return override.color;
+  }
+  const hex = override.colorHex.toUpperCase();
+  const colorNames: Record<string, string> = {
+    '#FF69B4': 'Hot Pink',
+    '#FF1493': 'Deep Pink',
+    '#FFC0CB': 'Pink',
+    '#FFB6C1': 'Light Pink',
+    '#FF0000': 'Red',
+    '#00FF00': 'Lime Green',
+    '#0000FF': 'Blue',
+    '#FFFF00': 'Yellow',
+    '#FFA500': 'Orange',
+    '#800080': 'Purple',
+    '#00FFFF': 'Cyan',
+    '#000000': 'Black',
+    '#FFFFFF': 'White',
+  };
+  const namedColor = colorNames[hex];
+  return namedColor ? `${namedColor} (${hex})` : hex;
+}
+
+// Build structured override prompt lines from overrides + original components
+function buildOverrideLines(
+  overrides: GenerateImageRequest['componentOverrides'],
+  original: GenerateImageRequest['originalComponents']
+): string[] {
+  if (!overrides || !original) return [];
+
+  const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'] as const;
+  const changedComponents: string[] = [];
+
+  for (const type of componentTypes) {
+    const override = overrides[type];
+    const orig = original[type];
+
+    if (override && orig) {
+      const colorDisplay = getColorDescription(override);
+      if (override.material !== orig.material || override.color !== orig.color) {
+        changedComponents.push(
+          `${type.toUpperCase()}: ${override.material} in ${colorDisplay} (original was: ${orig.material} in ${orig.color})`
+        );
+      }
+    } else if (override && !orig) {
+      console.warn(`Skipping phantom override for ${type} (no original component)`);
+    }
+  }
+
+  if (changedComponents.length === 0) return [];
+
+  const lines: string[] = [
+    "=== PRODUCT COMPONENT OVERRIDES ===",
+    "The user has customized specific shoe components.",
+    "Apply these modifications while maintaining the original silhouette:",
+    "",
+  ];
+  changedComponents.forEach(c => lines.push(c));
+
+  // Toe post sync for thong-style sandals
+  const strapConstruction = (original as any).strapConstruction;
+  if (strapConstruction === 'thong') {
+    const soleSource = overrides.sole || original.sole;
+    const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
+    if (soleSource) {
+      const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
+      lines.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — thong-style sandal)`);
+    }
+    if (buckleSource) {
+      const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
+      lines.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
+    }
+  }
+
+  // Buckle shape preservation
+  if (overrides.buckles) {
+    lines.push("");
+    lines.push("BUCKLE SHAPE AND INSCRIPTIONS: Change ONLY the material and color.");
+    lines.push("The buckle SHAPE, SIZE, and any INSCRIBED TEXT must remain EXACTLY as shown in references.");
+  }
+
+  lines.push("");
+  lines.push("Keep all OTHER components exactly as shown in reference images.");
+  lines.push("");
+
+  return lines;
+}
+
 // Background presets lookup (copy of frontend presets for server-side prompt building)
 const backgroundPresets: Record<string, string> = {
   // Studio backgrounds
@@ -597,95 +692,9 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
     
     // === COMPONENT OVERRIDES (only when user has customized) ===
     if (request.componentOverrides && request.originalComponents) {
-      const overrides = request.componentOverrides;
-      const original = request.originalComponents;
-      
-      // Check if any overrides are different from original
-      const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'] as const;
-      const changedComponents: string[] = [];
-      
-      // Helper to get a descriptive color name from override data
-      const getColorDescription = (override: { color: string; colorHex?: string }): string => {
-        if (override.color !== 'Custom' && override.color !== 'custom') {
-          return override.color;
-        }
-        if (!override.colorHex) {
-          return override.color;
-        }
-        const hex = override.colorHex.toUpperCase();
-        const colorNames: Record<string, string> = {
-          '#FF69B4': 'Hot Pink',
-          '#FF1493': 'Deep Pink',
-          '#FFC0CB': 'Pink',
-          '#FFB6C1': 'Light Pink',
-          '#FF0000': 'Red',
-          '#00FF00': 'Lime Green',
-          '#0000FF': 'Blue',
-          '#FFFF00': 'Yellow',
-          '#FFA500': 'Orange',
-          '#800080': 'Purple',
-          '#00FFFF': 'Cyan',
-          '#000000': 'Black',
-          '#FFFFFF': 'White',
-        };
-        const namedColor = colorNames[hex];
-        return namedColor ? `${namedColor} (${hex})` : hex;
-      };
-      
-      for (const type of componentTypes) {
-        const override = overrides[type];
-        const orig = original[type];
-        
-        if (override && orig) {
-          const colorDisplay = getColorDescription(override);
-          if (override.material !== orig.material || override.color !== orig.color) {
-            changedComponents.push(
-              `${type.toUpperCase()}: ${override.material} in ${colorDisplay} (was: ${orig.material} in ${orig.color})`
-            );
-          }
-        } else if (override && !orig) {
-          // Skip phantom overrides — if the original shoe doesn't have this
-          // component, don't inject it into the prompt
-          console.warn(`Skipping phantom override for ${type} (no original component)`);
-        }
-      }
-      
-      if (changedComponents.length > 0) {
-        sections.push("=== PRODUCT COMPONENT OVERRIDES ===");
-        sections.push("⚠️ IMPORTANT: The user has customized specific shoe components.");
-        sections.push("Generate the product with THESE modifications while maintaining");
-        sections.push("the original silhouette and proportions from reference images:");
-        sections.push("");
-        changedComponents.forEach(c => sections.push(c));
-        
-        // Pre-resolve toe post colors ONLY for thong-style sandals (based on analyzed construction)
-        const strapConstruction = (original as any).strapConstruction;
-        if (strapConstruction === 'thong') {
-          const soleSource = overrides.sole || original.sole;
-          const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
-          
-          if (soleSource) {
-            const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
-            sections.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — thong-style sandal construction)`);
-          }
-          if (buckleSource) {
-            const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
-            sections.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
-          }
-        }
-        
-         // Buckle shape and inscriptions preservation
-        if (overrides.buckles) {
-          sections.push("");
-          sections.push("⚠️ BUCKLE SHAPE AND INSCRIPTIONS: Change ONLY the material and color of the buckles.");
-          sections.push("The buckle SHAPE, SIZE, and any INSCRIBED TEXT must remain EXACTLY as shown in the reference images.");
-          sections.push("Engraving text and style are specified in the BRANDING DETAILS section above — preserve them precisely.");
-        }
-        
-        sections.push("");
-        sections.push("Keep all OTHER components exactly as shown in reference images.");
-        sections.push("The overall shoe silhouette/shape must remain unchanged.");
-        sections.push("");
+      const overrideLines = buildOverrideLines(request.componentOverrides, request.originalComponents);
+      if (overrideLines.length > 0) {
+        overrideLines.forEach(line => sections.push(line));
       }
     }
     
@@ -1125,17 +1134,11 @@ async function runBackgroundGeneration(params: {
         "The replacement shoes must match the reference images precisely — same silhouette, materials, colors, hardware, and proportions.",
       ];
       
-      // Component overrides for color/material changes
+      // Component overrides — use shared structured builder
       if (body.componentOverrides) {
-        const overrideParts: string[] = [];
-        for (const [part, override] of Object.entries(body.componentOverrides)) {
-          if (override && (override.material || override.color)) {
-            const desc = [override.color, override.material].filter(Boolean).join(' ');
-            overrideParts.push(`${part}: ${desc}`);
-          }
-        }
-        if (overrideParts.length > 0) {
-          remixParts.push(`IMPORTANT COLOR/MATERIAL CHANGES: Apply these modifications to the replacement shoe — ${overrideParts.join('; ')}. Use contrast language: render these instead of whatever the reference images show.`);
+        const overrideLines = buildOverrideLines(body.componentOverrides, body.originalComponents);
+        if (overrideLines.length > 0) {
+          remixParts.push(overrideLines.join('\n'));
         }
       }
       
