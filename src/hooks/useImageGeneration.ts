@@ -622,6 +622,7 @@ export function useImageGeneration() {
               moodboardUrl: moodboardUrl || undefined,
               productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
               productReferenceUrl: productReferenceUrls[0],
+              settings: row.settings as Record<string, unknown> || undefined,
             };
             onImageReady(image);
             // Trigger integrity analysis immediately
@@ -646,6 +647,7 @@ export function useImageGeneration() {
         productReferenceUrls: productReferenceUrls.length > 0 ? productReferenceUrls : undefined,
         productReferenceUrl: productReferenceUrls[0],
         error: row.error_message,
+        settings: row.settings as Record<string, unknown> || undefined,
       }));
 
       const successCount = images.filter(i => i.status === 'completed').length;
