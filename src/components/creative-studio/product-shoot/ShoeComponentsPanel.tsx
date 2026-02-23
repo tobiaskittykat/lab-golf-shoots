@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 interface ShoeComponentsPanelProps {
   components: ShoeComponents | null;
   overrides: ComponentOverrides;
-  onOverrideChange: (type: ComponentType, override: { material: string; color: string; colorHex?: string } | null) => void;
+  onOverrideChange: (type: ComponentType, override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   onResetAll: () => void;
   attachReferenceImages: boolean;
   onAttachReferenceImagesChange: (attach: boolean) => void;
@@ -58,8 +58,8 @@ function ComponentRow({
 }: {
   type: ComponentType;
   component: ShoeComponent | null | undefined;
-  override?: { material: string; color: string; colorHex?: string };
-  onOverrideChange: (override: { material: string; color: string; colorHex?: string } | null) => void;
+  override?: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
+  onOverrideChange: (override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   upperColor?: string;
   upperColorHex?: string;
 }) {

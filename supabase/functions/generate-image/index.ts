@@ -201,6 +201,9 @@ interface GenerateImageRequest {
   // Toggle to attach reference images (default: true)
   attachReferenceImages?: boolean;
   
+  // Component color/material sample images for AI reference
+  componentSampleImages?: { component: string; url: string }[];
+  
   // Remix mode (shoe swap on existing creative)
   remixMode?: boolean;
   remixRemoveText?: boolean;
@@ -714,6 +717,17 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       }
     }
     
+    // === COMPONENT SAMPLE IMAGES (note for prompt agent) ===
+    if (request.componentSampleImages && request.componentSampleImages.length > 0) {
+      sections.push("=== COMPONENT COLOR/MATERIAL SAMPLE SWATCHES ===");
+      sections.push("⚠️ IMPORTANT: The user has attached color/material sample photos for the following components.");
+      sections.push("Match the EXACT color, texture, and finish shown in these swatch images:");
+      for (const sample of request.componentSampleImages) {
+        sections.push(`- ${sample.component.toUpperCase()}: See attached swatch image — replicate this color/material precisely`);
+      }
+      sections.push("");
+    }
+    
     const creativeBrief = sections.join("\n");
     
     // Log the full creative brief for transparency
@@ -893,6 +907,21 @@ The more specific your descriptions, the better the image generator can recreate
       }
       
       promptAgentContent.push({ type: "text", text: fidelityInstruction });
+    }
+    
+    // Add component sample swatch images to prompt agent
+    if (request.componentSampleImages && request.componentSampleImages.length > 0) {
+      for (const sample of request.componentSampleImages) {
+        promptAgentContent.push({
+          type: "text",
+          text: `⚠️ COLOR/MATERIAL SWATCH for ${sample.component.toUpperCase()} — match this EXACTLY:`
+        });
+        promptAgentContent.push({
+          type: "image_url",
+          image_url: { url: sample.url }
+        });
+      }
+      console.log(`Added ${request.componentSampleImages.length} component sample swatch(es) to prompt agent`);
     }
     
     // Add final instruction to craft the prompt
@@ -1260,6 +1289,21 @@ async function runBackgroundGeneration(params: {
           });
         }
 
+        // Add component sample swatch images to image generator
+        if (body.componentSampleImages && body.componentSampleImages.length > 0) {
+          for (const sample of body.componentSampleImages) {
+            messageContent.push({
+              type: "text",
+              text: `⚠️ COLOR/MATERIAL SWATCH for ${sample.component.toUpperCase()} — match this color and texture EXACTLY:`
+            });
+            messageContent.push({
+              type: "image_url",
+              image_url: { url: sample.url }
+            });
+          }
+          console.log(`[BG] Attached ${body.componentSampleImages.length} component sample swatch(es) to image generator`);
+        }
+
         // Map resolution to image_size
         const imageSizeMap: Record<string, string> = {
           '512': '1K', '1024': '1K', '2048': '2K', '4096': '4K',
@@ -1371,6 +1415,7 @@ async function runBackgroundGeneration(params: {
                 shotTypePrompt: body.shotTypePrompt || null,
                 sourceImageUrl: body.sourceImageUrl || null,
                 referencesAttached: refsWereAttached,
+                componentSampleImages: body.componentSampleImages || [],
               },
               logoApplied: body.logoPlacement?.enabled || false,
               logoPosition: body.logoPlacement?.position || null,

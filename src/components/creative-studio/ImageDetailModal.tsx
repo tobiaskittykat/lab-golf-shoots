@@ -202,9 +202,11 @@ export const ImageDetailModal = ({
     moodboardUrl?: string;
     shotTypePrompt?: string;
     sourceImageUrl?: string;
+    componentSampleImages?: { component: string; url: string }[];
   } | undefined;
   
   const sourceImageUrl = settingsRefs?.sourceImageUrl;
+  const componentSampleImages = settingsRefs?.componentSampleImages || [];
   
   const productUrls = settingsRefs?.productReferenceUrls?.length 
     ? settingsRefs.productReferenceUrls 
@@ -215,7 +217,7 @@ export const ImageDetailModal = ({
     (image.contextReferenceUrl ? [image.contextReferenceUrl] : []);
 
   // Check if we have any references to show
-  const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0 || !!sourceImageUrl;
+  const hasReferences = resolvedMoodboardUrl || productUrls.length > 0 || contextUrls.length > 0 || !!sourceImageUrl || componentSampleImages.length > 0;
 
   return (
     <>
@@ -443,7 +445,45 @@ export const ImageDetailModal = ({
                 </div>
               )}
 
-              {/* Image Prompt */}
+              {/* Component Sample Swatches */}
+              {componentSampleImages.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Palette className="w-4 h-4" />
+                    Color/Material Samples
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {componentSampleImages.map((sample, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div 
+                          className="aspect-square rounded-lg overflow-hidden border border-border bg-secondary/30 relative group cursor-pointer"
+                          onClick={() => !failedImages.has(sample.url) && setExpandedImageUrl(sample.url)}
+                        >
+                          {failedImages.has(sample.url) ? (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                              <AlertCircle className="w-4 h-4" />
+                            </div>
+                          ) : (
+                            <>
+                              <img
+                                src={sample.url}
+                                alt={`${sample.component} sample`}
+                                className="w-full h-full object-cover"
+                                onError={() => handleImageError(sample.url)}
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Expand className="w-4 h-4 text-white" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground text-center capitalize">{sample.component}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {image.refinedPrompt && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, Check, RotateCcw, Pipette } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ChevronDown, Check, RotateCcw, Pipette, Upload, X, Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   ComponentType, 
   getMaterialsForComponent, 
@@ -13,14 +14,16 @@ import {
   MaterialOption,
 } from '@/lib/birkenstockMaterials';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ComponentOverridePopoverProps {
   componentType: ComponentType;
   currentMaterial: string;
   currentColor: string;
   currentColorHex?: string;
-  override?: { material: string; color: string; colorHex?: string };
-  onApply: (override: { material: string; color: string; colorHex?: string } | null) => void;
+  override?: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
+  onApply: (override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   // For color-matched materials (buckles inherit upper color)
   upperColor?: string;
   upperColorHex?: string;
@@ -41,6 +44,11 @@ export function ComponentOverridePopover({
   const [selectedColor, setSelectedColor] = useState(override?.color || currentColor);
   const [selectedHex, setSelectedHex] = useState(override?.colorHex || currentColorHex || '');
   const [customHex, setCustomHex] = useState('');
+  const [sampleImageUrl, setSampleImageUrl] = useState(override?.sampleImageUrl || '');
+  const [attachSampleToGen, setAttachSampleToGen] = useState(override?.attachSampleToGen || false);
+  const [isUploadingSample, setIsUploadingSample] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   const RECENT_COLORS_KEY = 'component-override-recent-colors';
   type RecentColor = { name: string; hex: string };
@@ -93,6 +101,8 @@ export function ComponentOverridePopover({
       setSelectedColor(override?.color || currentColor);
       setSelectedHex(override?.colorHex || currentColorHex || '');
       setCustomHex('');
+      setSampleImageUrl(override?.sampleImageUrl || '');
+      setAttachSampleToGen(override?.attachSampleToGen || false);
     }
   }, [open, override, currentMaterial, currentColor, currentColorHex]);
   
@@ -129,12 +139,44 @@ export function ComponentOverridePopover({
     }
   };
 
+  const handleSampleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+    
+    setIsUploadingSample(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/color-samples/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(path, file, { contentType: file.type, cacheControl: '3600' });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      setSampleImageUrl(urlData.publicUrl);
+      setAttachSampleToGen(true); // auto-enable when uploaded
+    } catch (err) {
+      console.error('Sample upload failed:', err);
+    } finally {
+      setIsUploadingSample(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveSample = () => {
+    setSampleImageUrl('');
+    setAttachSampleToGen(false);
+  };
+
   const handleApply = () => {
-    if (isModified) {
+    if (isModified || sampleImageUrl) {
       onApply({
         material: selectedMaterial,
         color: selectedColor,
         colorHex: selectedHex || undefined,
+        sampleImageUrl: sampleImageUrl || undefined,
+        attachSampleToGen: sampleImageUrl ? attachSampleToGen : undefined,
       });
       // Save to recent colors
       if (selectedColor && selectedHex) {
@@ -150,6 +192,8 @@ export function ComponentOverridePopover({
     setSelectedMaterial(currentMaterial);
     setSelectedColor(currentColor);
     setSelectedHex(currentColorHex || '');
+    setSampleImageUrl('');
+    setAttachSampleToGen(false);
     onApply(null);
     setOpen(false);
   };
@@ -349,6 +393,63 @@ export function ComponentOverridePopover({
                 </p>
               </>
             )}
+          </div>
+
+          {/* Color/Material Sample */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Color/Material Sample
+            </Label>
+            
+            {sampleImageUrl ? (
+              <div className="space-y-2">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                  <img src={sampleImageUrl} alt="Color sample" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={handleRemoveSample}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`attach-sample-${componentType}`}
+                    checked={attachSampleToGen}
+                    onCheckedChange={(checked) => setAttachSampleToGen(checked === true)}
+                  />
+                  <Label htmlFor={`attach-sample-${componentType}`} className="text-xs text-muted-foreground cursor-pointer">
+                    Attach to generation
+                  </Label>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingSample}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed text-xs transition-colors',
+                  isUploadingSample
+                    ? 'border-muted bg-muted/20 text-muted-foreground cursor-wait'
+                    : 'border-border/50 hover:border-border hover:bg-muted/20 text-muted-foreground cursor-pointer'
+                )}
+              >
+                {isUploadingSample ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...</>
+                ) : (
+                  <><Upload className="w-3.5 h-3.5" /> Upload swatch photo</>
+                )}
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleSampleUpload}
+            />
           </div>
 
           {/* Actions */}

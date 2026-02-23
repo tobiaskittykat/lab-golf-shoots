@@ -147,6 +147,8 @@ export interface ComponentOverride {
   material: string;
   color: string;
   colorHex?: string;
+  sampleImageUrl?: string;      // uploaded color/material swatch URL
+  attachSampleToGen?: boolean;  // whether to send swatch to AI (default: false)
 }
 
 export type ComponentOverrides = Partial<Record<ComponentType, ComponentOverride>>;
