@@ -1152,6 +1152,257 @@ async function createPendingRows(
   return pendingIds;
 }
 
+// === DEDICATED REMIX PROMPT AGENT ===
+// Lightweight agent that crafts narrative editing prompts for shoe-swap remixes.
+// Simpler than the full creative director agent — focused on product description + overrides.
+
+function buildRemixBrief(body: GenerateImageRequest): string {
+  const sections: string[] = [];
+
+  // 1. PRODUCT IDENTITY (reflecting overrides if present)
+  if (body.productIdentity) {
+    const pi = body.productIdentity;
+    // If overrides exist, adjust the color/material to reflect them
+    let color = pi.color;
+    let material = pi.material;
+    if (body.componentOverrides?.upper) {
+      color = getColorDescription(body.componentOverrides.upper);
+      material = body.componentOverrides.upper.material;
+    }
+    sections.push("PRODUCT:");
+    sections.push(`${pi.brandName || ''} ${pi.modelName || ''} — ${material || ''} in ${color || ''}`.trim());
+    if (pi.productType) sections.push(`Type: ${pi.productType}`);
+    if (pi.summary) sections.push(`Description: ${pi.summary}`);
+    sections.push("");
+  } else if (body.productNames?.length) {
+    sections.push("PRODUCT:");
+    sections.push(body.productNames[0]);
+    sections.push("");
+  }
+
+  // 2. BASE COMPONENTS (all original materials from analysis)
+  if (body.originalComponents) {
+    const orig = body.originalComponents;
+    const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'] as const;
+    const lines: string[] = [];
+    for (const type of componentTypes) {
+      const comp = orig[type];
+      if (comp && comp.material) {
+        lines.push(`${type}: ${comp.material} in ${comp.color || 'N/A'}`);
+      }
+    }
+    if (lines.length > 0) {
+      sections.push("BASE COMPONENTS (original analysis):");
+      lines.forEach(l => sections.push(l));
+      sections.push("");
+    }
+  }
+
+  // 3. COMPONENT CHANGES (narrative contrast — what changed vs original)
+  if (body.componentOverrides && body.originalComponents) {
+    const componentTypes = ['upper', 'footbed', 'sole', 'buckles', 'heelstrap', 'lining'] as const;
+    const changes: string[] = [];
+    for (const type of componentTypes) {
+      const override = body.componentOverrides[type];
+      const orig = body.originalComponents[type];
+      if (override && orig) {
+        const colorDisplay = getColorDescription(override);
+        if (override.material !== orig.material || override.color !== orig.color) {
+          changes.push(`${type}: Change from ${orig.material} in ${orig.color} → ${override.material} in ${colorDisplay}`);
+        }
+      }
+    }
+    if (changes.length > 0) {
+      sections.push("COMPONENT CHANGES (user customizations):");
+      changes.forEach(c => sections.push(c));
+      sections.push("All other components stay exactly as shown in reference images.");
+      sections.push("");
+    }
+
+    // Toe post sync for thong-style sandals
+    const strapConstruction = (body.originalComponents as any).strapConstruction;
+    if (strapConstruction === 'thong') {
+      const soleSource = body.componentOverrides.sole || body.originalComponents.sole;
+      const buckleSource = body.componentOverrides.buckles || (body.originalComponents.buckles || null);
+      if (soleSource) {
+        const soleColor = body.componentOverrides.sole ? getColorDescription(body.componentOverrides.sole) : soleSource.color;
+        sections.push(`Toe post strap must match sole color: ${soleColor}`);
+      }
+      if (buckleSource) {
+        const buckleColor = body.componentOverrides.buckles ? getColorDescription(body.componentOverrides.buckles) : buckleSource.color;
+        sections.push(`Toe post pin/rivet must match buckle finish: ${buckleColor}`);
+      }
+      sections.push("");
+    }
+
+    // Buckle shape preservation
+    if (body.componentOverrides.buckles) {
+      sections.push("BUCKLE NOTE: Change ONLY the material and color. The buckle shape, size, and any inscribed text must remain exactly as in reference images.");
+      sections.push("");
+    }
+  }
+
+  // 4. BRANDING (engravings, stamps)
+  const branding = (body.originalComponents as any)?.branding;
+  if (branding) {
+    sections.push("BRANDING DETAILS:");
+    if (branding.buckleEngravings && Array.isArray(branding.buckleEngravings)) {
+      branding.buckleEngravings.forEach((e: any) => {
+        sections.push(`Buckle (${e.location}): engraved "${e.text}" in ${e.style}`);
+      });
+    }
+    if (branding.footbedText) {
+      sections.push(`Footbed stamp: "${branding.footbedText}"`);
+    }
+    if (branding.otherBranding) {
+      sections.push(`Other: ${branding.otherBranding}`);
+    }
+    sections.push("");
+  }
+
+  // 5. SAMPLE SWATCHES
+  if (body.componentSampleImages && body.componentSampleImages.length > 0) {
+    sections.push("ATTACHED SWATCHES:");
+    for (const sample of body.componentSampleImages) {
+      sections.push(`${sample.component}: color/material swatch image attached — match exactly`);
+    }
+    sections.push("");
+  }
+
+  // 6. TEXT REMOVAL
+  if (body.remixRemoveText) {
+    sections.push("TEXT REMOVAL: Remove any text, logos, watermarks, or ad copy overlaid on the source image. Inpaint those areas to match the surrounding background seamlessly.");
+    sections.push("");
+  }
+
+  return sections.join("\n");
+}
+
+async function craftRemixPromptWithAgent(
+  body: GenerateImageRequest,
+  apiKey: string
+): Promise<string> {
+  const systemPrompt = `You craft image EDITING prompts for footwear replacement on existing photos.
+
+RULES:
+1. Start with "Edit this image:"
+2. Lead with the replacement product description — brand, model, material, color, silhouette
+3. Describe component overrides as natural material/color changes woven into prose, not raw data or bullet points
+4. Include branding details (buckle engravings, footbed stamps) naturally in the description
+5. End with: keep model, pose, background, lighting, composition identical. Only the shoes change.
+6. Output ONLY the editing prompt — no headers, no bullet points, no explanations
+
+PRODUCT FIDELITY:
+- The replacement must match reference images exactly in silhouette, hardware placement, and proportions
+- When overrides exist, describe ONLY what changes and emphasize unchanged parts stay as-is
+- Use contrast language: "replacing the original tobacco brown with warm coral suede"
+- Reference the product images: "exactly as shown in the reference images"
+
+BRANDING:
+- Use EXACT engraving text from the brief (e.g., "BIRKEN" not "BIRKENSTOCK" unless specified)
+- Mention footbed stamps naturally: "the branded cork footbed with its maker's stamp"
+
+SAMPLE SWATCHES:
+- When the brief mentions attached swatch images, reference them: "matching the attached color swatch exactly"
+
+Keep the prompt concise — one focused paragraph, not a wall of text.`;
+
+  // Build multimodal content
+  const content: any[] = [];
+
+  // Brief text
+  const brief = buildRemixBrief(body);
+  console.log("=== REMIX BRIEF ===");
+  console.log(brief);
+  console.log("===================");
+
+  content.push({ type: "text", text: brief });
+
+  // Attach product reference images so agent can see the product
+  const productUrls = (body.productReferenceUrls || [])
+    .filter((url: string) => url && url.startsWith('http') && !url.toLowerCase().includes('.gif'));
+  if (productUrls.length > 0) {
+    const attachCount = Math.min(productUrls.length, 6);
+    for (const url of productUrls.slice(0, attachCount)) {
+      content.push({ type: "image_url", image_url: { url } });
+    }
+    content.push({
+      type: "text",
+      text: `These ${attachCount} image(s) show the replacement product from different angles. Describe it with visual precision based on what you see.`
+    });
+  }
+
+  // Attach sample swatches
+  if (body.componentSampleImages && body.componentSampleImages.length > 0) {
+    for (const sample of body.componentSampleImages) {
+      content.push({ type: "text", text: `Color/material swatch for ${sample.component}:` });
+      content.push({ type: "image_url", image_url: { url: sample.url } });
+    }
+  }
+
+  // Final instruction
+  content.push({
+    type: "text",
+    text: "Craft a single cohesive editing prompt from this brief. Start with 'Edit this image:' and describe the replacement product in rich detail."
+  });
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Remix prompt agent failed, falling back to flat prompt");
+      return buildFlatRemixFallback(body);
+    }
+
+    const data = await response.json();
+    const agentPrompt = data.choices?.[0]?.message?.content?.trim();
+    if (!agentPrompt) {
+      console.error("Remix prompt agent returned empty, falling back");
+      return buildFlatRemixFallback(body);
+    }
+
+    return agentPrompt;
+  } catch (err) {
+    console.error("Remix prompt agent error:", err);
+    return buildFlatRemixFallback(body);
+  }
+}
+
+// Fallback: produce the old flat remix prompt if agent fails
+function buildFlatRemixFallback(body: GenerateImageRequest): string {
+  const parts: string[] = [
+    "Edit this image: replace the footwear/shoes with the EXACT product shown in the reference images.",
+    "Keep the model, pose, background, lighting, and composition IDENTICAL. Only change the shoes.",
+  ];
+  if (body.componentOverrides) {
+    const overrideLines = buildOverrideLines(body.componentOverrides, body.originalComponents);
+    if (overrideLines.length > 0) parts.push(overrideLines.join('\n'));
+  }
+  if (body.productIdentity) {
+    const pi = body.productIdentity;
+    const identity = [pi.brandName, pi.modelName].filter(Boolean).join(' ');
+    const attrs = [pi.color, pi.material].filter(Boolean).join(' ');
+    if (identity) parts.push(`The replacement product is: ${identity}${attrs ? ` in ${attrs}` : ''}.`);
+  }
+  if (body.remixRemoveText) {
+    parts.push("ALSO: Remove any text, logos, watermarks, or ad copy overlaid on the image.");
+  }
+  return parts.join('\n\n');
+}
+
 // Background generation - runs after HTTP response is sent via EdgeRuntime.waitUntil
 async function runBackgroundGeneration(params: {
   pendingIds: string[];
@@ -1189,38 +1440,8 @@ async function runBackgroundGeneration(params: {
     // === REMIX MODE: bypass prompt agent, use direct editing prompt ===
     let refinedPrompt: string;
     if (body.remixMode) {
-      const remixParts: string[] = [
-        "Edit this image: replace the footwear/shoes with the EXACT product shown in the reference images.",
-        "Keep the model, pose, background, lighting, and composition IDENTICAL. Only change the shoes.",
-        "The replacement shoes must match the reference images precisely — same silhouette, materials, colors, hardware, and proportions.",
-      ];
-      
-      // Component overrides — use shared structured builder
-      if (body.componentOverrides) {
-        const overrideLines = buildOverrideLines(body.componentOverrides, body.originalComponents);
-        if (overrideLines.length > 0) {
-          remixParts.push(overrideLines.join('\n'));
-        }
-      }
-      
-      // Add product identity for extra AI signal
-      if (body.productIdentity) {
-        const pi = body.productIdentity;
-        const identity = [pi.brandName, pi.modelName].filter(Boolean).join(' ');
-        const attrs = [pi.color, pi.material].filter(Boolean).join(' ');
-        if (identity) {
-          remixParts.push(`The replacement product is: ${identity}${attrs ? ` in ${attrs}` : ''}.`);
-        }
-      } else if (body.productNames?.length) {
-        remixParts.push(`The replacement product is: ${body.productNames[0]}.`);
-      }
-
-      if (body.remixRemoveText) {
-        remixParts.push("ALSO: Remove any text, logos, watermarks, or ad copy overlaid on the image. Inpaint those areas to match the surrounding background seamlessly.");
-      }
-      
-      refinedPrompt = remixParts.join('\n\n');
-      console.log("[BG] Remix mode — using direct editing prompt (no prompt agent)");
+      refinedPrompt = await craftRemixPromptWithAgent(body, apiKey);
+      console.log("[BG] Remix mode — used dedicated remix prompt agent");
     } else {
       // Craft refined prompt (can take a few seconds)
       refinedPrompt = await craftPromptWithAgent(body, apiKey);
