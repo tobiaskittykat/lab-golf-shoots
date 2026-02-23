@@ -147,7 +147,14 @@ export default function ProductEdit() {
         });
       }
 
-      const finalDescription = { ...(editedDescription || {}), summary: description };
+      const syncedDescription = { ...(editedDescription || {}) } as any;
+      if (editedComponents?.upper?.color) {
+        syncedDescription.colors = [editedComponents.upper.color];
+      }
+      if (editedComponents?.upper?.material) {
+        syncedDescription.materials = [editedComponents.upper.material];
+      }
+      const finalDescription = { ...syncedDescription, summary: description };
       const updatePayload: any = { name, sku_code: skuCode || null, description: finalDescription };
       if (editedComponents) updatePayload.components = editedComponents;
       await supabase.from('product_skus').update(updatePayload).eq('id', skuId);
