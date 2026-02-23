@@ -18,6 +18,7 @@ import Gallery from "./pages/Gallery";
 import Products from "./pages/Products";
 import ProductEdit from "./pages/ProductEdit";
 import NotFound from "./pages/NotFound";
+import BetaGate from "./components/BetaGate";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <BetaGate>
       <BrowserRouter>
         <AuthProvider>
           <BrandsProvider>
@@ -117,6 +119,7 @@ const App = () => (
           </BrandsProvider>
         </AuthProvider>
       </BrowserRouter>
+      </BetaGate>
     </TooltipProvider>
   </QueryClientProvider>
 );
