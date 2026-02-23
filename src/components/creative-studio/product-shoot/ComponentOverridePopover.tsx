@@ -47,6 +47,7 @@ export function ComponentOverridePopover({
   const [sampleImageUrl, setSampleImageUrl] = useState(override?.sampleImageUrl || '');
   const [attachSampleToGen, setAttachSampleToGen] = useState(override?.attachSampleToGen || false);
   const [isUploadingSample, setIsUploadingSample] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
@@ -154,8 +155,34 @@ export function ComponentOverridePopover({
       if (uploadError) throw uploadError;
       
       const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      setSampleImageUrl(urlData.publicUrl);
-      setAttachSampleToGen(true); // auto-enable when uploaded
+      const publicUrl = urlData.publicUrl;
+      setSampleImageUrl(publicUrl);
+      setAttachSampleToGen(true);
+      
+      // Trigger AI analysis of the swatch
+      setIsAnalyzing(true);
+      try {
+        const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-color-sample', {
+          body: { imageUrl: publicUrl, componentType },
+        });
+        if (!analysisError && analysisData?.material) {
+          // Auto-fill material if it's in our list
+          const matchedMaterial = materials.find(m => m.value === analysisData.material);
+          if (matchedMaterial) {
+            setSelectedMaterial(matchedMaterial.value);
+          }
+          if (analysisData.color) {
+            setSelectedColor(analysisData.color);
+          }
+          if (analysisData.colorHex) {
+            setSelectedHex(analysisData.colorHex);
+          }
+        }
+      } catch (analysisErr) {
+        console.error('Swatch analysis failed (non-blocking):', analysisErr);
+      } finally {
+        setIsAnalyzing(false);
+      }
     } catch (err) {
       console.error('Sample upload failed:', err);
     } finally {
@@ -163,7 +190,6 @@ export function ComponentOverridePopover({
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
-
   const handleRemoveSample = () => {
     setSampleImageUrl('');
     setAttachSampleToGen(false);
@@ -405,6 +431,12 @@ export function ComponentOverridePopover({
               <div className="space-y-2">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
                   <img src={sampleImageUrl} alt="Color sample" className="w-full h-full object-cover" />
+                  {isAnalyzing && (
+                    <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                      <span className="text-[9px] text-accent mt-0.5">Analyzing</span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={handleRemoveSample}
