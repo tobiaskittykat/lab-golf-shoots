@@ -488,6 +488,19 @@ export function useImageGeneration() {
         // Original analyzed components (for comparison in prompt)
         originalComponents: originalComponents || undefined,
         
+        // Collect component sample images that are flagged for attachment
+        componentSampleImages: (() => {
+          const overrides = state.productShoot?.componentOverrides;
+          if (!overrides) return undefined;
+          const samples: { component: string; url: string }[] = [];
+          for (const [comp, ov] of Object.entries(overrides)) {
+            if (ov?.sampleImageUrl && ov?.attachSampleToGen) {
+              samples.push({ component: comp, url: ov.sampleImageUrl });
+            }
+          }
+          return samples.length > 0 ? samples : undefined;
+        })(),
+        
         // Toggle to attach reference images (default: true)
         attachReferenceImages: state.productShoot?.attachReferenceImages ?? true,
         };
