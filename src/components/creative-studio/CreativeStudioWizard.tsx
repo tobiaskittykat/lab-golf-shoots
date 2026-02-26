@@ -19,7 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { smoothScrollTo } from "@/lib/utils";
-import { ProductShootSubtypeSelector, ProductShootStep2, ProductShootIndicators, RemixStep2 } from "./product-shoot";
+import { ProductShootSubtypeSelector, ProductShootStep2, ProductShootIndicators, RemixStep2, SetupProductStep2 } from "./product-shoot";
 
 interface CreativeStudioWizardProps {
   isOpen: boolean;
@@ -840,7 +840,7 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                     />
                     
                     <div style={{ paddingBottom: footerHeight + 24 }}>
-                      {state.productShoot.shootMode === 'remix' ? (
+                    {state.productShoot.shootMode === 'remix' ? (
                         <RemixStep2
                           state={state.productShoot}
                           onStateChange={handleProductShootUpdate}
@@ -848,6 +848,11 @@ export const CreativeStudioWizard = ({ isOpen, onOpenChange }: CreativeStudioWiz
                           resolution={state.resolution}
                           aspectRatio={state.aspectRatio}
                           onOutputSettingsChange={(updates) => handleUpdate(updates)}
+                        />
+                      ) : state.productShoot.shootMode === 'setup' ? (
+                        <SetupProductStep2
+                          state={state.productShoot}
+                          onStateChange={handleProductShootUpdate}
                         />
                       ) : (
                         <ProductShootStep2

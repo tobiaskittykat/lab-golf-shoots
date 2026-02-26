@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_creatives: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          id: string
+          image_url: string
+          name: string | null
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          name?: string | null
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string | null
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_creatives_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -136,6 +174,53 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      color_samples: {
+        Row: {
+          brand_id: string | null
+          color: string | null
+          color_hex: string | null
+          component_type: string | null
+          created_at: string
+          id: string
+          image_url: string
+          material: string | null
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          color?: string | null
+          color_hex?: string | null
+          component_type?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          material?: string | null
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          color?: string | null
+          color_hex?: string | null
+          component_type?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          material?: string | null
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "color_samples_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       custom_backgrounds: {
         Row: {
