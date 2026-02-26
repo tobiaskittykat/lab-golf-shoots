@@ -7,7 +7,7 @@ export type ShootMode = 'new' | 'remix' | 'setup';
 export type RecolorOption = 'none' | 'pre-generation' | 'during-generation';
 
 // Setting type for backgrounds
-export type SettingType = 'studio' | 'outdoor' | 'custom';
+export type SettingType = 'studio' | 'outdoor' | 'custom' | 'scene';
 
 // Weather condition for outdoor backgrounds
 export type WeatherCondition = 'auto' | 'sunny' | 'overcast' | 'golden-hour' | 'cloudy' | 'dappled';
@@ -108,6 +108,7 @@ export interface ProductShootState {
   backgroundId?: string;
   customBackgroundPrompt?: string;
   weatherCondition?: WeatherCondition;
+  sceneImageUrl?: string;
   
   // Model
   modelConfig: ModelConfig;

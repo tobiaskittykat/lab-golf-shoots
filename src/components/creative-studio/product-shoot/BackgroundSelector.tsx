@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X, Upload, MapPin } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +8,10 @@ import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
 import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
 import { useCustomBackgrounds, CustomBackground } from "@/hooks/useCustomBackgrounds";
 import { useBrands } from "@/hooks/useBrands";
+import { useAuth } from "@/hooks/useAuth";
 import { CreateCustomBackgroundModal } from "./CreateCustomBackgroundModal";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const LAST_USED_BG_KEY = 'product-shoot-last-bg';
 const PRESET_VISIBLE_COUNT = 3; // 3 presets + 1 Auto tile = 4 tiles in first row
@@ -23,6 +25,8 @@ interface BackgroundSelectorProps {
   onBackgroundSelect: (id: string) => void;
   onCustomPromptChange: (prompt: string) => void;
   onWeatherChange?: (weather: WeatherCondition) => void;
+  sceneImageUrl?: string;
+  onSceneImageChange?: (url: string | undefined) => void;
 }
 
 export const BackgroundSelector = ({
@@ -34,12 +38,16 @@ export const BackgroundSelector = ({
   onBackgroundSelect,
   onCustomPromptChange,
   onWeatherChange,
+  sceneImageUrl,
+  onSceneImageChange,
 }: BackgroundSelectorProps) => {
   const { currentBrand } = useBrands();
+  const { user } = useAuth();
   const { backgrounds: customBackgrounds, isLoading: loadingCustom, createBackground, deleteBackground } = useCustomBackgrounds(currentBrand?.id);
 
   // Determine initial tab from current selection
   const getInitialTab = () => {
+    if (settingType === 'scene' || selectedBackgroundId === 'scene-uploaded') return 'scene';
     if (selectedBackgroundId?.startsWith('custom-')) return 'custom';
     if (selectedBackgroundId?.startsWith('outdoor-')) return 'outdoor';
     if (selectedBackgroundId?.startsWith('studio-') || settingType === 'studio') return 'studio';
@@ -48,9 +56,10 @@ export const BackgroundSelector = ({
     return 'studio';
   };
   
-  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor' | 'custom'>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'studio' | 'outdoor' | 'custom' | 'scene'>(getInitialTab());
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isUploadingScene, setIsUploadingScene] = useState(false);
 
   // Get last used background from localStorage
   const lastUsedBgId = useMemo(() => {
@@ -74,7 +83,9 @@ export const BackgroundSelector = ({
 
   // Sync tab when background selection changes externally
   useEffect(() => {
-    if (selectedBackgroundId?.startsWith('custom-')) {
+    if (selectedBackgroundId === 'scene-uploaded') {
+      setActiveTab('scene');
+    } else if (selectedBackgroundId?.startsWith('custom-')) {
       setActiveTab('custom');
     } else if (selectedBackgroundId?.startsWith('outdoor-')) {
       setActiveTab('outdoor');
@@ -84,12 +95,16 @@ export const BackgroundSelector = ({
   }, [selectedBackgroundId]);
 
   const handleTabChange = (value: string) => {
-    const tab = value as 'studio' | 'outdoor' | 'custom';
+    const tab = value as 'studio' | 'outdoor' | 'custom' | 'scene';
     setActiveTab(tab);
     onSettingTypeChange(tab);
     setShowAllBackgrounds(false);
     
-    if (tab === 'custom') {
+    if (tab === 'scene') {
+      if (sceneImageUrl) {
+        onBackgroundSelect('scene-uploaded');
+      }
+    } else if (tab === 'custom') {
       // For custom tab, select first custom bg or clear
       if (customBackgrounds.length > 0 && !selectedBackgroundId?.startsWith('custom-')) {
         onBackgroundSelect(`custom-${customBackgrounds[0].id}`);
@@ -125,6 +140,43 @@ export const BackgroundSelector = ({
 
   const autoTileId = activeTab === 'studio' ? 'studio-auto' : activeTab === 'outdoor' ? 'outdoor-auto' : 'custom-auto';
   const isAutoSelected = selectedBackgroundId === autoTileId;
+
+  // Scene image upload handler
+  const handleSceneUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    setIsUploadingScene(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/scene/${Date.now()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('brand-assets')
+        .upload(path, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('brand-assets')
+        .getPublicUrl(path);
+      
+      onSceneImageChange?.(publicUrl);
+      onSettingTypeChange('scene');
+      onBackgroundSelect('scene-uploaded');
+      toast({ title: "Scene image uploaded" });
+    } catch (err) {
+      console.error('Scene upload error:', err);
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setIsUploadingScene(false);
+    }
+  };
+
+  const handleRemoveScene = () => {
+    onSceneImageChange?.(undefined);
+    onBackgroundSelect('');
+  };
 
   const renderBackgroundCard = (bg: BackgroundPreset) => {
     const isSelected = selectedBackgroundId === bg.id;
@@ -294,6 +346,63 @@ export const BackgroundSelector = ({
     </div>
   );
 
+  const renderSceneContent = () => (
+    <div className="space-y-3">
+      {sceneImageUrl ? (
+        <div className="space-y-3">
+          <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-accent ring-2 ring-accent/20">
+            <img src={sceneImageUrl} alt="Scene" className="w-full h-full object-cover" />
+            <button
+              onClick={handleRemoveScene}
+              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-destructive transition-colors"
+            >
+              <X className="w-3.5 h-3.5 text-white" />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
+              <span className="text-xs font-medium text-white flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                Scene Reference
+              </span>
+            </div>
+          </div>
+          {/* Optional additional direction */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+              Placement direction (optional)
+            </label>
+            <Input
+              value={customBackgroundPrompt || ''}
+              onChange={(e) => onCustomPromptChange(e.target.value)}
+              placeholder="e.g., place shoes on the table in the foreground"
+              className="text-sm"
+            />
+          </div>
+        </div>
+      ) : (
+        <label className="relative aspect-video rounded-xl border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleSceneUpload}
+            className="hidden"
+            disabled={isUploadingScene}
+          />
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+            {isUploadingScene ? (
+              <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Upload className="w-5 h-5 text-muted-foreground" />
+            )}
+          </div>
+          <div className="text-center">
+            <span className="text-sm font-medium text-foreground">Upload a scene image</span>
+            <p className="text-xs text-muted-foreground mt-0.5">Your product will be placed directly into this scene</p>
+          </div>
+        </label>
+      )}
+    </div>
+  );
+
   const handleCreateSave = (data: {
     name: string;
     prompt: string;
@@ -316,12 +425,13 @@ export const BackgroundSelector = ({
 
   return (
     <div className="space-y-4">
-      {/* Tabs for Studio / Outdoor / Custom */}
+      {/* Tabs for Studio / Outdoor / Custom / Scene */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="studio">Studio</TabsTrigger>
           <TabsTrigger value="outdoor">Outdoor</TabsTrigger>
           <TabsTrigger value="custom">Custom</TabsTrigger>
+          <TabsTrigger value="scene">Scene</TabsTrigger>
         </TabsList>
         
         <TabsContent value="studio" className="mt-4 space-y-3">
@@ -334,6 +444,10 @@ export const BackgroundSelector = ({
 
         <TabsContent value="custom" className="mt-4 space-y-3">
           {renderCustomGrid()}
+        </TabsContent>
+
+        <TabsContent value="scene" className="mt-4 space-y-3">
+          {renderSceneContent()}
         </TabsContent>
       </Tabs>
 
@@ -363,8 +477,8 @@ export const BackgroundSelector = ({
         </div>
       )}
 
-      {/* Custom background prompt - only show for non-custom tabs */}
-      {activeTab !== 'custom' && (
+      {/* Custom background prompt - only show for studio/outdoor tabs */}
+      {(activeTab === 'studio' || activeTab === 'outdoor') && (
         <div className="pt-2">
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
             Or describe a custom background

@@ -588,7 +588,7 @@ export const ProductShootStep2 = ({
             icon={ImageIcon} 
             title="Background" 
             section="background"
-            badge={state.backgroundId?.endsWith('-auto') ? 'Auto' : state.backgroundId?.startsWith('custom-') ? 'Custom' : state.backgroundId ? 'Selected' : undefined}
+            badge={state.backgroundId === 'scene-uploaded' ? 'Scene' : state.backgroundId?.endsWith('-auto') ? 'Auto' : state.backgroundId?.startsWith('custom-') ? 'Custom' : state.backgroundId ? 'Selected' : undefined}
           />
           <CollapsibleContent>
             <div className="px-4 pb-4">
@@ -601,6 +601,8 @@ export const ProductShootStep2 = ({
                 onBackgroundSelect={(id) => onStateChange({ backgroundId: id })}
                 onCustomPromptChange={(prompt) => onStateChange({ customBackgroundPrompt: prompt })}
                 onWeatherChange={(weather) => onStateChange({ weatherCondition: weather })}
+                sceneImageUrl={state.sceneImageUrl}
+                onSceneImageChange={(url) => onStateChange({ sceneImageUrl: url })}
               />
             </div>
           </CollapsibleContent>

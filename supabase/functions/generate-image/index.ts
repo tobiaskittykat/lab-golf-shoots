@@ -161,9 +161,10 @@ interface GenerateImageRequest {
   // Product Shoot configuration
   productShootConfig?: {
     shotType?: string;
-    settingType?: 'studio' | 'outdoor' | 'auto';
+    settingType?: 'studio' | 'outdoor' | 'auto' | 'scene';
     backgroundId?: string;
     customBackgroundPrompt?: string;
+    sceneImageUrl?: string;
     modelConfig?: {
       gender?: string;
       ethnicity?: string;
@@ -584,7 +585,15 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
       const config = request.productShootConfig;
       
       // Background direction
-      if (config.customBackgroundPrompt) {
+      if (config.sceneImageUrl) {
+        // Scene placement mode — background comes from attached image
+        sections.push("=== BACKGROUND/SETTING (SCENE PLACEMENT) ===");
+        sections.push("Use the attached scene reference image as the EXACT background environment. Place the product naturally within this scene, matching perspective, lighting, and scale.");
+        if (config.customBackgroundPrompt) {
+          sections.push(`Additional placement direction: ${config.customBackgroundPrompt}`);
+        }
+        sections.push("");
+      } else if (config.customBackgroundPrompt) {
         sections.push("=== BACKGROUND/SETTING ===");
         sections.push(config.customBackgroundPrompt);
         sections.push("");
@@ -1524,6 +1533,22 @@ async function runBackgroundGeneration(params: {
             type: "text",
             text: "⚠️ PRIMARY STYLE REFERENCE: This moodboard image should STRONGLY influence the color palette, lighting quality, mood, and visual atmosphere of the generated image. It carries HIGH WEIGHT for all aesthetic decisions. Blend it harmoniously with the text direction, but let this image lead the visual feel."
           });
+        }
+
+        // Add scene placement reference image
+        if (body.productShootConfig?.sceneImageUrl) {
+          const sceneUrl = body.productShootConfig.sceneImageUrl;
+          if (sceneUrl.startsWith('http')) {
+            messageContent.push({
+              type: "image_url",
+              image_url: { url: sceneUrl }
+            });
+            messageContent.push({
+              type: "text",
+              text: "SCENE PLACEMENT REFERENCE: Place the product naturally into this exact scene/environment. Match the lighting direction, color temperature, perspective, and scale of objects in this scene. Do NOT alter the scene itself. The product should look like it was physically photographed in this location."
+            });
+            console.log("[BG] Attached scene placement image");
+          }
         }
 
         // Add product references as visual inputs

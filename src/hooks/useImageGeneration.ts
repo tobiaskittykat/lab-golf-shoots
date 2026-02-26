@@ -470,6 +470,7 @@ export function useImageGeneration() {
           backgroundId: state.productShoot.backgroundId,
           customBackgroundPrompt: state.productShoot.customBackgroundPrompt,
           weatherCondition: state.productShoot.weatherCondition,
+          sceneImageUrl: state.productShoot.sceneImageUrl,
           modelConfig: state.productShoot.modelConfig,
           onFootConfig: state.productShoot.productShotType === 'on-foot' 
             ? (state.productShoot.onFootConfig || initialOnFootConfig) 
