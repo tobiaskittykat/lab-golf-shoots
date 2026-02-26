@@ -176,6 +176,11 @@ interface GenerateImageRequest {
       legStyling?: string;
       trouserColor?: string;
     };
+    // Product focus shot type specific config
+    productFocusConfig?: {
+      cameraAngle?: string;
+      lighting?: string;
+    };
   };
   
   // Component overrides for shoe customization
@@ -657,9 +662,11 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         
         // Footbed text/logo: skip for on-foot/lifestyle (hidden by foot),
         // use simplified dynamic descriptor for productFocus
-        if (visualShotType === 'on-foot' || visualShotType === 'lifestyle') {
+        const productFocusAngle = request.productShootConfig?.productFocusConfig?.cameraAngle;
+        if (visualShotType === 'on-foot' || visualShotType === 'lifestyle'
+            || (visualShotType === 'product-focus' && productFocusAngle === 'side-profile')) {
           // Footbed is hidden — skip entirely
-          console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}`);
+          console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}, angle: ${productFocusAngle}`);
         } else if (visualShotType === 'product-focus') {
           const footbedMaterial = orig.footbed?.material || 'cork';
           const textMethod = branding.footbedTextMethod || 'stamped';
