@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X, Upload, MapPin } from "lucide-react";
+import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,7 +46,6 @@ export const BackgroundSelector = ({
   const { backgrounds: customBackgrounds, isLoading: loadingCustom, createBackground, deleteBackground } = useCustomBackgrounds(currentBrand?.id);
   const { sceneImages, isLoading: loadingScenes, createScene, deleteScene, updateSceneRegion } = useSceneImages(currentBrand?.id);
   const sceneFileRef = useRef<HTMLInputElement>(null);
-  const [uploadRegion, setUploadRegion] = useState<string>("all");
   // Determine initial tab from current selection
   const getInitialTab = () => {
     if (settingType === 'scene' || selectedBackgroundId === 'scene-uploaded') return 'scene';
@@ -148,7 +147,7 @@ export const BackgroundSelector = ({
   const handleSceneFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    createScene.mutate({ file, region: uploadRegion }, {
+    createScene.mutate({ file }, {
       onSuccess: (newScene) => {
         onSceneImageChange?.(newScene.image_url);
         onBackgroundSelect(`scene-${newScene.id}`);
@@ -406,22 +405,6 @@ export const BackgroundSelector = ({
           ))}
         </div>
       )}
-
-      {/* Upload region selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground whitespace-nowrap">Upload to:</span>
-        <Select value={uploadRegion} onValueChange={setUploadRegion}>
-          <SelectTrigger className="h-7 text-xs w-32 bg-muted/50 border-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SCENE_REGIONS.filter(r => r.value !== "all").map((r) => (
-              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-            ))}
-            <SelectItem value="all">No Region</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Scene grid */}
       <div className="grid grid-cols-4 gap-3">

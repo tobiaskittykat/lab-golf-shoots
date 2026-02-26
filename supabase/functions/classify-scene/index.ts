@@ -55,9 +55,10 @@ serve(async (req) => {
                 },
                 {
                   type: "text",
-                  text: `Classify this scene image. Return a JSON object with two fields:
+                  text: `Classify this scene image. Return a JSON object with three fields:
 1. "category": exactly one of: ${CATEGORIES.join(", ")}
 2. "name": a short descriptive name for the scene (3-5 words, e.g. "Sunlit Kitchen Counter", "Urban Brick Alley")
+3. "region": the likely geographic region based on visual cues (architecture, signage, vegetation, cultural context). One of: usa, europe, apac, mea, all. Use "all" if region is ambiguous.
 
 Return ONLY the JSON object, no markdown.`,
                 },
@@ -82,7 +83,13 @@ Return ONLY the JSON object, no markdown.`,
                       description: "Short descriptive name, 3-5 words",
                     },
                   },
-                  required: ["category", "name"],
+                    region: {
+                      type: "string",
+                      enum: ["usa", "europe", "apac", "mea", "all"],
+                      description: "Geographic region based on visual cues",
+                    },
+                  },
+                  required: ["category", "name", "region"],
                   additionalProperties: false,
                 },
               },
@@ -98,7 +105,7 @@ Return ONLY the JSON object, no markdown.`,
       console.error("AI gateway error:", response.status, errText);
       // Fallback
       return new Response(
-        JSON.stringify({ category: "other", name: "Uploaded Scene" }),
+        JSON.stringify({ category: "other", name: "Uploaded Scene", region: "all" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -109,20 +116,21 @@ Return ONLY the JSON object, no markdown.`,
       const parsed = JSON.parse(toolCall.function.arguments);
       const category = CATEGORIES.includes(parsed.category) ? parsed.category : "other";
       const name = parsed.name || "Uploaded Scene";
-      return new Response(JSON.stringify({ category, name }), {
+      const region = ["usa", "europe", "apac", "mea", "all"].includes(parsed.region) ? parsed.region : "all";
+      return new Response(JSON.stringify({ category, name, region }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Fallback if no tool call
     return new Response(
-      JSON.stringify({ category: "other", name: "Uploaded Scene" }),
+      JSON.stringify({ category: "other", name: "Uploaded Scene", region: "all" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
     console.error("classify-scene error:", e);
     return new Response(
-      JSON.stringify({ category: "other", name: "Uploaded Scene" }),
+      JSON.stringify({ category: "other", name: "Uploaded Scene", region: "all" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

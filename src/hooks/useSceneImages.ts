@@ -60,7 +60,7 @@ export function useSceneImages(brandId: string | undefined) {
   });
 
   const createScene = useMutation({
-    mutationFn: async ({ file, region = "all" }: { file: File; region?: string }) => {
+    mutationFn: async ({ file }: { file: File }) => {
       if (!user?.id || !brandId) throw new Error("Not authenticated or no brand");
 
       const ext = file.name.split(".").pop() || "jpg";
@@ -76,6 +76,7 @@ export function useSceneImages(brandId: string | undefined) {
 
       let category = "other";
       let name = "Uploaded Scene";
+      let region = "all";
       try {
         const { data: classifyData, error: classifyError } = await supabase.functions.invoke("classify-scene", {
           body: { imageUrl: publicUrl },
@@ -83,6 +84,7 @@ export function useSceneImages(brandId: string | undefined) {
         if (!classifyError && classifyData) {
           category = classifyData.category || "other";
           name = classifyData.name || "Uploaded Scene";
+          region = classifyData.region || "all";
         }
       } catch (e) {
         console.error("Classification failed, using defaults:", e);
