@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Check, Trash2, ImageIcon } from 'lucide-react';
@@ -12,7 +12,11 @@ interface AdGalleryModalProps {
 }
 
 export function AdGalleryModal({ open, onOpenChange, onSelect }: AdGalleryModalProps) {
-  const { creatives, isLoading, deleteCreative } = useAdCreatives();
+  const { creatives, isLoading, deleteCreative, refetch } = useAdCreatives();
+
+  useEffect(() => {
+    if (open) refetch();
+  }, [open, refetch]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const toggleSelect = (url: string) => {
