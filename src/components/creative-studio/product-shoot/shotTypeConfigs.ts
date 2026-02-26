@@ -419,8 +419,8 @@ export const productFocusAngleOptions = [
   { 
     value: 'hero' as ProductFocusAngle, 
     label: 'Hero (3/4 Front)', 
-    prompt: 'three-quarter front view at 45-degree angle, classic hero product shot showing depth and dimension, single shoe angled toward camera',
-    narrative: 'the classic hero shot, camera positioned at a 45-degree angle to capture depth and dimension. A single shoe angled toward the lens, revealing both the lateral profile and the top of the footbed in one commanding frame. This is the definitive e-commerce angle — authoritative, dimensional, and immediately recognizable.',
+    prompt: 'neutral eye-level three-quarter view, shoe rotated 30-45 degrees with toe toward bottom-right and heel toward center-left, capturing full side profile of sole, structural volume of upper, and clear view into interior footbed',
+    narrative: 'the classic hero shot in a neutral, eye-level three-quarter perspective. The camera is level with the top edge of the shoe\'s upper. The shoe is rotated roughly 30 to 45 degrees away from the camera, with the toe directed toward the bottom-right corner and the heel pointing toward the center-left. The front of the shoe is physically closer to the lens than the heel, creating a natural sense of depth and scale. This specific orientation ensures the full side profile of the sole is visible, the structural volume of the upper is showcased, and the concave interior footbed is clearly seen. This is the definitive e-commerce angle — authoritative, dimensional, and immediately recognizable.',
     thumbnail: 'angle-hero.jpg',
     shoeCount: 1 as 1 | 2,
   },
