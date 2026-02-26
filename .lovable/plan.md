@@ -1,88 +1,39 @@
 
-# Add Edit Capability to Saved Color Samples
+# Fix: Apply Button Disabled + Can't Re-Upload Sample
 
-## Problem
-When the AI analysis of a color/material swatch gets something wrong (e.g., identifies the wrong material or color name), there's no way to correct it. Users are stuck with inaccurate metadata on their saved swatches.
+## Problems Found
 
-## Solution
-Add an `updateSample` function to the `useColorSamples` hook, then add an edit mode to the saved swatches section in the ComponentOverridePopover. When a user long-presses or clicks an edit icon on a saved swatch, they can modify the material, color, and color hex fields inline.
+### 1. Apply button stays disabled after swatch upload
+**Line 621**: `disabled={!isModified && !override}` does not account for `sampleImageUrl`. When analysis fails (material/color stay unchanged), `isModified` is false and `override` is undefined, so the button is permanently disabled even though a valid swatch is attached.
+
+### 2. Can't upload a replacement swatch
+**Line 549**: When `sampleImageUrl` is set, the upload button is replaced with a preview + remove button. There's no way to upload a new sample directly -- users must first remove the current one, then upload again. This is a friction point especially when the first analysis was wrong.
+
+### 3. Saved swatches hidden when a sample is active
+**Line 445**: `samples.length > 0 && !sampleImageUrl` hides the saved swatches grid whenever a sample image is present, preventing users from switching to a different saved swatch.
 
 ## Changes
 
-### 1. Add `updateSample` to `useColorSamples` hook
+### File: `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx`
 
-**File**: `src/hooks/useColorSamples.ts`
-
-Add a new `updateSample` callback that updates material, color, color_hex, and auto-regenerates the `name` field:
-
-```typescript
-const updateSample = useCallback(async (id: string, updates: {
-  material?: string;
-  color?: string;
-  color_hex?: string;
-}) => {
-  const existing = samples.find(s => s.id === id);
-  const merged = {
-    material: updates.material ?? existing?.material,
-    color: updates.color ?? existing?.color,
-    color_hex: updates.color_hex ?? existing?.color_hex,
-  };
-  const name = [merged.material, merged.color].filter(Boolean).join(' – ') || 'Untitled';
-
-  const { error } = await supabase
-    .from('color_samples' as any)
-    .update({ ...merged, name })
-    .eq('id', id);
-
-  if (!error) {
-    setSamples(prev => prev.map(s => s.id === id
-      ? { ...s, ...merged, name }
-      : s
-    ));
-  }
-  return !error;
-}, [samples]);
+**Fix 1 -- Apply button (line 621)**
+Change disabled condition from:
+```
+disabled={!isModified && !override}
+```
+to:
+```
+disabled={!isModified && !override && !sampleImageUrl}
 ```
 
-Return `updateSample` alongside the existing exports.
+**Fix 2 -- Add "Replace" upload button when a sample is active (line 549-576)**
+Add a small "Replace" button next to the sample preview that triggers the file input, so users can upload a new swatch without first removing the current one.
 
-### 2. Add edit UI for saved swatches
+**Fix 3 -- Show saved swatches even when a sample is active (line 445)**
+Remove the `!sampleImageUrl` condition so saved swatches remain visible and selectable even when a sample is already loaded. This lets users switch between saved swatches freely.
 
-**File**: `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx`
+## Technical Details
 
-In the "Saved Swatches" grid section (lines 440-468), add:
-
-- A small **edit icon button** (Pencil) that appears on hover over each swatch thumbnail
-- When clicked, it opens an **inline edit panel** below the grid showing:
-  - The swatch image (small thumbnail)
-  - Material text input (pre-filled with current value)
-  - Color name text input (pre-filled)
-  - Hex input (pre-filled)
-  - Save and Cancel buttons
-- On save, call `updateSample(id, { material, color, color_hex })` and close the edit panel
-- A delete button (Trash2 icon) also visible in edit mode to remove bad swatches entirely
-
-### UI Layout (edit mode)
-
-```text
-+-------------------------------------------+
-| SAVED SWATCHES                            |
-| [swatch] [swatch] [swatch] [swatch]      |
-+-------------------------------------------+
-| Editing: [thumbnail]                      |
-| Material: [_______________]               |
-| Color:    [_______________]               |
-| Hex:      [#______]                       |
-| [Delete]              [Cancel] [Save]     |
-+-------------------------------------------+
-```
-
-### State Management
-
-Add to ComponentOverridePopover:
-- `editingSampleId: string | null` -- which swatch is being edited
-- `editMaterial`, `editColor`, `editHex` -- local edit fields
-
-## Scope
-- `src/hooks/useColorSamples.ts` -- add `updateSample` function
-- `src/components/creative-studio/product-shoot/ComponentOverridePopover.tsx` -- add edit UI for saved swatches
+- Fix 1: One-line change to the `disabled` prop
+- Fix 2: Add a small upload button (Upload icon) inside the sample preview area that reuses the existing `fileInputRef`
+- Fix 3: Remove `!sampleImageUrl` from the conditional on line 445
