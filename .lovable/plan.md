@@ -1,90 +1,78 @@
 
 
-# Add "Scene Placement" Mode to Custom Backgrounds
+# Scene Gallery with Categories and Auto-Sorting
 
 ## Overview
-Add a new background mode called **Scene** alongside the existing Studio, Outdoor, and Custom tabs. When a user selects "Scene", they upload a reference scene image and their product is placed directly **into that specific scene** -- the scene image is attached to the image generation model as a visual reference (not just described via prompt).
+Replace the current single-upload scene experience with a persistent **Scene Gallery**. Users can upload scene images that are saved permanently, automatically categorized by AI, and browsable by category. Selecting a scene from the gallery sets it as the scene reference for product placement.
 
-## How It Differs from Current "Custom"
-- **Custom** (existing): User uploads reference images, AI analyzes them, generates a text prompt describing the background. The prompt is sent to the generator -- the actual reference images are NOT attached.
-- **Scene** (new): User uploads a scene image. Both the prompt AND the actual scene image are attached to the image generator, so the AI composites the product directly into that visual environment.
+## Database
 
-## Changes
+### New table: `scene_images`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid (PK) | |
+| user_id | uuid | RLS-based ownership |
+| brand_id | uuid | Scoped to brand |
+| name | text | Auto-generated or user-provided |
+| image_url | text | Public URL from brand-assets bucket |
+| category | text | AI-assigned: "indoor", "outdoor-urban", "outdoor-nature", "cafe-restaurant", "retail-store", "home", "workspace", "beach-pool", "other" |
+| created_at | timestamptz | |
 
-### 1. Types -- Add `scene` to SettingType and state
-**File: `src/components/creative-studio/product-shoot/types.ts`**
-- Add `'scene'` to `SettingType` union: `'studio' | 'outdoor' | 'custom' | 'scene'`
-- Add `sceneImageUrl?: string` to `ProductShootState` -- the uploaded scene image URL to attach to the generator
+RLS policies: standard user_id = auth.uid() for SELECT, INSERT, DELETE.
 
-### 2. ProductShootConfig -- Pass scene image URL to edge function
-**File: `src/hooks/useImageGeneration.ts`**
-- Pass `sceneImageUrl` from `state.productShoot.sceneImageUrl` into `productShootConfig`
+## AI Auto-Categorization
 
-### 3. Edge function interface -- Accept scene image
-**File: `supabase/functions/generate-image/index.ts`**
-- Add `sceneImageUrl?: string` to `productShootConfig` interface
-- In the background section builder: when `sceneImageUrl` is present, add a `=== SCENE PLACEMENT ===` prompt section instructing the AI to place the product naturally into the provided scene
-- In the image attachment section (around line 1527): when `sceneImageUrl` is set, attach it as a visual input with a directive like: *"SCENE REFERENCE: Place the product naturally into this exact scene. Match the lighting, perspective, and scale of the environment. Do NOT alter the scene itself -- only add the product."*
+When a scene image is uploaded, call a lightweight AI classification (via an edge function `classify-scene`) that returns:
+- **category**: one of the predefined categories
+- **name**: a short descriptive name (e.g., "Sunlit Kitchen Counter", "Urban Brick Alley")
 
-### 4. Background Selector UI -- Add "Scene" tab
-**File: `src/components/creative-studio/product-shoot/BackgroundSelector.tsx`**
-- Add a 4th tab: `Scene`
-- Tab content: upload zone for a single scene image (reuse the upload pattern from CreateCustomBackgroundModal)
-- Show thumbnail preview of the uploaded scene with a remove button
-- Optionally allow a text prompt override for additional direction (e.g., "place shoes on the table in the foreground")
-- When a scene image is selected, call `onBackgroundSelect('scene-uploaded')` and propagate the uploaded URL via a new `onSceneImageChange` callback
+This uses the Lovable AI model `google/gemini-2.5-flash-lite` (fast/cheap) with a simple prompt: "Classify this scene image into one category and give it a short name."
 
-### 5. BackgroundSelector props
-- Add `sceneImageUrl?: string` and `onSceneImageChange?: (url: string | undefined) => void` props
-- Wire these through from `ProductShootStep2`
+### Edge function: `supabase/functions/classify-scene/index.ts`
+- Accepts `{ imageUrl: string }`
+- Returns `{ category: string, name: string }`
+- Uses gemini-2.5-flash-lite for fast classification
 
-### 6. ProductShootStep2 -- Wire scene state
-**File: `src/components/creative-studio/product-shoot/ProductShootStep2.tsx`**
-- Pass `sceneImageUrl` and `onSceneImageChange` to `BackgroundSelector`
-- Update state when scene image changes
+## UI Changes
 
-## Technical Details
+### BackgroundSelector.tsx -- Scene tab redesign
+Replace the current single-upload area with a gallery layout:
 
-### Scene image attachment in generate-image (key logic)
-```typescript
-// After moodboard attachment, before product refs
-if (body.productShootConfig?.sceneImageUrl) {
-  const sceneUrl = body.productShootConfig.sceneImageUrl;
-  if (sceneUrl.startsWith('http')) {
-    messageContent.push({
-      type: "image_url",
-      image_url: { url: sceneUrl }
-    });
-    messageContent.push({
-      type: "text",
-      text: "SCENE PLACEMENT REFERENCE: Place the product naturally into this exact scene/environment. Match the lighting direction, color temperature, perspective, and scale of objects in this scene. Do NOT alter the scene itself. The product should look like it was physically photographed in this location."
-    });
-    console.log("[BG] Attached scene placement image");
-  }
-}
-```
+1. **Category filter row** -- horizontal scrollable pills showing categories (All, Indoor, Outdoor, Cafe, etc.) with count badges
+2. **Image grid** -- 4-column grid of saved scene thumbnails (same card style as studio/outdoor presets)
+3. **Upload tile** -- "+" tile at the end to upload new scenes (uploads, classifies via AI, saves to DB)
+4. **Selected state** -- clicking a scene card sets `sceneImageUrl` and `selectedBackgroundId = 'scene-{id}'`
+5. **Delete on hover** -- X button like custom backgrounds
+6. **Placement direction input** -- kept below the grid when a scene is selected
 
-### Background prompt for scene mode
-```typescript
-if (config.sceneImageUrl) {
-  sections.push("=== BACKGROUND/SETTING ===");
-  sections.push("Use the attached scene reference image as the EXACT background environment. Place the product naturally within this scene, matching perspective, lighting, and scale.");
-  if (config.customBackgroundPrompt) {
-    sections.push(`Additional direction: ${config.customBackgroundPrompt}`);
-  }
-  sections.push("");
-}
-```
+### Flow when uploading a new scene:
+1. User clicks "+" upload tile or drops an image
+2. Image uploads to `brand-assets/{userId}/scene/`
+3. Edge function `classify-scene` is called with the image URL
+4. Scene is saved to `scene_images` table with AI-assigned category and name
+5. Gallery refreshes, new image appears in correct category
+6. Image is auto-selected as the active scene
 
-### Upload flow in BackgroundSelector
-- Upload to `brand-assets` bucket under `{userId}/scene/` path
-- Single image only (not 3 like custom backgrounds)
-- No AI analysis needed -- the image speaks for itself
+## New Hook: `src/hooks/useSceneImages.ts`
+- `useQuery` to fetch scene images for current brand, ordered by created_at desc
+- `createScene` mutation (upload + classify + insert)
+- `deleteScene` mutation
+- Follows the same pattern as `useCustomBackgrounds`
 
 ## Files Modified
-1. `src/components/creative-studio/product-shoot/types.ts` -- Add `scene` to SettingType, add `sceneImageUrl` to state
-2. `src/components/creative-studio/product-shoot/BackgroundSelector.tsx` -- Add Scene tab with upload UI
-3. `src/components/creative-studio/product-shoot/ProductShootStep2.tsx` -- Wire scene props
-4. `src/hooks/useImageGeneration.ts` -- Pass sceneImageUrl to edge function
-5. `supabase/functions/generate-image/index.ts` -- Accept and use scene image in prompt + attachment
+1. **Migration SQL** -- Create `scene_images` table with RLS
+2. **`supabase/functions/classify-scene/index.ts`** -- New edge function for AI categorization
+3. **`src/hooks/useSceneImages.ts`** -- New hook for CRUD operations
+4. **`src/components/creative-studio/product-shoot/BackgroundSelector.tsx`** -- Redesign Scene tab with gallery, categories, upload
+5. **`src/components/creative-studio/product-shoot/ProductShootStep2.tsx`** -- Minor: no prop changes needed since sceneImageUrl is already wired
 
+## Scene Categories
+```text
+indoor | outdoor-urban | outdoor-nature | cafe-restaurant
+retail-store | home | workspace | beach-pool | other
+```
+
+## Technical Notes
+- The existing `sceneImageUrl` state and edge function attachment logic remain unchanged -- the gallery simply provides a better way to select which scene image URL to use
+- Scene images are per-brand (like custom backgrounds), so switching brands shows different galleries
+- No changes needed to the generate-image edge function -- it already handles `sceneImageUrl`
