@@ -459,8 +459,8 @@ export const productFocusAngleOptions = [
   { 
     value: 'pair-shot' as ProductFocusAngle, 
     label: 'Pair Shot', 
-    prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered',
-    narrative: 'both shoes arranged at complementary angles, slightly staggered or overlapping to create depth and visual rhythm. The classic e-commerce pair composition — one shoe slightly forward and rotated, the other angled behind — producing a dynamic yet balanced arrangement that showcases the product from multiple perspectives simultaneously.',
+    prompt: 'staggered parallel pair composition, both shoes facing right, foreground shoe shifted left, low three-quarter side view highlighting sole profile and silhouette depth',
+    narrative: 'a low three-quarter side view that highlights the profile and thickness of the sole. Both shoes are parallel, toes pointing toward the right and heels toward the left. The shoes are staggered — the foreground shoe is shifted slightly to the left, while the background shoe sits slightly further right and higher in the frame. The toe of the background shoe is clearly visible behind the mid-section of the foreground shoe, and the foreground shoe heel partially overlaps the background shoe heel area, creating layered depth where both silhouettes are fully readable.',
     thumbnail: 'angle-pair.jpg',
     shoeCount: 2 as 1 | 2,
   },
