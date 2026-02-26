@@ -451,8 +451,8 @@ export const productFocusAngleOptions = [
   { 
     value: 'detail-closeup' as ProductFocusAngle, 
     label: 'Detail Close-up', 
-    prompt: 'extreme close-up cropped tight on buckle hardware, strap texture, and material details, macro-style product detail shot',
-    narrative: 'cropped tight in a macro-style detail shot, filling the frame with buckle hardware, strap texture, and material grain. The camera is close enough to reveal stitching paths, metal finishes, and the subtle surface variation of the materials. This is about tactile intimacy — making the viewer feel the product\'s craftsmanship.',
+    prompt: 'close-up macro shot of single shoe midsection, tight crop excluding heel and toe tip, shoe oriented diagonally with front toward bottom-right, neutral eye-level perspective, shallow depth of field highlighting surface texture and construction details',
+    narrative: 'a close-up macro shot of a single shoe, focusing on the midsection. The shoe is oriented on a slight diagonal, with the front angled toward the bottom-right and the rear extending toward the top-left. The framing is a tight crop that intentionally excludes the heel and the very tip of the toe, emphasizing the junction where the upper meets the sole. A shallow depth of field is used — the nearest surface details (material grain, construction, any hardware) are in sharp focus, while elements further back soften naturally. The camera is at a neutral eye-level perspective, close enough to reveal the tactile texture and structural details of the exterior.',
     thumbnail: 'angle-detail.jpg',
     shoeCount: 1 as 1 | 2,
   },

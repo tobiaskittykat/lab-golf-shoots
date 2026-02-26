@@ -664,7 +664,7 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         // use simplified dynamic descriptor for productFocus
         const productFocusAngle = request.productShootConfig?.productFocusConfig?.cameraAngle;
         if (visualShotType === 'on-foot' || visualShotType === 'lifestyle'
-            || (visualShotType === 'product-focus' && productFocusAngle === 'side-profile')) {
+            || (visualShotType === 'product-focus' && (productFocusAngle === 'side-profile' || productFocusAngle === 'detail-closeup'))) {
           // Footbed is hidden — skip entirely
           console.log(`[branding] Skipping footbed branding for shot type: ${visualShotType}, angle: ${productFocusAngle}`);
         } else if (visualShotType === 'product-focus') {
