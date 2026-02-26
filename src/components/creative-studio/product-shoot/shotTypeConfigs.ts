@@ -444,7 +444,7 @@ export const productFocusAngleOptions = [
     value: 'sole-view' as ProductFocusAngle, 
     label: 'Sole View', 
     prompt: 'two shoes in a dynamic cross-composition, front shoe angled diagonally showing footbed, rear shoe resting on its side revealing textured sole, high-angle three-quarter hero shot',
-    narrative: 'a high-angle, three-quarter hero shot. The camera is positioned slightly above the shoes looking down. The foreground shoe is placed at a 45-degree diagonal with the toe pointing toward the bottom-left and heel toward the top-right, sitting flat and showcasing the interior footbed and top straps. The background shoe is positioned behind, tilted on its side so the textured outsole tread faces the viewer, angled on the opposite diagonal with the toe pointing toward the bottom-right. The two shoes form a cross-composition — the heel of the foreground shoe partially overlaps the middle section of the background shoe, creating depth.',
+    narrative: 'a high-angle, three-quarter hero shot. The camera is positioned slightly above the shoes looking down. The foreground shoe is placed at a 45-degree diagonal with the toe pointing toward the bottom-left and heel toward the top-right, sitting flat and showcasing the interior footbed and upper details. The background shoe is positioned behind, tilted on its side so the textured outsole tread faces the viewer, angled on the opposite diagonal with the toe pointing toward the bottom-right. The two shoes form a cross-composition — the heel of the foreground shoe partially overlaps the middle section of the background shoe, creating depth.',
     thumbnail: 'angle-sole.jpg',
     shoeCount: 2 as 1 | 2,
   },
