@@ -1,32 +1,20 @@
 
 
-# Fix Pair Shot Prompt
+# Remove Product-Specific Language from Sole View Prompt
 
 ## Problem
-The current pair shot narrative uses vague language ("complementary angles", "dynamic yet balanced", "multiple perspectives simultaneously") with no camera position, no shoe orientation, and no spatial relationship defined. This causes inconsistent compositions and extra shoes.
+The sole view narrative mentions "top straps" which is specific to sandals/strap-based footwear. Shoes like clogs, sneakers, or loafers don't have straps, and this language could confuse the AI into hallucinating straps on products that don't have them.
 
-## Solution
-Replace both `prompt` and `narrative` for `pair-shot` in `shotTypeConfigs.ts` with your spatially precise description, lightly refined for camera elevation accuracy.
+## Finding
+- **Sole view narrative (line 447)**: Contains "showcasing the interior footbed and top straps" -- the "top straps" reference needs to go
+- **Sole view prompt (line 446)**: Clean, no product-specific parts
+- **Pair shot prompt + narrative (lines 462-463)**: Already clean, no straps/buckles/hardware mentioned
 
 ## Change
 
-**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` (lines 462-463)
+**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` (line 447)
 
-**Current:**
-```
-prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered'
-narrative: 'both shoes arranged at complementary angles, slightly staggered or overlapping to create depth and visual rhythm. The classic e-commerce pair composition — one shoe slightly forward and rotated, the other angled behind — producing a dynamic yet balanced arrangement that showcases the product from multiple perspectives simultaneously.'
-```
+Replace "showcasing the interior footbed and top straps" with "showcasing the interior footbed and upper details"
 
-**New:**
-```
-prompt: 'staggered parallel pair composition, both shoes facing right, foreground shoe shifted left, low three-quarter side view highlighting sole profile and silhouette depth'
-narrative: 'a low three-quarter side view that highlights the profile and thickness of the sole. Both shoes are parallel, toes pointing toward the right and heels toward the left. The shoes are staggered — the foreground shoe is shifted slightly to the left, while the background shoe sits slightly further right and higher in the frame. The toe of the background shoe is clearly visible behind the mid-section of the foreground shoe, and the foreground shoe heel partially overlaps the background shoe heel area, creating layered depth where both silhouettes are fully readable.'
-```
+This keeps the instruction to show the top of the shoe without assuming any specific hardware type. "Upper details" is universal footwear terminology that works for straps, laces, slip-ons, clogs, etc.
 
-## Why This Is Better
-- **Camera position defined**: "low three-quarter side view" instead of no camera direction
-- **Both shoes oriented identically**: "both facing right, toes right, heels left" -- no ambiguity
-- **Stagger relationship explicit**: foreground left, background right+higher, with specific overlap points described
-- **Removed all filler**: cut "dynamic yet balanced", "visual rhythm", "multiple perspectives simultaneously"
-- **Consistent style**: matches the spatial precision approach used for the sole view fix
