@@ -548,6 +548,36 @@ export type Database = {
           },
         ]
       }
+      scene_images: {
+        Row: {
+          brand_id: string
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url: string
+          name?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scraped_products: {
         Row: {
           angle: string | null

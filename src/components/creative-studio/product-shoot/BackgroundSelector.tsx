@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Check, Wand2, Cloud, ChevronDown, ChevronUp, Plus, X, Upload, MapPin } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
 import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
 import { useCustomBackgrounds, CustomBackground } from "@/hooks/useCustomBackgrounds";
+import { useSceneImages, SCENE_CATEGORIES } from "@/hooks/useSceneImages";
 import { useBrands } from "@/hooks/useBrands";
 import { useAuth } from "@/hooks/useAuth";
 import { CreateCustomBackgroundModal } from "./CreateCustomBackgroundModal";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const LAST_USED_BG_KEY = 'product-shoot-last-bg';
 const PRESET_VISIBLE_COUNT = 3; // 3 presets + 1 Auto tile = 4 tiles in first row
@@ -44,7 +44,8 @@ export const BackgroundSelector = ({
   const { currentBrand } = useBrands();
   const { user } = useAuth();
   const { backgrounds: customBackgrounds, isLoading: loadingCustom, createBackground, deleteBackground } = useCustomBackgrounds(currentBrand?.id);
-
+  const { sceneImages, isLoading: loadingScenes, createScene, deleteScene } = useSceneImages(currentBrand?.id);
+  const sceneFileRef = useRef<HTMLInputElement>(null);
   // Determine initial tab from current selection
   const getInitialTab = () => {
     if (settingType === 'scene' || selectedBackgroundId === 'scene-uploaded') return 'scene';
@@ -59,7 +60,7 @@ export const BackgroundSelector = ({
   const [activeTab, setActiveTab] = useState<'studio' | 'outdoor' | 'custom' | 'scene'>(getInitialTab());
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isUploadingScene, setIsUploadingScene] = useState(false);
+  const [sceneCategory, setSceneCategory] = useState<string>("all");
 
   // Get last used background from localStorage
   const lastUsedBgId = useMemo(() => {
@@ -141,42 +142,35 @@ export const BackgroundSelector = ({
   const autoTileId = activeTab === 'studio' ? 'studio-auto' : activeTab === 'outdoor' ? 'outdoor-auto' : 'custom-auto';
   const isAutoSelected = selectedBackgroundId === autoTileId;
 
-  // Scene image upload handler
-  const handleSceneUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Scene upload via gallery
+  const handleSceneFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user?.id) return;
+    if (!file) return;
+    createScene.mutate(file, {
+      onSuccess: (newScene) => {
+        onSceneImageChange?.(newScene.image_url);
+        onBackgroundSelect(`scene-${newScene.id}`);
+        toast({ title: "Scene uploaded & classified" });
+      },
+    });
+    // Reset input
+    if (sceneFileRef.current) sceneFileRef.current.value = "";
+  };
 
-    setIsUploadingScene(true);
-    try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${user.id}/scene/${Date.now()}.${ext}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('brand-assets')
-        .upload(path, file, { upsert: true });
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('brand-assets')
-        .getPublicUrl(path);
-      
-      onSceneImageChange?.(publicUrl);
-      onSettingTypeChange('scene');
-      onBackgroundSelect('scene-uploaded');
-      toast({ title: "Scene image uploaded" });
-    } catch (err) {
-      console.error('Scene upload error:', err);
-      toast({ title: "Upload failed", variant: "destructive" });
-    } finally {
-      setIsUploadingScene(false);
+  // Filter scenes by category
+  const filteredScenes = useMemo(() => {
+    if (sceneCategory === "all") return sceneImages;
+    return sceneImages.filter((s) => s.category === sceneCategory);
+  }, [sceneImages, sceneCategory]);
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: sceneImages.length };
+    for (const s of sceneImages) {
+      counts[s.category] = (counts[s.category] || 0) + 1;
     }
-  };
-
-  const handleRemoveScene = () => {
-    onSceneImageChange?.(undefined);
-    onBackgroundSelect('');
-  };
+    return counts;
+  }, [sceneImages]);
 
   const renderBackgroundCard = (bg: BackgroundPreset) => {
     const isSelected = selectedBackgroundId === bg.id;
@@ -348,57 +342,115 @@ export const BackgroundSelector = ({
 
   const renderSceneContent = () => (
     <div className="space-y-3">
-      {sceneImageUrl ? (
-        <div className="space-y-3">
-          <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-accent ring-2 ring-accent/20">
-            <img src={sceneImageUrl} alt="Scene" className="w-full h-full object-cover" />
+      {/* Hidden file input */}
+      <input
+        ref={sceneFileRef}
+        type="file"
+        accept="image/*"
+        onChange={handleSceneFileChange}
+        className="hidden"
+      />
+
+      {/* Category filter pills */}
+      {sceneImages.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {SCENE_CATEGORIES.filter(c => c.value === "all" || (categoryCounts[c.value] || 0) > 0).map((cat) => (
             <button
-              onClick={handleRemoveScene}
-              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center hover:bg-destructive transition-colors"
+              key={cat.value}
+              onClick={() => setSceneCategory(cat.value)}
+              className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                sceneCategory === cat.value
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <X className="w-3.5 h-3.5 text-white" />
+              {cat.label}
+              {(categoryCounts[cat.value] || 0) > 0 && (
+                <span className="ml-1 opacity-70">{categoryCounts[cat.value]}</span>
+              )}
             </button>
-            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-              <span className="text-xs font-medium text-white flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                Scene Reference
-              </span>
-            </div>
-          </div>
-          {/* Optional additional direction */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Placement direction (optional)
-            </label>
-            <Input
-              value={customBackgroundPrompt || ''}
-              onChange={(e) => onCustomPromptChange(e.target.value)}
-              placeholder="e.g., place shoes on the table in the foreground"
-              className="text-sm"
-            />
-          </div>
+          ))}
         </div>
-      ) : (
-        <label className="relative aspect-video rounded-xl border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleSceneUpload}
-            className="hidden"
-            disabled={isUploadingScene}
-          />
-          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-            {isUploadingScene ? (
-              <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      )}
+
+      {/* Scene grid */}
+      <div className="grid grid-cols-4 gap-3">
+        {filteredScenes.map((scene) => {
+          const isSelected = selectedBackgroundId === `scene-${scene.id}`;
+          return (
+            <button
+              key={scene.id}
+              onClick={() => {
+                onSceneImageChange?.(scene.image_url);
+                onBackgroundSelect(`scene-${scene.id}`);
+              }}
+              className={`relative aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all group ${
+                isSelected
+                  ? "border-accent ring-2 ring-accent/20"
+                  : "border-border hover:border-accent/40"
+              }`}
+            >
+              <img src={scene.image_url} alt={scene.name} className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-2">
+                <span className="text-xs font-medium text-white truncate block">{scene.name}</span>
+              </div>
+              {isSelected && (
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+                  <Check className="w-3 h-3 text-accent-foreground" />
+                </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${scene.name}"?`)) {
+                    deleteScene.mutate(scene.id);
+                    if (isSelected) {
+                      onSceneImageChange?.(undefined);
+                      onBackgroundSelect("");
+                    }
+                  }
+                }}
+                className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
+            </button>
+          );
+        })}
+
+        {/* Upload tile */}
+        <button
+          onClick={() => sceneFileRef.current?.click()}
+          disabled={createScene.isPending}
+          className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-dashed border-border hover:border-accent/50 transition-all flex flex-col items-center justify-center gap-1.5"
+        >
+          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+            {createScene.isPending ? (
+              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Upload className="w-5 h-5 text-muted-foreground" />
+              <Plus className="w-4 h-4 text-muted-foreground" />
             )}
           </div>
-          <div className="text-center">
-            <span className="text-sm font-medium text-foreground">Upload a scene image</span>
-            <p className="text-xs text-muted-foreground mt-0.5">Your product will be placed directly into this scene</p>
-          </div>
-        </label>
+          <span className="text-xs font-medium text-muted-foreground">
+            {createScene.isPending ? "Uploading..." : "Add Scene"}
+          </span>
+        </button>
+      </div>
+
+      {/* Placement direction - shown when a scene is selected */}
+      {sceneImageUrl && (
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Placement direction (optional)
+          </label>
+          <Input
+            value={customBackgroundPrompt || ""}
+            onChange={(e) => onCustomPromptChange(e.target.value)}
+            placeholder="e.g., place shoes on the table in the foreground"
+            className="text-sm"
+          />
+        </div>
       )}
     </div>
   );
