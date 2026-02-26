@@ -1,33 +1,32 @@
 
 
-# Fix Sole View Shot Prompt
+# Fix Pair Shot Prompt
 
 ## Problem
-The current sole view narrative is vague ("artfully arranged", "dual-perspective product story") and doesn't specify camera angle, shoe orientations, or spatial directions. This leads to wrong angles, extra shoes, and inconsistent compositions.
+The current pair shot narrative uses vague language ("complementary angles", "dynamic yet balanced", "multiple perspectives simultaneously") with no camera position, no shoe orientation, and no spatial relationship defined. This causes inconsistent compositions and extra shoes.
 
 ## Solution
-Replace both the `prompt` and `narrative` fields for the `sole-view` angle in `shotTypeConfigs.ts` with your clearer, spatially precise description.
+Replace both `prompt` and `narrative` for `pair-shot` in `shotTypeConfigs.ts` with your spatially precise description, lightly refined for camera elevation accuracy.
 
 ## Change
 
-**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` (lines 446-447)
+**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` (lines 462-463)
 
 **Current:**
 ```
-prompt: 'one shoe flipped to show sole tread pattern and outsole construction, second shoe showing footbed, artfully arranged to show both surfaces'
-narrative: 'one shoe flipped upside down to reveal the outsole tread pattern and construction, while the second shoe sits right-side-up showing the footbed. The two are artfully arranged to present both the walking surface and the wearing surface in a single composition — a dual-perspective product story.'
+prompt: 'both shoes arranged at complementary angles showing depth, classic e-commerce pair composition, shoes slightly overlapping or staggered'
+narrative: 'both shoes arranged at complementary angles, slightly staggered or overlapping to create depth and visual rhythm. The classic e-commerce pair composition — one shoe slightly forward and rotated, the other angled behind — producing a dynamic yet balanced arrangement that showcases the product from multiple perspectives simultaneously.'
 ```
 
 **New:**
 ```
-prompt: 'two shoes in a dynamic cross-composition, front shoe angled diagonally showing footbed, rear shoe resting on its side revealing textured sole, high-angle three-quarter hero shot'
-narrative: 'a high-angle, three-quarter hero shot. The camera is positioned slightly above the shoes looking down. The foreground shoe is placed at a 45-degree diagonal with the toe pointing toward the bottom-left and heel toward the top-right, sitting flat and showcasing the interior footbed and top straps. The background shoe is positioned behind, tilted on its side so the textured outsole tread faces the viewer, angled on the opposite diagonal with the toe pointing toward the bottom-right. The two shoes form a cross-composition — the heel of the foreground shoe partially overlaps the middle section of the background shoe, creating depth.'
+prompt: 'staggered parallel pair composition, both shoes facing right, foreground shoe shifted left, low three-quarter side view highlighting sole profile and silhouette depth'
+narrative: 'a low three-quarter side view that highlights the profile and thickness of the sole. Both shoes are parallel, toes pointing toward the right and heels toward the left. The shoes are staggered — the foreground shoe is shifted slightly to the left, while the background shoe sits slightly further right and higher in the frame. The toe of the background shoe is clearly visible behind the mid-section of the foreground shoe, and the foreground shoe heel partially overlaps the background shoe heel area, creating layered depth where both silhouettes are fully readable.'
 ```
 
 ## Why This Is Better
-- **Camera position defined**: "high-angle, three-quarter" with "slightly above looking down" instead of no camera direction at all
-- **Each shoe described independently**: foreground vs background, with specific toe-pointing directions
-- **Spatial relationship explicit**: "cross-composition", "partially overlaps the middle section"
-- **No flowery filler**: removed "artfully arranged", "dual-perspective product story"
-- **Concise enough**: the narrative is detailed but not overloaded -- each sentence adds a concrete spatial instruction
-
+- **Camera position defined**: "low three-quarter side view" instead of no camera direction
+- **Both shoes oriented identically**: "both facing right, toes right, heels left" -- no ambiguity
+- **Stagger relationship explicit**: foreground left, background right+higher, with specific overlap points described
+- **Removed all filler**: cut "dynamic yet balanced", "visual rhythm", "multiple perspectives simultaneously"
+- **Consistent style**: matches the spatial precision approach used for the sole view fix
