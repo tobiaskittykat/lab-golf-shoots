@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, Check, RefreshCw, Save, Clock, Loader2 } from 'lucide-react';
+import { Package, Check, RefreshCw, Save, Clock, Loader2, Expand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,8 @@ import { ProductShootState } from './types';
 import { ProductSKU } from './ProductSKUPicker';
 import { parseSkuDisplayInfo, formatSkuAttributes } from '@/lib/skuDisplayUtils';
 import type { ProductFocusAngle } from './shotTypeConfigs';
+import { ImageDetailModal } from '../ImageDetailModal';
+import type { GeneratedImage } from '../types';
 
 // Angles to generate for setup product
 const SETUP_ANGLES: { id: ProductFocusAngle; label: string; description: string }[] = [
@@ -35,6 +37,7 @@ interface AngleResult {
   isGenerating: boolean;
   approved: boolean;
   error?: string;
+  generatedImage?: GeneratedImage;
 }
 
 interface SetupProductStep2Props {
@@ -60,6 +63,8 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
   );
   const [angleResults, setAngleResults] = useState<AngleResult[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [detailImage, setDetailImage] = useState<GeneratedImage | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Shoe components
   const {
@@ -243,7 +248,7 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
         
         setAngleResults(prev => prev.map(r => 
           r.angleId === angle.id
-            ? { ...r, imageUrl: images[0]?.imageUrl || null, isGenerating: false, error: images[0]?.status === 'failed' ? 'Generation failed' : undefined }
+            ? { ...r, imageUrl: images[0]?.imageUrl || null, generatedImage: images[0] || undefined, isGenerating: false, error: images[0]?.status === 'failed' ? 'Generation failed' : undefined }
             : r
         ));
       } catch (err) {
@@ -314,7 +319,7 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
       
       setAngleResults(prev => prev.map(r =>
         r.angleId === angleId
-          ? { ...r, imageUrl: images[0]?.imageUrl || null, isGenerating: false }
+          ? { ...r, imageUrl: images[0]?.imageUrl || null, generatedImage: images[0] || undefined, isGenerating: false }
           : r
       ));
     } catch {
@@ -577,7 +582,22 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
                         <p className="text-xs text-muted-foreground">Generating...</p>
                       </div>
                     ) : result.imageUrl ? (
-                      <img src={result.imageUrl} alt={angleInfo?.label} className="w-full h-full object-cover" />
+                      <div 
+                        className="w-full h-full cursor-pointer group/img"
+                        onClick={() => {
+                          if (result.generatedImage) {
+                            setDetailImage(result.generatedImage);
+                            setIsDetailOpen(true);
+                          }
+                        }}
+                      >
+                        <img src={result.imageUrl} alt={angleInfo?.label} className="w-full h-full object-cover" />
+                        {result.generatedImage && (
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                            <Expand className="w-5 h-5 text-white" />
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
                         <p className="text-xs text-destructive">{result.error || 'Failed'}</p>
@@ -656,6 +676,14 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
         open={showCreateSKUModal}
         onClose={() => setShowCreateSKUModal(false)}
         onCreated={() => {}}
+      />
+      <ImageDetailModal
+        image={detailImage}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onVariation={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
       />
     </div>
   );
