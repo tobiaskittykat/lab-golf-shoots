@@ -1,6 +1,8 @@
 // Product Shoot Components - barrel export
 export { ProductShootSubtypeSelector } from './ProductShootSubtypeSelector';
 export { RemixStep2 } from './RemixStep2';
+export { SetupProductStep2 } from './SetupProductStep2';
+export { AdGalleryModal } from './AdGalleryModal';
 export { ProductShootIndicators } from './ProductShootIndicators';
 export { BackgroundSelector } from './BackgroundSelector';
 export { ModelConfigurator } from './ModelConfigurator';

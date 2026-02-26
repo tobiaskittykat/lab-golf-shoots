@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronDown, Check, RotateCcw, Pipette, Upload, X, Loader2 } from 'lucide-react';
+import { ChevronDown, Check, RotateCcw, Pipette, Upload, X, Loader2, BookOpen } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useColorSamples } from '@/hooks/useColorSamples';
 
 interface ComponentOverridePopoverProps {
   componentType: ComponentType;
@@ -50,6 +51,7 @@ export function ComponentOverridePopover({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { samples, saveSample } = useColorSamples();
 
   const RECENT_COLORS_KEY = 'component-override-recent-colors';
   type RecentColor = { name: string; hex: string };
@@ -177,6 +179,14 @@ export function ComponentOverridePopover({
           if (analysisData.colorHex) {
             setSelectedHex(analysisData.colorHex);
           }
+          // Auto-save to sample repository
+          saveSample({
+            image_url: publicUrl,
+            material: analysisData.material,
+            color: analysisData.color,
+            color_hex: analysisData.colorHex,
+            component_type: componentType,
+          });
         }
       } catch (analysisErr) {
         console.error('Swatch analysis failed (non-blocking):', analysisErr);
@@ -426,6 +436,37 @@ export function ComponentOverridePopover({
             <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Color/Material Sample
             </Label>
+
+            {/* Saved Swatches */}
+            {samples.length > 0 && !sampleImageUrl && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
+                  <BookOpen className="w-3 h-3" /> Saved Swatches
+                </p>
+                <div className="grid grid-cols-5 gap-1.5 max-h-[80px] overflow-y-auto">
+                  {samples.slice(0, 10).map((sample) => (
+                    <button
+                      key={sample.id}
+                      type="button"
+                      onClick={() => {
+                        setSampleImageUrl(sample.image_url);
+                        setAttachSampleToGen(true);
+                        if (sample.material) {
+                          const matchedMat = materials.find(m => m.value === sample.material);
+                          if (matchedMat) setSelectedMaterial(matchedMat.value);
+                        }
+                        if (sample.color) setSelectedColor(sample.color);
+                        if (sample.color_hex) setSelectedHex(sample.color_hex);
+                      }}
+                      className="relative w-full aspect-square rounded-md border border-border/50 overflow-hidden hover:border-accent transition-all"
+                      title={sample.name || `${sample.material} – ${sample.color}`}
+                    >
+                      <img src={sample.image_url} alt={sample.name || 'Swatch'} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {sampleImageUrl ? (
               <div className="space-y-2">

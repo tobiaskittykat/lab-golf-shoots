@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronDown, ChevronRight, Upload, Package, Settings2, Clock, Check, X, ImageIcon, Trash2, Expand } from "lucide-react";
+import { ChevronDown, ChevronRight, Upload, Package, Settings2, Clock, Check, X, ImageIcon, Trash2, Expand, FolderOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { ProductSKU } from "./ProductSKUPicker";
 import { ProductPickerModal } from "./ProductPickerModal";
@@ -21,6 +22,8 @@ import { useQuery } from "@tanstack/react-query";
 import { parseSkuDisplayInfo, formatSkuAttributes } from "@/lib/skuDisplayUtils";
 import { ProductShootState, initialProductShootState } from "./types";
 import { aspectRatios, resolutions } from "../types";
+import { AdGalleryModal } from "./AdGalleryModal";
+import { useAdCreatives } from "@/hooks/useAdCreatives";
 
 interface RemixStep2Props {
   state: ProductShootState;
@@ -71,6 +74,9 @@ export const RemixStep2 = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<{ url: string; name: string } | null>(null);
+  const [showAdGallery, setShowAdGallery] = useState(false);
+  const [autoSaveToGallery, setAutoSaveToGallery] = useState(true);
+  const { saveCreative } = useAdCreatives();
 
   // Shoe component analysis hooks
   const {
@@ -250,6 +256,12 @@ export const RemixStep2 = ({
       onStateChange({
         remixSourceImages: [...remixSourceImages, ...uploadedUrls],
       });
+      // Auto-save to ad gallery
+      if (autoSaveToGallery) {
+        for (const url of uploadedUrls) {
+          saveCreative(url);
+        }
+      }
     }
     
     setIsUploading(false);
@@ -357,6 +369,26 @@ export const RemixStep2 = ({
                     PNG, JPEG, WebP · Max {MAX_SOURCE_IMAGES} images
                   </p>
                 </div>
+              </div>
+
+              {/* Ad Gallery button + auto-save toggle */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAdGallery(true)}
+                  className="gap-1.5"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  Browse Ad Gallery
+                </Button>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={autoSaveToGallery}
+                    onCheckedChange={(v) => setAutoSaveToGallery(v === true)}
+                  />
+                  <span className="text-xs text-muted-foreground">Auto-save uploads</span>
+                </label>
               </div>
 
               {/* Uploaded thumbnails */}
@@ -574,6 +606,15 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Modals */}
+      <AdGalleryModal
+        open={showAdGallery}
+        onOpenChange={setShowAdGallery}
+        onSelect={(urls) => {
+          onStateChange({
+            remixSourceImages: [...remixSourceImages, ...urls].slice(0, MAX_SOURCE_IMAGES),
+          });
+        }}
+      />
       <ProductPickerModal
         open={showProductPickerModal}
         onOpenChange={setShowProductPickerModal}
