@@ -10,6 +10,7 @@ export interface SceneImage {
   name: string;
   image_url: string;
   category: string;
+  region: string;
   created_at: string;
 }
 
@@ -24,6 +25,14 @@ export const SCENE_CATEGORIES = [
   { value: "workspace", label: "Workspace" },
   { value: "beach-pool", label: "Beach" },
   { value: "other", label: "Other" },
+] as const;
+
+export const SCENE_REGIONS = [
+  { value: "all", label: "All Regions" },
+  { value: "usa", label: "USA" },
+  { value: "europe", label: "Europe" },
+  { value: "apac", label: "APAC" },
+  { value: "mea", label: "MEA" },
 ] as const;
 
 export function useSceneImages(brandId: string | undefined) {
@@ -51,10 +60,9 @@ export function useSceneImages(brandId: string | undefined) {
   });
 
   const createScene = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, region = "all" }: { file: File; region?: string }) => {
       if (!user?.id || !brandId) throw new Error("Not authenticated or no brand");
 
-      // 1. Upload to storage
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${user.id}/scene/${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
@@ -66,7 +74,6 @@ export function useSceneImages(brandId: string | undefined) {
         .from("brand-assets")
         .getPublicUrl(path);
 
-      // 2. Classify via AI
       let category = "other";
       let name = "Uploaded Scene";
       try {
@@ -81,7 +88,6 @@ export function useSceneImages(brandId: string | undefined) {
         console.error("Classification failed, using defaults:", e);
       }
 
-      // 3. Insert into DB
       const { data, error } = await supabase
         .from("scene_images" as any)
         .insert({
@@ -90,6 +96,7 @@ export function useSceneImages(brandId: string | undefined) {
           name,
           image_url: publicUrl,
           category,
+          region,
         } as any)
         .select()
         .single();
@@ -102,6 +109,19 @@ export function useSceneImages(brandId: string | undefined) {
     onError: (err) => {
       console.error("Scene upload error:", err);
       toast({ title: "Failed to upload scene", variant: "destructive" });
+    },
+  });
+
+  const updateSceneRegion = useMutation({
+    mutationFn: async ({ id, region }: { id: string; region: string }) => {
+      const { error } = await supabase
+        .from("scene_images" as any)
+        .update({ region } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
     },
   });
 
@@ -118,5 +138,5 @@ export function useSceneImages(brandId: string | undefined) {
     },
   });
 
-  return { sceneImages, isLoading, createScene, deleteScene };
+  return { sceneImages, isLoading, createScene, deleteScene, updateSceneRegion };
 }
