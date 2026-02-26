@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SettingType, BackgroundPreset, WeatherCondition } from "./types";
 import { studioBackgrounds, outdoorBackgrounds, weatherConditionOptions } from "./presets";
 import { useCustomBackgrounds, CustomBackground } from "@/hooks/useCustomBackgrounds";
-import { useSceneImages, SCENE_CATEGORIES } from "@/hooks/useSceneImages";
+import { useSceneImages, SCENE_CATEGORIES, SCENE_REGIONS } from "@/hooks/useSceneImages";
 import { useBrands } from "@/hooks/useBrands";
 import { useAuth } from "@/hooks/useAuth";
 import { CreateCustomBackgroundModal } from "./CreateCustomBackgroundModal";
@@ -44,8 +44,9 @@ export const BackgroundSelector = ({
   const { currentBrand } = useBrands();
   const { user } = useAuth();
   const { backgrounds: customBackgrounds, isLoading: loadingCustom, createBackground, deleteBackground } = useCustomBackgrounds(currentBrand?.id);
-  const { sceneImages, isLoading: loadingScenes, createScene, deleteScene } = useSceneImages(currentBrand?.id);
+  const { sceneImages, isLoading: loadingScenes, createScene, deleteScene, updateSceneRegion } = useSceneImages(currentBrand?.id);
   const sceneFileRef = useRef<HTMLInputElement>(null);
+  const [uploadRegion, setUploadRegion] = useState<string>("all");
   // Determine initial tab from current selection
   const getInitialTab = () => {
     if (settingType === 'scene' || selectedBackgroundId === 'scene-uploaded') return 'scene';
@@ -61,6 +62,7 @@ export const BackgroundSelector = ({
   const [showAllBackgrounds, setShowAllBackgrounds] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [sceneCategory, setSceneCategory] = useState<string>("all");
+  const [sceneRegion, setSceneRegion] = useState<string>("all");
 
   // Get last used background from localStorage
   const lastUsedBgId = useMemo(() => {
@@ -146,28 +148,40 @@ export const BackgroundSelector = ({
   const handleSceneFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    createScene.mutate(file, {
+    createScene.mutate({ file, region: uploadRegion }, {
       onSuccess: (newScene) => {
         onSceneImageChange?.(newScene.image_url);
         onBackgroundSelect(`scene-${newScene.id}`);
         toast({ title: "Scene uploaded & classified" });
       },
     });
-    // Reset input
     if (sceneFileRef.current) sceneFileRef.current.value = "";
   };
 
-  // Filter scenes by category
+  // Filter scenes by region AND category
   const filteredScenes = useMemo(() => {
-    if (sceneCategory === "all") return sceneImages;
-    return sceneImages.filter((s) => s.category === sceneCategory);
-  }, [sceneImages, sceneCategory]);
+    return sceneImages.filter((s) => {
+      const regionMatch = sceneRegion === "all" || s.region === sceneRegion;
+      const categoryMatch = sceneCategory === "all" || s.category === sceneCategory;
+      return regionMatch && categoryMatch;
+    });
+  }, [sceneImages, sceneCategory, sceneRegion]);
 
-  // Category counts
+  // Category counts (respecting region filter)
   const categoryCounts = useMemo(() => {
+    const regionFiltered = sceneRegion === "all" ? sceneImages : sceneImages.filter(s => s.region === sceneRegion);
+    const counts: Record<string, number> = { all: regionFiltered.length };
+    for (const s of regionFiltered) {
+      counts[s.category] = (counts[s.category] || 0) + 1;
+    }
+    return counts;
+  }, [sceneImages, sceneRegion]);
+
+  // Region counts
+  const regionCounts = useMemo(() => {
     const counts: Record<string, number> = { all: sceneImages.length };
     for (const s of sceneImages) {
-      counts[s.category] = (counts[s.category] || 0) + 1;
+      counts[s.region] = (counts[s.region] || 0) + 1;
     }
     return counts;
   }, [sceneImages]);
@@ -351,6 +365,26 @@ export const BackgroundSelector = ({
         className="hidden"
       />
 
+      {/* Region filter pills */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {SCENE_REGIONS.map((r) => (
+          <button
+            key={r.value}
+            onClick={() => setSceneRegion(r.value)}
+            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              sceneRegion === r.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {r.label}
+            {(regionCounts[r.value] || 0) > 0 && (
+              <span className="ml-1 opacity-70">{regionCounts[r.value]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Category filter pills */}
       {sceneImages.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
@@ -373,10 +407,27 @@ export const BackgroundSelector = ({
         </div>
       )}
 
+      {/* Upload region selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">Upload to:</span>
+        <Select value={uploadRegion} onValueChange={setUploadRegion}>
+          <SelectTrigger className="h-7 text-xs w-32 bg-muted/50 border-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SCENE_REGIONS.filter(r => r.value !== "all").map((r) => (
+              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+            ))}
+            <SelectItem value="all">No Region</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Scene grid */}
       <div className="grid grid-cols-4 gap-3">
         {filteredScenes.map((scene) => {
           const isSelected = selectedBackgroundId === `scene-${scene.id}`;
+          const regionLabel = SCENE_REGIONS.find(r => r.value === scene.region)?.label;
           return (
             <button
               key={scene.id}
@@ -395,11 +446,34 @@ export const BackgroundSelector = ({
               <div className="absolute bottom-0 left-0 right-0 p-2">
                 <span className="text-xs font-medium text-white truncate block">{scene.name}</span>
               </div>
-              {isSelected && (
+              {/* Region badge */}
+              {scene.region && scene.region !== "all" && regionLabel && (
+                <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-[10px] font-medium text-white">
+                  {regionLabel}
+                </div>
+              )}
+              {isSelected && !scene.region?.length && (
                 <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
                   <Check className="w-3 h-3 text-accent-foreground" />
                 </div>
               )}
+              {/* Region reassign on hover */}
+              <div className="absolute bottom-7 left-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                <Select
+                  value={scene.region || "all"}
+                  onValueChange={(val) => updateSceneRegion.mutate({ id: scene.id, region: val })}
+                >
+                  <SelectTrigger className="h-5 text-[10px] w-16 bg-black/60 border-0 text-white px-1 py-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCENE_REGIONS.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Delete button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -438,7 +512,7 @@ export const BackgroundSelector = ({
         </button>
       </div>
 
-      {/* Placement direction - shown when a scene is selected */}
+      {/* Placement direction */}
       {sceneImageUrl && (
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
