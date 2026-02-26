@@ -442,7 +442,7 @@ export function ComponentOverridePopover({
             </Label>
 
             {/* Saved Swatches */}
-            {samples.length > 0 && !sampleImageUrl && (
+            {samples.length > 0 && (
               <div className="space-y-1">
                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
                   <BookOpen className="w-3 h-3" /> Saved Swatches
@@ -548,20 +548,35 @@ export function ComponentOverridePopover({
             
             {sampleImageUrl ? (
               <div className="space-y-2">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
-                  <img src={sampleImageUrl} alt="Color sample" className="w-full h-full object-cover" />
-                  {isAnalyzing && (
-                    <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
-                      <span className="text-[9px] text-accent mt-0.5">Analyzing</span>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2">
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-border flex-shrink-0">
+                    <img src={sampleImageUrl} alt="Color sample" className="w-full h-full object-cover" />
+                    {isAnalyzing && (
+                      <div className="absolute inset-0 bg-background/70 flex flex-col items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                        <span className="text-[9px] text-accent mt-0.5">Analyzing</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRemoveSample}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={handleRemoveSample}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingSample}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-md border border-border/50 text-xs text-muted-foreground hover:bg-muted/30 transition-colors"
                   >
-                    <X className="w-3 h-3" />
+                    {isUploadingSample ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Upload className="w-3 h-3" />
+                    )}
+                    Replace
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -618,7 +633,7 @@ export function ComponentOverridePopover({
               size="sm"
               onClick={handleApply}
               className="text-xs h-8"
-              disabled={!isModified && !override}
+              disabled={!isModified && !override && !sampleImageUrl}
             >
               <Check className="w-3 h-3 mr-1" />
               Apply
