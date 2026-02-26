@@ -1,32 +1,27 @@
 
-# Fix: Ad Gallery Not Showing Auto-Saved Uploads
+
+# Hide Bottom Floating Bar in Set-Up Product Mode
 
 ## Problem
-When you upload source images with "Auto-save uploads" enabled, the images are saved to the database successfully (confirmed: POST returns 201). However, when you open "Browse Ad Gallery", it shows empty because:
-
-1. The `AdGalleryModal` creates its own instance of `useAdCreatives`, which fetched data **before** the upload happened
-2. The modal never refetches when it opens -- it only fetches once on mount
-3. Since Dialog keeps its content mounted, subsequent opens don't trigger a remount/refetch
+The Set-Up Product flow has its own "Generate N Product Images" button built into the `SetupProductStep2` component. The floating bottom bar (which also has a Generate button) is redundant and confusing in this mode -- it shows a second generate button with different logic.
 
 ## Solution
+Add a condition to hide the floating footer bar when `shootMode === 'setup'`.
 
-### 1. Add refetch-on-open to AdGalleryModal
+## Change
 
-**File**: `src/components/creative-studio/product-shoot/AdGalleryModal.tsx`
+### File: `src/components/creative-studio/CreativeStudioWizard.tsx`
 
-- Import `useEffect` from React
-- Add a `useEffect` that calls `refetch()` whenever `open` changes to `true`
-- The `refetch` function is already returned by `useAdCreatives` but not currently consumed
+**Line 1001**: Add `shootMode !== 'setup'` to the floating footer condition.
 
-```typescript
-const { creatives, isLoading, deleteCreative, refetch } = useAdCreatives();
-
-useEffect(() => {
-  if (open) refetch();
-}, [open, refetch]);
+Change:
+```
+{floating.active && state.step === 2 && (
+```
+to:
+```
+{floating.active && state.step === 2 && !(state.useCase === 'product' && state.productShoot.shootMode === 'setup') && (
 ```
 
-This is a 2-line fix. When the user clicks "Browse Ad Gallery", the modal will always fetch the latest data from the database, including any images that were just auto-saved.
+This hides the entire floating bottom bar (Back, indicators, Generate button) only when in Set-Up Product mode, while keeping it for New Shoot, Remix, and all lifestyle flows.
 
-## Scope
-- `src/components/creative-studio/product-shoot/AdGalleryModal.tsx` -- add `useEffect` to refetch on open
