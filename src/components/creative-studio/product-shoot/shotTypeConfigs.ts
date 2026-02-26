@@ -435,8 +435,8 @@ export const productFocusAngleOptions = [
   { 
     value: 'top-down' as ProductFocusAngle, 
     label: 'Top Down', 
-    prompt: 'overhead top-down view of pair, both shoes visible side by side, footbed and straps fully visible from above, embossed branding readable',
-    narrative: 'shot from directly overhead, looking straight down at both shoes placed side by side. The footbed, straps, buckles, and any embossed branding are fully visible and readable from this bird\'s-eye perspective. The symmetry of the pair creates a graphic, almost architectural composition.',
+    prompt: 'direct overhead bird\'s-eye view of pair, both shoes vertically aligned pointing toward top of frame, symmetrical side-by-side with uniform gap, full interior footbed and top surface of uppers visible, outer sides and soles hidden',
+    narrative: 'a direct overhead, bird\'s-eye view looking straight down onto the pair. Both shoes are vertically aligned, pointing directly toward the top of the frame. They are arranged in a symmetrical, side-by-side composition, positioned parallel to one another with a small, uniform gap between them. This angle provides a complete view of the interior footbed and the top surface of the uppers, highlighting the internal contours and the overall top-down silhouette of the pair. The outer sides and soles are entirely hidden from this perspective.',
     thumbnail: 'angle-top-down.jpg',
     shoeCount: 2 as 1 | 2,
   },
