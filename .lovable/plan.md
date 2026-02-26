@@ -1,20 +1,23 @@
 
-
-# Remove Product-Specific Language from Sole View Prompt
+# Fix Image Generation Timeout
 
 ## Problem
-The sole view narrative mentions "top straps" which is specific to sandals/strap-based footwear. Shoes like clogs, sneakers, or loafers don't have straps, and this language could confuse the AI into hallucinating straps on products that don't have them.
+Gemini Pro image generation takes 60-100 seconds per image. When generating 4 images sequentially, total time is 240-400 seconds. The current polling timeout is 150 seconds (2.5 minutes), causing most batches to time out with "Generation timed out after 150s".
 
-## Finding
-- **Sole view narrative (line 447)**: Contains "showcasing the interior footbed and top straps" -- the "top straps" reference needs to go
-- **Sole view prompt (line 446)**: Clean, no product-specific parts
-- **Pair shot prompt + narrative (lines 462-463)**: Already clean, no straps/buckles/hardware mentioned
+## Solution
+Increase the polling timeout from 150 seconds to 480 seconds (8 minutes). This comfortably covers 4 sequential images at even the slowest generation times (~100s each).
 
-## Change
+## Changes
 
-**File:** `src/components/creative-studio/product-shoot/shotTypeConfigs.ts` (line 447)
+**File: `src/lib/imagePolling.ts`** (line 29)
+- Change default `maxWaitMs` from `150000` to `480000`
+- Update comment from "2.5 minutes" to "8 minutes"
 
-Replace "showcasing the interior footbed and top straps" with "showcasing the interior footbed and upper details"
+**File: `src/hooks/useImageGeneration.ts`** (lines 608 and 783)
+- Change both explicit `maxWaitMs: 150000` calls to `maxWaitMs: 480000`
 
-This keeps the instruction to show the top of the shoe without assuming any specific hardware type. "Upper details" is universal footwear terminology that works for straps, laces, slip-ons, clogs, etc.
-
+## Technical Details
+- Based on edge function logs: Image 1 took ~109s, Image 2 took ~67s after that
+- 4 images worst case: 4 x 100s = 400s, so 480s gives ~80s buffer
+- No other code paths or behavior changes needed -- just the timeout value
+- The polling interval (4s) stays the same so completed images still appear progressively
