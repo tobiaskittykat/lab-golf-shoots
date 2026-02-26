@@ -427,8 +427,8 @@ export const productFocusAngleOptions = [
   { 
     value: 'side-profile' as ProductFocusAngle, 
     label: 'Side Profile', 
-    prompt: 'pure lateral side profile view, single shoe centered, showing full silhouette from true side angle, product facing left',
-    narrative: 'a pure lateral view capturing the full silhouette. A single shoe centered in frame, photographed from a true side angle with the product facing left. The entire profile line — from heel counter through the arch to the toe — reads as one clean, uninterrupted silhouette against the background.',
+    prompt: 'precise eye-level side profile, shoe perfectly horizontal with toe pointing right and heel pointing left, flat lateral silhouette emphasizing full length of sole and upper contour, interior hidden',
+    narrative: 'a precise, eye-level side profile perspective. The camera is positioned directly perpendicular to the side of the shoe, perfectly level with it. The shoe is oriented perfectly horizontal, with the toe pointing directly to the right edge of the frame and the heel aligned toward the left. The shoe sits flat on its sole, centered vertically in the frame to emphasize its silhouette and proportions. This composition captures a flat, two-dimensional lateral silhouette, showcasing the full length and contour of both the sole and the upper while the interior footbed remains obscured from view.',
     thumbnail: 'angle-side-profile.jpg',
     shoeCount: 1 as 1 | 2,
   },
