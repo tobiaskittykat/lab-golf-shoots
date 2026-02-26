@@ -605,7 +605,7 @@ export function useImageGeneration() {
       // Poll for completed images with progressive display
       const notifiedIds = new Set<string>();
       const rows = await pollForPendingImages(allPendingIds, {
-        maxWaitMs: 150000,
+        maxWaitMs: 480000,
         intervalMs: 4000,
         onRowReady: (row) => {
           if (row.status === 'completed' && onImageReady && !notifiedIds.has(row.id)) {
@@ -780,7 +780,7 @@ export function useImageGeneration() {
 
       const notifiedIds = new Set<string>();
       const rows = await pollForPendingImages(pendingIds, {
-        maxWaitMs: 150000,
+        maxWaitMs: 480000,
         intervalMs: 4000,
         onRowReady: (row) => {
           if (row.status === 'completed' && onImageReady && !notifiedIds.has(row.id)) {

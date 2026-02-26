@@ -26,7 +26,7 @@ export async function pollForPendingImages(
     onRowReady?: (row: PollResult) => void;
   }
 ): Promise<PollResult[]> {
-  const maxWaitMs = options?.maxWaitMs ?? 150000; // 2.5 minutes
+  const maxWaitMs = options?.maxWaitMs ?? 480000; // 8 minutes
   const intervalMs = options?.intervalMs ?? 4000; // 4 seconds
   const onRowReady = options?.onRowReady;
 
