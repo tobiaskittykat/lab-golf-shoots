@@ -1,43 +1,53 @@
 
 
-# Fix: Include Hex Code in Prompt for Custom-Picked Colors
+# Fix: Ensure hex codes survive into final prompts for custom-picked colors
 
-## Problem
-When a user picks a color via the hex code input, `hexToColorName()` resolves it to a descriptive name (e.g., "Rosy Brown") and stores that as the `color` field. Later, `getColorDescription()` in the generate-image function checks if `color === 'Custom'` -- since it's now "Rosy Brown", it returns early with just the name, dropping the hex code from the prompt entirely.
+## Problem traced
 
-## Root Cause
-Line 282 in `generate-image/index.ts`:
+There are two generations visible in the logs showing two different failure modes:
+
+1. **Older generation** (the `UPP_F8D5C7` prompt): The UI stored the raw hex code as the `color` field (e.g., `color: "#F8D5C7"`). The creative brief sent `UPPER: ... in #F8D5C7`. The prompt agent LLM then mangled `#F8D5C7` into `UPP_F8D5C7` -- LLMs don't reliably preserve hex codes in prose.
+
+2. **Newer generation** (the `Medium Turquoise` prompt): The `hexToColorName` fix is working -- colors resolve to names. But the hex code is **dropped** from the creative brief entirely (`UPPER: ... in Medium Turquoise` instead of `Medium Turquoise (#45C9FB)`).
+
+## Root cause
+
+The `getColorDescription` function in the **deployed** edge function is not outputting the hex alongside the resolved name. Looking at the creative brief logged for the newer run:
+
 ```
-if (override.color !== 'Custom' && override.color !== 'custom') {
-  return override.color;  // <-- exits here, hex is lost
-}
+UPPER: Natural Leather (grained) in Medium Turquoise    <-- no hex
+FOOTBED: Cork-latex in Medium Sea Green                  <-- no hex
 ```
+
+This means either:
+- The edge function deployment is stale (running old code before the `isKnownPreset` fix)
+- OR the `isKnownPreset` check is incorrectly matching these names
+
+"Medium Turquoise" and "Medium Sea Green" are **not** in the `KNOWN_PRESET_NAMES` set (which only contains Birkenstock brand presets like Taupe, Tobacco, etc.), so the fix should work. This points to a **stale deployment**.
 
 ## Fix
 
-### File: `supabase/functions/generate-image/index.ts`
-Update `getColorDescription` to also append the hex when the color name is NOT a known preset (meaning it was resolved from a custom hex pick). Logic:
+### 1. Force redeploy the `generate-image` edge function
+The code in the repo already has the correct `getColorDescription` logic with `isKnownPreset`. A fresh deploy should fix it.
+
+### 2. Add prompt agent instruction to preserve hex codes
+Even with the fix, the prompt agent LLM may strip hex codes from its output (as seen with `UPP_F8D5C7`). Add an explicit instruction to the prompt agent system prompt:
+
+In `supabase/functions/generate-image/index.ts`, in the `craftPromptWithAgent` function's system prompt, add a rule like:
 
 ```
-function getColorDescription(override) {
-  // If colorHex is present and color is NOT a standard preset name,
-  // it was resolved from a hex pick -- include the hex
-  if (override.colorHex && !isKnownPreset(override.color)) {
-    return `${override.color} (${override.colorHex.toUpperCase()})`;
-  }
-  return override.color;
-}
+When component colors include a hex code in parentheses like "Medium Turquoise (#45C9FB)",
+you MUST preserve both the descriptive name AND the hex code exactly as provided.
+Do NOT remove, rename, or reformat hex codes.
 ```
 
-Add a small `isKnownPreset` helper that checks against the `COLOR_PRESETS` array already duplicated in the edge function.
+### 3. Add debug logging for color resolution
+Add a `console.log` in the component loop (around line 705) to trace what `getColorDescription` returns for each override, making future issues immediately visible in logs.
 
-### File: `src/lib/birkenstockMaterials.ts`
-Apply the same fix to the client-side `getColorDescription` helper, using the imported `COLOR_PRESETS` to distinguish preset picks from hex-derived names.
+## Files to modify
+- `supabase/functions/generate-image/index.ts` -- add prompt agent instruction + debug logging (the `getColorDescription` fix is already in the code, just needs redeployment)
 
-## Result
-- Preset color pick (e.g., "Taupe"): prompt says `Taupe` (unchanged)
-- Hex color pick (e.g., `#BC8F8F`): prompt says `Rosy Brown (#BC8F8F)` (fixed)
-
-## Scope
-Two small function updates, no new files, no database changes.
+## Expected result
+- Creative brief: `UPPER: Natural Leather (grained) in Medium Turquoise (#45C9FB)`
+- Final prompt: `...crafted from Medium Turquoise (#45C9FB) Natural Leather (grained)...`
 
