@@ -2,7 +2,7 @@
 // v3.0 — hex-v3 force redeploy 2026-03-02T07:30Z — always include hex in color descriptions
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GEN_IMAGE_BUILD = "hex-v3-2026-03-02T0730Z";
+const GEN_IMAGE_BUILD = "hex-inline-v1-2026-03-02";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -280,56 +280,46 @@ function _nearestColorName(hex: string): string {
   return best;
 }
 
-// Known preset color names (from Birkenstock palette) – used to distinguish
-// user-picked presets from hex-derived color names that need the hex appended.
-const KNOWN_PRESET_NAMES = new Set([
-  'Taupe','Tobacco','Mocha','Stone','Black','Habana','Cognac','Sand','White',
-  'Navy','Antique White','Chocolate','Cork Brown','Cream','Anthracite',
-  'Desert Soil','Iron','Mink','Port','Thyme','Apricot','Coral','Peach',
-  'Rose Gold','Blush','Baby Blue','Sky Blue','Light Blue','Powder Blue',
-  'Royal Blue','Dusty Blue',
-]);
-
-function isKnownPreset(colorName: string): boolean {
-  return KNOWN_PRESET_NAMES.has(colorName);
-}
-
-// Normalize a single component override in-place:
-// - uppercase hex, trim name, derive name from hex if missing, strip embedded hex from name
-function normalizeOverride(o: { material: string; color: string; colorHex?: string }): void {
-  if (o.colorHex) o.colorHex = o.colorHex.trim().toUpperCase();
-  o.color = (o.color || '').trim();
-  o.material = (o.material || '').trim();
-  // If color is empty/Custom but hex exists, derive a readable name
-  if ((!o.color || o.color === 'Custom' || o.color === 'custom') && o.colorHex) {
-    o.color = _nearestColorName(o.colorHex);
-  }
-  // If color already contains a bracketed hex, strip it and keep canonical fields
-  const bracketMatch = o.color.match(/^(.+?)\s*\(#([0-9A-Fa-f]{6})\)\s*$/);
-  if (bracketMatch) {
-    o.color = bracketMatch[1].trim();
-    if (!o.colorHex) o.colorHex = '#' + bracketMatch[2].toUpperCase();
+// Bake hex code directly INTO the .color string for a single component.
+// After this, .color = "Dark Slate Gray (#005477)" and .colorHex is deleted.
+// Every downstream code path that reads .color automatically carries the hex.
+function _bakeHexIntoComponent(comp: { material: string; color: string; colorHex?: string }): void {
+  if (!comp) return;
+  comp.material = (comp.material || '').trim();
+  comp.color = (comp.color || '').trim();
+  if (comp.colorHex) {
+    const hex = comp.colorHex.trim().toUpperCase();
+    // Derive a readable name if color is empty/Custom
+    let name = comp.color;
+    if (!name || name === 'Custom' || name === 'custom') {
+      name = _nearestColorName(hex);
+    }
+    // Strip any existing bracketed hex from name to avoid duplication
+    name = name.replace(/\s*\(#[0-9A-Fa-f]{6}\)\s*$/, '').trim();
+    // Bake hex into color string
+    comp.color = name && name !== 'Custom' ? `${name} (${hex})` : hex;
+    // Delete colorHex — it's now embedded in .color
+    delete comp.colorHex;
   }
 }
 
-// Normalize ALL component overrides at request ingress
-function normalizeAllOverrides(overrides?: GenerateImageRequest['componentOverrides']): void {
-  if (!overrides) return;
-  for (const key of Object.keys(overrides) as (keyof typeof overrides)[]) {
-    const o = overrides[key];
-    if (o) normalizeOverride(o);
+// Bake hex into ALL component overrides + originalComponents at request ingress.
+// Called once, right after req.json(). After this, every .color field that had
+// a colorHex already contains "Name (#HEX)" — no formatter needed downstream.
+function bakeHexIntoColors(body: GenerateImageRequest): void {
+  if (body.componentOverrides) {
+    for (const key of Object.keys(body.componentOverrides) as (keyof typeof body.componentOverrides)[]) {
+      const comp = body.componentOverrides[key];
+      if (comp) _bakeHexIntoComponent(comp);
+    }
   }
-}
-
-// Resolve color descriptions for prompts.
-// ALWAYS include hex when available — "ColorName (#HEX)".
-function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.colorHex) {
-    const hex = override.colorHex.toUpperCase();
-    const name = override.color || _nearestColorName(hex);
-    return name !== 'Custom' ? `${name} (${hex})` : hex;
+  // Also bake into originalComponents so contrast lines carry hex too
+  if (body.originalComponents) {
+    for (const key of Object.keys(body.originalComponents) as (keyof typeof body.originalComponents)[]) {
+      const comp = body.originalComponents[key];
+      if (comp) _bakeHexIntoComponent(comp as any);
+    }
   }
-  return override.color;
 }
 
 // Build structured override prompt lines from overrides + original components
@@ -347,10 +337,9 @@ function buildOverrideLines(
     const orig = original[type];
 
     if (override && orig) {
-      const colorDisplay = getColorDescription(override);
       if (override.material !== orig.material || override.color !== orig.color) {
         changedComponents.push(
-          `${type.toUpperCase()}: ${override.material} in ${colorDisplay} (original was: ${orig.material} in ${orig.color})`
+          `${type.toUpperCase()}: ${override.material} in ${override.color} (original was: ${orig.material} in ${orig.color})`
         );
       }
     } else if (override && !orig) {
@@ -374,12 +363,10 @@ function buildOverrideLines(
     const soleSource = overrides.sole || original.sole;
     const buckleSource = overrides.buckles || (original.buckles ? original.buckles : null);
     if (soleSource) {
-      const soleColor = overrides.sole ? getColorDescription(overrides.sole) : soleSource.color;
-      lines.push(`TOE POST STRAP: ${soleColor} (must match sole color exactly — thong-style sandal)`);
+      lines.push(`TOE POST STRAP: ${soleSource.color} (must match sole color exactly — thong-style sandal)`);
     }
     if (buckleSource) {
-      const buckleColor = overrides.buckles ? getColorDescription(overrides.buckles) : buckleSource.color;
-      lines.push(`TOE POST PIN/RIVET: ${buckleColor} (must match buckle hardware finish)`);
+      lines.push(`TOE POST PIN/RIVET: ${buckleSource.color} (must match buckle hardware finish)`);
     }
   }
 
@@ -730,12 +717,7 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
         const override = request.componentOverrides?.[type];
         const comp = override || orig[type];
         if (comp && comp.material) {
-          const color = override
-            ? getColorDescription(override)
-            : (comp.color || 'N/A');
-          if (override) {
-            console.log(`[COLOR-DEBUG] ${type}: input={color:"${override.color}", colorHex:"${override.colorHex}"} → resolved="${color}"`);
-          }
+          const color = comp.color || 'N/A';
           componentLines.push(
             `${type.toUpperCase()}: ${comp.material} in ${color}`
           );
@@ -1302,7 +1284,7 @@ function buildRemixBrief(body: GenerateImageRequest): string {
     let color = pi.color;
     let material = pi.material;
     if (body.componentOverrides?.upper) {
-      color = getColorDescription(body.componentOverrides.upper);
+      color = body.componentOverrides.upper.color;
       material = body.componentOverrides.upper.material;
     }
     sections.push("PRODUCT:");
@@ -1342,9 +1324,8 @@ function buildRemixBrief(body: GenerateImageRequest): string {
       const override = body.componentOverrides[type];
       const orig = body.originalComponents[type];
       if (override && orig) {
-        const colorDisplay = getColorDescription(override);
         if (override.material !== orig.material || override.color !== orig.color) {
-          changes.push(`${type}: Change from ${orig.material} in ${orig.color} → ${override.material} in ${colorDisplay}`);
+          changes.push(`${type}: Change from ${orig.material} in ${orig.color} → ${override.material} in ${override.color}`);
         }
       }
     }
@@ -1361,12 +1342,10 @@ function buildRemixBrief(body: GenerateImageRequest): string {
       const soleSource = body.componentOverrides.sole || body.originalComponents.sole;
       const buckleSource = body.componentOverrides.buckles || (body.originalComponents.buckles || null);
       if (soleSource) {
-        const soleColor = body.componentOverrides.sole ? getColorDescription(body.componentOverrides.sole) : soleSource.color;
-        sections.push(`Toe post strap must match sole color: ${soleColor}`);
+        sections.push(`Toe post strap must match sole color: ${soleSource.color}`);
       }
       if (buckleSource) {
-        const buckleColor = body.componentOverrides.buckles ? getColorDescription(body.componentOverrides.buckles) : buckleSource.color;
-        sections.push(`Toe post pin/rivet must match buckle finish: ${buckleColor}`);
+        sections.push(`Toe post pin/rivet must match buckle finish: ${buckleSource.color}`);
       }
       sections.push("");
     }
@@ -1893,10 +1872,12 @@ Deno.serve(async (req) => {
     // Runtime fingerprint
     console.log(`[BUILD] ${GEN_IMAGE_BUILD}`);
 
-    // Normalize overrides at ingress (uppercase hex, trim names, derive names)
-    normalizeAllOverrides(body.componentOverrides);
+    // Bake hex codes directly into .color fields at ingress
+    // After this, every .color like "Dark Slate Gray" becomes "Dark Slate Gray (#005477)"
+    // and .colorHex is deleted — no formatter needed anywhere downstream
+    bakeHexIntoColors(body);
     if (body.componentOverrides) {
-      console.log(`[COLOR-INGRESS] Normalized overrides:`, JSON.stringify(body.componentOverrides));
+      console.log(`[COLOR-BAKED] Overrides after hex bake:`, JSON.stringify(body.componentOverrides));
     }
 
     console.log("[ASYNC] Creating", imageCount, "pending rows for user", user.id);
