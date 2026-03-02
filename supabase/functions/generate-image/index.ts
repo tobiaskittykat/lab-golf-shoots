@@ -277,16 +277,31 @@ function _nearestColorName(hex: string): string {
   return best;
 }
 
-// Resolve "Custom" hex colors to human-readable names
+// Known preset color names (from Birkenstock palette) – used to distinguish
+// user-picked presets from hex-derived color names that need the hex appended.
+const KNOWN_PRESET_NAMES = new Set([
+  'Taupe','Tobacco','Mocha','Stone','Black','Habana','Cognac','Sand','White',
+  'Navy','Antique White','Chocolate','Cork Brown','Cream','Anthracite',
+  'Desert Soil','Iron','Mink','Port','Thyme','Apricot','Coral','Peach',
+  'Rose Gold','Blush','Baby Blue','Sky Blue','Light Blue','Powder Blue',
+  'Royal Blue','Dusty Blue',
+]);
+
+function isKnownPreset(colorName: string): boolean {
+  return KNOWN_PRESET_NAMES.has(colorName);
+}
+
+// Resolve color descriptions for prompts.
+// Preset picks → just the name. Hex-derived picks → "Name (#HEX)".
 function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.color !== 'Custom' && override.color !== 'custom') {
-    return override.color;
+  if (override.colorHex && !isKnownPreset(override.color)) {
+    // Color was resolved from a custom hex pick – include the hex for precision
+    const name = override.color === 'Custom' || override.color === 'custom'
+      ? _nearestColorName(override.colorHex)
+      : override.color;
+    return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
   }
-  if (!override.colorHex) {
-    return override.color;
-  }
-  const name = _nearestColorName(override.colorHex);
-  return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
+  return override.color;
 }
 
 // Build structured override prompt lines from overrides + original components

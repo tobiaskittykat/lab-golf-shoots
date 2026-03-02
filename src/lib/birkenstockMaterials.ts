@@ -190,16 +190,21 @@ export function hasAnyOverrides(overrides: ComponentOverrides | undefined, origi
   return false;
 }
 
-// Helper to get a descriptive color name from override data (resolves "Custom" to nearest named color)
+// Check if a color name is a known preset (not derived from hex)
+function isKnownPreset(colorName: string): boolean {
+  return COLOR_PRESETS.some(p => p.name === colorName);
+}
+
+// Helper to get a descriptive color name from override data.
+// Preset picks → just the name. Hex-derived picks → "Name (#HEX)".
 function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.color !== 'Custom' && override.color !== 'custom') {
-    return override.color;
+  if (override.colorHex && !isKnownPreset(override.color)) {
+    const name = override.color === 'Custom' || override.color === 'custom'
+      ? hexToColorName(override.colorHex)
+      : override.color;
+    return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
   }
-  if (!override.colorHex) {
-    return override.color;
-  }
-  const name = hexToColorName(override.colorHex);
-  return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
+  return override.color;
 }
 
 // Build override prompt section for image generation
