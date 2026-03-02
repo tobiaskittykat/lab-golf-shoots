@@ -705,6 +705,9 @@ async function craftPromptWithAgent(request: GenerateImageRequest, apiKey: strin
           const color = override
             ? getColorDescription(override)
             : (comp.color || 'N/A');
+          if (override) {
+            console.log(`[COLOR-DEBUG] ${type}: input={color:"${override.color}", colorHex:"${override.colorHex}"} → resolved="${color}"`);
+          }
           componentLines.push(
             `${type.toUpperCase()}: ${comp.material} in ${color}`
           );
@@ -887,6 +890,7 @@ CRITICAL RULES:
 7. Set the mood, lighting, and atmosphere naturally - prioritize the moodboard's emotional tone
 8. **TOE POST ACCURACY (THONG-STYLE SANDALS ONLY)** - When the brief includes TOE POST STRAP or TOE POST PIN entries, you MUST describe these colors explicitly in your prompt. The toe post is the vertical strap between the big toe and second toe. ONLY thong-style sandals (e.g., Gizeh, Ramses) have a toe post. Crossover-strap sandals (e.g., Mayari) do NOT have a toe post — never describe one for those models.
 9. **BUCKLE SHAPE AND INSCRIPTION FIDELITY** - When the user changes buckle material/color, change ONLY the surface finish. The buckle SHAPE, SIZE, proportions, and any INSCRIBED TEXT (from BRANDING DETAILS) must remain EXACTLY as shown in reference images. Never generate generic buckle shapes — always match the specific hardware design visible in the references.
+9b. **COLOR HEX CODE PRESERVATION (CRITICAL)** - When component colors include a hex code in parentheses like "Medium Turquoise (#45C9FB)", you MUST preserve BOTH the descriptive name AND the hex code exactly as provided in your output prompt. Do NOT remove, rename, drop, or reformat hex codes. They are essential for color accuracy.
 10. **ENTITY COUNT (CRITICAL)**:
    - The shot direction specifies how many shoes should appear. Respect this exactly.
    - If the brief says "ENTITY COUNT (MANDATORY): Exactly 1 shoe" — your prompt MUST describe "a single [Brand] [Model]", using singular language throughout. Do NOT write "a pair of". Only ONE shoe in frame.
