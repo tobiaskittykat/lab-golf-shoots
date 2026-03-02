@@ -1,4 +1,5 @@
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+// v2.1 — color hex preservation + Rule 9b (force redeploy 2026-03-02)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
