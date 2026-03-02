@@ -1,6 +1,8 @@
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-// v2.1 — color hex preservation + Rule 9b (force redeploy 2026-03-02)
+// v3.0 — hex-v3 force redeploy 2026-03-02T07:30Z — always include hex in color descriptions
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const GEN_IMAGE_BUILD = "hex-v3-2026-03-02T0730Z";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -292,15 +294,40 @@ function isKnownPreset(colorName: string): boolean {
   return KNOWN_PRESET_NAMES.has(colorName);
 }
 
+// Normalize a single component override in-place:
+// - uppercase hex, trim name, derive name from hex if missing, strip embedded hex from name
+function normalizeOverride(o: { material: string; color: string; colorHex?: string }): void {
+  if (o.colorHex) o.colorHex = o.colorHex.trim().toUpperCase();
+  o.color = (o.color || '').trim();
+  o.material = (o.material || '').trim();
+  // If color is empty/Custom but hex exists, derive a readable name
+  if ((!o.color || o.color === 'Custom' || o.color === 'custom') && o.colorHex) {
+    o.color = _nearestColorName(o.colorHex);
+  }
+  // If color already contains a bracketed hex, strip it and keep canonical fields
+  const bracketMatch = o.color.match(/^(.+?)\s*\(#([0-9A-Fa-f]{6})\)\s*$/);
+  if (bracketMatch) {
+    o.color = bracketMatch[1].trim();
+    if (!o.colorHex) o.colorHex = '#' + bracketMatch[2].toUpperCase();
+  }
+}
+
+// Normalize ALL component overrides at request ingress
+function normalizeAllOverrides(overrides?: GenerateImageRequest['componentOverrides']): void {
+  if (!overrides) return;
+  for (const key of Object.keys(overrides) as (keyof typeof overrides)[]) {
+    const o = overrides[key];
+    if (o) normalizeOverride(o);
+  }
+}
+
 // Resolve color descriptions for prompts.
-// Preset picks → just the name. Hex-derived picks → "Name (#HEX)".
+// ALWAYS include hex when available — "ColorName (#HEX)".
 function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.colorHex && !isKnownPreset(override.color)) {
-    // Color was resolved from a custom hex pick – include the hex for precision
-    const name = override.color === 'Custom' || override.color === 'custom'
-      ? _nearestColorName(override.colorHex)
-      : override.color;
-    return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
+  if (override.colorHex) {
+    const hex = override.colorHex.toUpperCase();
+    const name = override.color || _nearestColorName(hex);
+    return name !== 'Custom' ? `${name} (${hex})` : hex;
   }
   return override.color;
 }
@@ -1762,9 +1789,14 @@ async function runBackgroundGeneration(params: {
                 sourceImageUrl: body.sourceImageUrl || null,
                 referencesAttached: refsWereAttached,
                 componentSampleImages: body.componentSampleImages || [],
+                componentOverrides: body.componentOverrides || null,
+                originalComponents: body.originalComponents || null,
               },
+              componentOverrides: body.componentOverrides || null,
+              originalComponents: body.originalComponents || null,
               logoApplied: body.logoPlacement?.enabled || false,
               logoPosition: body.logoPlacement?.position || null,
+              runtimeBuild: GEN_IMAGE_BUILD,
             },
             concept_id: body.conceptTitle ? `concept-${index}` : null,
             status: 'completed',
@@ -1857,6 +1889,15 @@ Deno.serve(async (req) => {
     const body: GenerateImageRequest & { moodboard?: { thumbnail?: string; url?: string } } = await req.json();
     const imageCount = Math.min(body.imageCount || 1, 8);
     const selectedModel = modelMap[body.aiModel || 'auto'] || modelMap['auto'];
+
+    // Runtime fingerprint
+    console.log(`[BUILD] ${GEN_IMAGE_BUILD}`);
+
+    // Normalize overrides at ingress (uppercase hex, trim names, derive names)
+    normalizeAllOverrides(body.componentOverrides);
+    if (body.componentOverrides) {
+      console.log(`[COLOR-INGRESS] Normalized overrides:`, JSON.stringify(body.componentOverrides));
+    }
 
     console.log("[ASYNC] Creating", imageCount, "pending rows for user", user.id);
 
