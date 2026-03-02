@@ -84,6 +84,7 @@ import type { OnFootShotConfig, LifestyleShotConfig, ProductFocusShotConfig } fr
 
 // Re-export component types from materials lib
 export type { ShoeComponents, ComponentOverrides, ComponentType, ShoeComponent, ComponentOverride } from '@/lib/birkenstockMaterials';
+export { parseHexFromColor, stripHexFromColor } from '@/lib/birkenstockMaterials';
 
 // Product Shoot State - extends creative studio state
 export interface ProductShootState {

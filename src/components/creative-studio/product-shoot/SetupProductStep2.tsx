@@ -357,7 +357,6 @@ export function SetupProductStep2({ state, onStateChange }: SetupProductStep2Pro
               ...mergedComponents[key],
               material: override.material,
               color: override.color,
-              colorHex: override.colorHex,
             };
           }
         }

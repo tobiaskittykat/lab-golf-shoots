@@ -122,7 +122,6 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
   useEffect(() => {
     if (overrides.buckles?.material === 'Matte Plastic (Coordinated)' || overrides.buckles?.material === 'Metal (Coordinated)' || overrides.buckles?.material === 'Translucent (Coordinated)') {
       const upperColor = overrides.upper?.color || initialComponents?.upper?.color;
-      const upperHex = overrides.upper?.colorHex || initialComponents?.upper?.colorHex;
 
       if (upperColor && overrides.buckles.color !== upperColor) {
         setOverrides(prev => ({
@@ -130,7 +129,6 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
           buckles: {
             ...prev.buckles!,
             color: upperColor,
-            colorHex: upperHex,
           }
         }));
       }
@@ -149,15 +147,13 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
       // Upper is overridden → mirror to heelstrap
       if (
         heelstrapOverride?.material !== upperOverride.material ||
-        heelstrapOverride?.color !== upperOverride.color ||
-        heelstrapOverride?.colorHex !== upperOverride.colorHex
+        heelstrapOverride?.color !== upperOverride.color
       ) {
         setOverrides(prev => ({
           ...prev,
           heelstrap: {
             material: upperOverride.material,
             color: upperOverride.color,
-            colorHex: upperOverride.colorHex,
           },
         }));
       }
@@ -174,7 +170,7 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
   const setComponentOverride = useCallback(
     (
       componentType: keyof ComponentOverrides,
-      override: { material: string; color: string; colorHex?: string } | null
+      override: { material: string; color: string } | null
     ) => {
       setOverrides((prev) => {
         if (override === null) {

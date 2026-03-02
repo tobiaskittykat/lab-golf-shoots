@@ -2,7 +2,8 @@
  * Birkenstock Material & Color Reference Library
  * Curated options for shoe component customization
  */
-import { hexToColorName } from '@/lib/colorNames';
+// hexToColorName re-exported for consumers that need color name resolution
+export { hexToColorName } from '@/lib/colorNames';
 
 // Material option interface with category support
 export interface MaterialOption {
@@ -146,13 +147,23 @@ export interface ShoeComponents {
 
 export interface ComponentOverride {
   material: string;
-  color: string;
-  colorHex?: string;
+  color: string;            // Canonical: may include hex e.g. "Medium Sea Green (#1DAF64)"
   sampleImageUrl?: string;      // uploaded color/material swatch URL
   attachSampleToGen?: boolean;  // whether to send swatch to AI (default: false)
 }
 
 export type ComponentOverrides = Partial<Record<ComponentType, ComponentOverride>>;
+
+// Parse hex from a canonical color string like "Medium Sea Green (#1DAF64)"
+export function parseHexFromColor(color: string): string | undefined {
+  const match = color.match(/\(#([0-9A-Fa-f]{6})\)\s*$/);
+  return match ? '#' + match[1].toUpperCase() : undefined;
+}
+
+// Strip hex token from canonical color string, returning just the name
+export function stripHexFromColor(color: string): string {
+  return color.replace(/\s*\(#[0-9A-Fa-f]{6}\)\s*$/, '').trim();
+}
 
 // Helper to get materials for a component type
 export function getMaterialsForComponent(type: ComponentType): MaterialOption[] {
@@ -190,23 +201,6 @@ export function hasAnyOverrides(overrides: ComponentOverrides | undefined, origi
   return false;
 }
 
-// Check if a color name is a known preset (not derived from hex)
-function isKnownPreset(colorName: string): boolean {
-  return COLOR_PRESETS.some(p => p.name === colorName);
-}
-
-// Helper to get a descriptive color name from override data.
-// Preset picks → just the name. Hex-derived picks → "Name (#HEX)".
-function getColorDescription(override: { color: string; colorHex?: string }): string {
-  if (override.colorHex && !isKnownPreset(override.color)) {
-    const name = override.color === 'Custom' || override.color === 'custom'
-      ? hexToColorName(override.colorHex)
-      : override.color;
-    return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
-  }
-  return override.color;
-}
-
 // Build override prompt section for image generation
 export function buildComponentOverridePrompt(
   overrides: ComponentOverrides,
@@ -233,8 +227,8 @@ export function buildComponentOverridePrompt(
       override.color !== originalComponent.color;
     
     if (isChanged) {
-      const colorDisplay = getColorDescription(override);
-      lines.push(`${type.toUpperCase()}: ${override.material} in ${colorDisplay}`);
+      // color is already canonical — may include hex inline e.g. "Medium Sea Green (#1DAF64)"
+      lines.push(`${type.toUpperCase()}: ${override.material} in ${override.color}`);
       if (originalComponent) {
         lines.push(`  (Original was: ${originalComponent.material} in ${originalComponent.color})`);
       }

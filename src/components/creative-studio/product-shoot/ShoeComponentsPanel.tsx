@@ -10,6 +10,7 @@ import {
   ComponentType, 
   COMPONENT_LABELS,
   ShoeComponent,
+  parseHexFromColor,
 } from '@/lib/birkenstockMaterials';
 import { ComponentOverridePopover } from './ComponentOverridePopover';
 import { QuickCustomizationInput } from './QuickCustomizationInput';
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 interface ShoeComponentsPanelProps {
   components: ShoeComponents | null;
   overrides: ComponentOverrides;
-  onOverrideChange: (type: ComponentType, override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
+  onOverrideChange: (type: ComponentType, override: { material: string; color: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   onResetAll: () => void;
   attachReferenceImages: boolean;
   onAttachReferenceImagesChange: (attach: boolean) => void;
@@ -58,14 +59,15 @@ function ComponentRow({
 }: {
   type: ComponentType;
   component: ShoeComponent | null | undefined;
-  override?: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
-  onOverrideChange: (override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
+  override?: { material: string; color: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
+  onOverrideChange: (override: { material: string; color: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   upperColor?: string;
   upperColorHex?: string;
 }) {
   const displayMaterial = override?.material || component?.material || 'Unknown';
   const displayColor = override?.color || component?.color || 'Unknown';
-  const displayHex = override?.colorHex || component?.colorHex;
+  // Derive hex: parse from canonical color string first, fallback to component's colorHex
+  const displayHex = parseHexFromColor(displayColor) || component?.colorHex;
   const isOverridden = !!override;
 
   return (
@@ -273,7 +275,7 @@ export function ShoeComponentsPanel({
                   ? (overrides.upper?.color || components.upper?.color)
                   : undefined;
                 const upperColorHex = type === 'buckles'
-                  ? (overrides.upper?.colorHex || components.upper?.colorHex)
+                  ? (parseHexFromColor(overrides.upper?.color || '') || components.upper?.colorHex)
                   : undefined;
                 
                 return (
