@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface UseQuickCustomizationOptions {
   currentComponents: ShoeComponents | null;
   existingOverrides: ComponentOverrides;
-  onApplyOverrides: (type: ComponentType, override: { material: string; color: string; colorHex?: string } | null) => void;
+  onApplyOverrides: (type: ComponentType, override: { material: string; color: string } | null) => void;
 }
 
 const MAX_RETRIES = 1;
@@ -76,7 +76,6 @@ export function useQuickCustomization({
           currentState[type] = {
             material: override?.material || original?.material || 'Unknown',
             color: override?.color || original?.color || 'Unknown',
-            colorHex: override?.colorHex || original?.colorHex,
           };
         }
       }
@@ -115,9 +114,16 @@ export function useQuickCustomization({
         return;
       }
 
-      // Apply each override
-      for (const [type, override] of Object.entries(validOverrides)) {
-        onApplyOverrides(type as ComponentType, override as { material: string; color: string; colorHex?: string });
+      // Apply each override — bake any colorHex from AI into canonical color field
+      for (const [type, rawOverride] of Object.entries(validOverrides)) {
+        const ov = rawOverride as { material: string; color: string; colorHex?: string };
+        let canonicalColor = ov.color;
+        if (ov.colorHex) {
+          const hex = ov.colorHex.replace(/^#/, '').toUpperCase();
+          const name = canonicalColor && canonicalColor !== 'Custom' ? canonicalColor : hex;
+          canonicalColor = `${name} (#${hex})`;
+        }
+        onApplyOverrides(type as ComponentType, { material: ov.material, color: canonicalColor });
       }
 
       toast.success(`Applied ${changedComponents.length} component change${changedComponents.length > 1 ? 's' : ''}`);

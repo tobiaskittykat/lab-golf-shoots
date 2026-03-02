@@ -24,8 +24,8 @@ interface ComponentOverridePopoverProps {
   currentMaterial: string;
   currentColor: string;
   currentColorHex?: string;
-  override?: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
-  onApply: (override: { material: string; color: string; colorHex?: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
+  override?: { material: string; color: string; sampleImageUrl?: string; attachSampleToGen?: boolean };
+  onApply: (override: { material: string; color: string; sampleImageUrl?: string; attachSampleToGen?: boolean } | null) => void;
   // For color-matched materials (buckles inherit upper color)
   upperColor?: string;
   upperColorHex?: string;
@@ -43,8 +43,11 @@ export function ComponentOverridePopover({
 }: ComponentOverridePopoverProps) {
   const [open, setOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState(override?.material || currentMaterial);
-  const [selectedColor, setSelectedColor] = useState(override?.color || currentColor);
-  const [selectedHex, setSelectedHex] = useState(override?.colorHex || currentColorHex || '');
+  // Parse hex from canonical color string if present (e.g. "Medium Sea Green (#1DAF64)")
+  const _initColor = override?.color || currentColor;
+  const _initHexMatch = _initColor.match(/\(#([0-9A-Fa-f]{6})\)\s*$/);
+  const [selectedColor, setSelectedColor] = useState(_initHexMatch ? _initColor.replace(/\s*\(#[0-9A-Fa-f]{6}\)\s*$/, '') : _initColor);
+  const [selectedHex, setSelectedHex] = useState(_initHexMatch ? '#' + _initHexMatch[1] : (currentColorHex || ''));
   const [customHex, setCustomHex] = useState('');
   const [sampleImageUrl, setSampleImageUrl] = useState(override?.sampleImageUrl || '');
   const [attachSampleToGen, setAttachSampleToGen] = useState(override?.attachSampleToGen || false);
@@ -106,8 +109,10 @@ export function ComponentOverridePopover({
   useEffect(() => {
     if (open) {
       setSelectedMaterial(override?.material || currentMaterial);
-      setSelectedColor(override?.color || currentColor);
-      setSelectedHex(override?.colorHex || currentColorHex || '');
+      const rawColor = override?.color || currentColor;
+      const hexMatch = rawColor.match(/\(#([0-9A-Fa-f]{6})\)\s*$/);
+      setSelectedColor(hexMatch ? rawColor.replace(/\s*\(#[0-9A-Fa-f]{6}\)\s*$/, '') : rawColor);
+      setSelectedHex(hexMatch ? '#' + hexMatch[1] : (currentColorHex || ''));
       setCustomHex('');
       setSampleImageUrl(override?.sampleImageUrl || '');
       setAttachSampleToGen(override?.attachSampleToGen || false);
@@ -212,10 +217,20 @@ export function ComponentOverridePopover({
 
   const handleApply = () => {
     if (isModified || sampleImageUrl) {
+      // Serialize hex into canonical single-field color: "Name (#HEX)"
+      let canonicalColor = selectedColor;
+      if (selectedHex) {
+        const hex = selectedHex.replace(/^#/, '').toUpperCase();
+        if (/^[0-9A-F]{6}$/.test(hex)) {
+          const name = canonicalColor && canonicalColor !== 'Custom' && canonicalColor !== 'custom'
+            ? canonicalColor
+            : hexToColorName('#' + hex);
+          canonicalColor = name && name !== 'Custom' ? `${name} (#${hex})` : `#${hex}`;
+        }
+      }
       onApply({
         material: selectedMaterial,
-        color: selectedColor,
-        colorHex: selectedHex || undefined,
+        color: canonicalColor,
         sampleImageUrl: sampleImageUrl || undefined,
         attachSampleToGen: sampleImageUrl ? attachSampleToGen : undefined,
       });
