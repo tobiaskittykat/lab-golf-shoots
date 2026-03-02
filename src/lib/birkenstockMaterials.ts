@@ -2,6 +2,7 @@
  * Birkenstock Material & Color Reference Library
  * Curated options for shoe component customization
  */
+import { hexToColorName } from '@/lib/colorNames';
 
 // Material option interface with category support
 export interface MaterialOption {
@@ -189,7 +190,7 @@ export function hasAnyOverrides(overrides: ComponentOverrides | undefined, origi
   return false;
 }
 
-// Helper to get a descriptive color name from override data (resolves "Custom" to hex)
+// Helper to get a descriptive color name from override data (resolves "Custom" to nearest named color)
 function getColorDescription(override: { color: string; colorHex?: string }): string {
   if (override.color !== 'Custom' && override.color !== 'custom') {
     return override.color;
@@ -197,24 +198,8 @@ function getColorDescription(override: { color: string; colorHex?: string }): st
   if (!override.colorHex) {
     return override.color;
   }
-  const hex = override.colorHex.toUpperCase();
-  const colorNames: Record<string, string> = {
-    '#FF69B4': 'Hot Pink',
-    '#FF1493': 'Deep Pink',
-    '#FFC0CB': 'Pink',
-    '#FFB6C1': 'Light Pink',
-    '#FF0000': 'Red',
-    '#00FF00': 'Lime Green',
-    '#0000FF': 'Blue',
-    '#FFFF00': 'Yellow',
-    '#FFA500': 'Orange',
-    '#800080': 'Purple',
-    '#00FFFF': 'Cyan',
-    '#000000': 'Black',
-    '#FFFFFF': 'White',
-  };
-  const namedColor = colorNames[hex];
-  return namedColor ? `${namedColor} (${hex})` : hex;
+  const name = hexToColorName(override.colorHex);
+  return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
 }
 
 // Build override prompt section for image generation

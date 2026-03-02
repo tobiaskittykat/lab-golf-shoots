@@ -223,6 +223,60 @@ const modelMap: Record<string, string> = {
 
 // === Shared helpers for override prompt construction ===
 
+// --- Nearest-color matching (server-side duplicate of src/lib/colorNames.ts) ---
+const NAMED_COLORS: [string, string][] = [
+  // Brand colors (priority)
+  ['#B8A99A','Taupe'],['#6F4E37','Tobacco'],['#967969','Mocha'],['#928E85','Stone'],
+  ['#5C4033','Habana'],['#834C24','Cognac'],['#C2B280','Sand'],['#FAEBD7','Antique White'],
+  ['#3D2314','Chocolate'],['#8B7355','Cork Brown'],['#FFFDD0','Cream'],['#383838','Anthracite'],
+  ['#A67B5B','Desert Soil'],['#48494B','Iron'],['#81715E','Mink'],['#6C3461','Port'],
+  ['#6B8E4E','Thyme'],['#E6A57E','Apricot'],['#DE98AB','Blush'],['#89CFF0','Baby Blue'],
+  ['#87CEEB','Sky Blue'],['#ADD8E6','Light Blue'],['#B0E0E6','Powder Blue'],
+  ['#4169E1','Royal Blue'],['#8CA9BC','Dusty Blue'],['#B76E79','Rose Gold'],
+  // CSS colors
+  ['#FF0000','Red'],['#DC143C','Crimson'],['#B22222','Firebrick'],['#8B0000','Dark Red'],
+  ['#CD5C5C','Indian Red'],['#F08080','Light Coral'],['#FA8072','Salmon'],
+  ['#FF69B4','Hot Pink'],['#FF1493','Deep Pink'],['#FFC0CB','Pink'],['#FFB6C1','Light Pink'],
+  ['#DB7093','Pale Violet Red'],['#C71585','Medium Violet Red'],
+  ['#FFA500','Orange'],['#FF8C00','Dark Orange'],['#FF7F50','Coral'],['#FF6347','Tomato'],
+  ['#FF4500','Orange Red'],['#FFDAB9','Peach'],
+  ['#FFFF00','Yellow'],['#FFD700','Gold'],['#F0E68C','Khaki'],['#BDB76B','Dark Khaki'],
+  ['#00FF00','Lime'],['#008000','Green'],['#006400','Dark Green'],['#228B22','Forest Green'],
+  ['#32CD32','Lime Green'],['#90EE90','Light Green'],['#556B2F','Dark Olive Green'],
+  ['#808000','Olive'],['#9ACD32','Yellow Green'],['#20B2AA','Light Sea Green'],
+  ['#0000FF','Blue'],['#00008B','Dark Blue'],['#000080','Navy'],['#191970','Midnight Blue'],
+  ['#1E90FF','Dodger Blue'],['#6495ED','Cornflower Blue'],['#4682B4','Steel Blue'],
+  ['#00BFFF','Deep Sky Blue'],['#00CED1','Dark Turquoise'],['#40E0D0','Turquoise'],
+  ['#00FFFF','Cyan'],['#008B8B','Dark Cyan'],['#008080','Teal'],
+  ['#800080','Purple'],['#8B008B','Dark Magenta'],['#FF00FF','Magenta'],['#EE82EE','Violet'],
+  ['#DA70D6','Orchid'],['#BA55D3','Medium Orchid'],['#8A2BE2','Blue Violet'],
+  ['#DDA0DD','Plum'],['#E6E6FA','Lavender'],['#4B0082','Indigo'],['#663399','Rebecca Purple'],
+  ['#A52A2A','Brown'],['#8B4513','Saddle Brown'],['#A0522D','Sienna'],['#D2691E','Chocolate Brown'],
+  ['#CD853F','Peru'],['#DEB887','Burlywood'],['#F4A460','Sandy Brown'],['#D2B48C','Tan'],
+  ['#BC8F8F','Rosy Brown'],['#DAA520','Goldenrod'],['#B8860B','Dark Goldenrod'],
+  ['#FFFFFF','White'],['#000000','Black'],['#808080','Gray'],['#C0C0C0','Silver'],
+  ['#D3D3D3','Light Gray'],['#F5F5DC','Beige'],['#FFFFF0','Ivory'],['#708090','Slate Gray'],
+];
+
+function _hexToRgb(hex: string): [number, number, number] {
+  const c = hex.replace(/^#/, '');
+  return [parseInt(c.substring(0,2),16), parseInt(c.substring(2,4),16), parseInt(c.substring(4,6),16)];
+}
+
+function _nearestColorName(hex: string): string {
+  const norm = hex.startsWith('#') ? hex.toUpperCase() : '#' + hex.toUpperCase();
+  if (!/^#[0-9A-F]{6}$/.test(norm)) return 'Custom';
+  const rgb = _hexToRgb(norm);
+  let best = 'Custom', bestD = Infinity;
+  for (const [h, name] of NAMED_COLORS) {
+    const r = _hexToRgb(h);
+    const d = Math.sqrt(0.3*(rgb[0]-r[0])**2 + 0.59*(rgb[1]-r[1])**2 + 0.11*(rgb[2]-r[2])**2);
+    if (d < bestD) { bestD = d; best = name; }
+    if (d === 0) return name;
+  }
+  return best;
+}
+
 // Resolve "Custom" hex colors to human-readable names
 function getColorDescription(override: { color: string; colorHex?: string }): string {
   if (override.color !== 'Custom' && override.color !== 'custom') {
@@ -231,24 +285,8 @@ function getColorDescription(override: { color: string; colorHex?: string }): st
   if (!override.colorHex) {
     return override.color;
   }
-  const hex = override.colorHex.toUpperCase();
-  const colorNames: Record<string, string> = {
-    '#FF69B4': 'Hot Pink',
-    '#FF1493': 'Deep Pink',
-    '#FFC0CB': 'Pink',
-    '#FFB6C1': 'Light Pink',
-    '#FF0000': 'Red',
-    '#00FF00': 'Lime Green',
-    '#0000FF': 'Blue',
-    '#FFFF00': 'Yellow',
-    '#FFA500': 'Orange',
-    '#800080': 'Purple',
-    '#00FFFF': 'Cyan',
-    '#000000': 'Black',
-    '#FFFFFF': 'White',
-  };
-  const namedColor = colorNames[hex];
-  return namedColor ? `${namedColor} (${hex})` : hex;
+  const name = _nearestColorName(override.colorHex);
+  return name !== 'Custom' ? `${name} (${override.colorHex.toUpperCase()})` : override.colorHex.toUpperCase();
 }
 
 // Build structured override prompt lines from overrides + original components

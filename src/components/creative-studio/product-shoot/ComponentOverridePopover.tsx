@@ -14,6 +14,7 @@ import {
   MaterialOption,
 } from '@/lib/birkenstockMaterials';
 import { cn } from '@/lib/utils';
+import { hexToColorName } from '@/lib/colorNames';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useColorSamples } from '@/hooks/useColorSamples';
@@ -141,7 +142,7 @@ export function ComponentOverridePopover({
     if (/^[0-9A-Fa-f]{6}$/.test(stripped)) {
       const fullHex = '#' + stripped.toUpperCase();
       const preset = findColorPreset(fullHex);
-      setSelectedColor(preset?.name || 'Custom');
+      setSelectedColor(preset?.name || hexToColorName(fullHex));
       setSelectedHex(fullHex);
     }
   };
