@@ -1,28 +1,81 @@
 
+What I found (confirmed with live request + backend logs):
+1) The client is passing `colorHex` correctly.
+- Latest `generate-image` request body includes:
+  - `componentOverrides.upper.color = "Dark Slate Gray"`
+  - `componentOverrides.upper.colorHex = "#005477"`
 
-# Fix: Force Redeploy of generate-image Edge Function
+2) The backend function receives overrides but the prompt brief is built without hex.
+- Logged `=== PRODUCT COMPONENTS ===` shows:
+  - `UPPER: Natural Leather (grained) in Dark Slate Gray`
+  - (missing `(#005477)`)
 
-## Problem
-The code changes from previous sessions (adding `isKnownPreset`, `getColorDescription` with hex appending, and `[COLOR-DEBUG]` logging) are all correct in the repository but are **not running in production**. The edge function logs show zero `[COLOR-DEBUG]` entries, confirming the deployed runtime is stale.
+3) Runtime mismatch is still present.
+- No `[COLOR-DEBUG]` entries appear in backend logs (even though repository code has that log line).
+- This strongly indicates the active deployed runtime is not executing the expected code path/version.
 
-## Solution
-Force a redeploy by adding a small version comment to the edge function file. This ensures Lovable Cloud picks up the change and redeploys.
+4) Current image row settings do not persist override context.
+- The latest `generated_images.settings` has no `componentOverrides` / `originalComponents`.
+- This makes regenerate/debug flows lose forensic context and makes this bug harder to trace.
 
-## Changes
+Implementation plan to fix it reliably:
 
-### File: `supabase/functions/generate-image/index.ts`
-- Add a version/build stamp comment near the top of the file (e.g., `// v2.1 — color hex preservation`)
-- This is a no-op change that triggers a fresh deployment
+1. Add a hard “always include hex when available” formatter in backend prompt assembly
+- File: `supabase/functions/generate-image/index.ts`
+- Update color formatting logic so:
+  - if `colorHex` exists, output `ColorName (#HEX)` always.
+  - do not suppress hex for presets.
+- Keep name quality:
+  - if color is `Custom` or empty → resolve a readable name from hex.
+  - if color already contains `(#[0-9A-F]{6})`, normalize to one canonical `Name (#HEX)` token.
 
-## Expected Result After Deploy
-- Edge function logs will show `[COLOR-DEBUG]` entries for each overridden component
-- Creative brief will contain `SOLE: EVA in Red (#FF073A)` instead of just `SOLE: EVA in Red`
-- Prompt agent rule 9b will preserve hex codes in the final prompt output
-- Preset colors like "Mocha" will remain as just "Mocha" (correct behavior since it's a known brand preset)
+Why: Your requirement is explicit — save/show color with hex in brackets so it survives to final prompt every time.
 
-## Verification
-After deployment, generate an image with a custom hex color override and check:
-1. `[COLOR-DEBUG]` lines appear in edge function logs
-2. Creative brief includes `ColorName (#HEX)` for non-preset colors
-3. Final prompt preserves the hex code
+2. Normalize component overrides once at request ingress
+- Build a small normalization step after parsing request body:
+  - uppercase hex (`#ff073a` → `#FF073A`)
+  - trim names
+  - if name missing and hex exists, derive name
+  - if name contains bracketed hex, split and keep canonical fields
+- Use this normalized object everywhere:
+  - product components section
+  - override contrast lines
+  - remix brief lines
+  - toe-post sync lines
 
+Why: prevents one path from using raw data while another path uses formatted data.
+
+3. Add explicit runtime fingerprint + color trace logs
+- Add a build/version constant at top (e.g. `GEN_IMAGE_BUILD = "hex-v3-2026-03-02T..."`).
+- Log it at function start and in prompt construction.
+- Add per-component trace logs in all relevant builders:
+  - input `{color,colorHex}`
+  - resolved output `Name (#HEX)`
+
+Why: immediately proves whether the live runtime is the updated one and where hex might be dropped.
+
+4. Persist override/original payload in generated image settings
+- In the completed row update, store:
+  - `settings.componentOverrides`
+  - `settings.originalComponents`
+  - `settings.references.componentOverrides`
+  - `settings.references.originalComponents`
+  - optional `settings.runtimeBuild` with the build fingerprint
+
+Why: regenerate and audit paths can reconstruct exact color intent (including hex) later.
+
+5. Force a real backend function rollout
+- Make a substantive code-path change (not only a top comment) in `generate-image/index.ts`.
+- This ensures the runtime actually picks up the new behavior.
+- Verify rollout by checking logs for the new runtime fingerprint string.
+
+Verification checklist (must pass):
+1) Trigger generation with a custom color override (example upper `#005477`).
+2) Confirm backend logs show runtime fingerprint + color trace entries.
+3) Confirm `=== PRODUCT COMPONENTS ===` includes:
+- `UPPER: ... in Dark Slate Gray (#005477)`
+4) Confirm final crafted prompt still contains `Dark Slate Gray (#005477)` (not stripped or renamed).
+5) Confirm saved row `settings` includes `componentOverrides` with `colorHex`.
+
+Expected result:
+- Yes, once we enforce canonical `Name (#HEX)` at backend assembly and persist normalized overrides, the hex will be carried through and used in the final prompt consistently.
