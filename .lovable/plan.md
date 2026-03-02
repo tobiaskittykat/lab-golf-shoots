@@ -1,81 +1,63 @@
 
-What I found (confirmed with live request + backend logs):
-1) The client is passing `colorHex` correctly.
-- Latest `generate-image` request body includes:
-  - `componentOverrides.upper.color = "Dark Slate Gray"`
-  - `componentOverrides.upper.colorHex = "#005477"`
 
-2) The backend function receives overrides but the prompt brief is built without hex.
-- Logged `=== PRODUCT COMPONENTS ===` shows:
-  - `UPPER: Natural Leather (grained) in Dark Slate Gray`
-  - (missing `(#005477)`)
+# Fix: Bake Hex Into Color Field at Ingress
 
-3) Runtime mismatch is still present.
-- No `[COLOR-DEBUG]` entries appear in backend logs (even though repository code has that log line).
-- This strongly indicates the active deployed runtime is not executing the expected code path/version.
+## Root Cause
+The deployed runtime is still running old code (no `[BUILD]` or `[COLOR-DEBUG]` logs appear). But even when it does deploy, the current approach is fragile -- it relies on `getColorDescription()` being called at ~15 different places. If any one is missed, hex is lost.
 
-4) Current image row settings do not persist override context.
-- The latest `generated_images.settings` has no `componentOverrides` / `originalComponents`.
-- This makes regenerate/debug flows lose forensic context and makes this bug harder to trace.
+## The Simple Fix
+At request ingress, merge the hex directly INTO the `.color` string. Then delete `getColorDescription()` entirely -- it's no longer needed.
 
-Implementation plan to fix it reliably:
+**Before:** `{ color: "Dark Slate Gray", colorHex: "#005477" }` -- requires every code path to call a special formatter
 
-1. Add a hard “always include hex when available” formatter in backend prompt assembly
-- File: `supabase/functions/generate-image/index.ts`
-- Update color formatting logic so:
-  - if `colorHex` exists, output `ColorName (#HEX)` always.
-  - do not suppress hex for presets.
-- Keep name quality:
-  - if color is `Custom` or empty → resolve a readable name from hex.
-  - if color already contains `(#[0-9A-F]{6})`, normalize to one canonical `Name (#HEX)` token.
+**After:** `{ color: "Dark Slate Gray (#005477)" }` -- every code path that reads `.color` automatically has it
 
-Why: Your requirement is explicit — save/show color with hex in brackets so it survives to final prompt every time.
+## Changes (single file)
 
-2. Normalize component overrides once at request ingress
-- Build a small normalization step after parsing request body:
-  - uppercase hex (`#ff073a` → `#FF073A`)
-  - trim names
-  - if name missing and hex exists, derive name
-  - if name contains bracketed hex, split and keep canonical fields
-- Use this normalized object everywhere:
-  - product components section
-  - override contrast lines
-  - remix brief lines
-  - toe-post sync lines
+### `supabase/functions/generate-image/index.ts`
 
-Why: prevents one path from using raw data while another path uses formatted data.
+1. **Replace `normalizeAllOverrides` + `getColorDescription`** with a single simple function that bakes hex into color at ingress:
+   - For each override component: if `colorHex` exists, set `color = "ColorName (#HEX)"`
+   - If color is empty/Custom, derive name from hex first
+   - Then clear `colorHex` field (it's now embedded in `color`)
+   - Do the same for `originalComponents` so contrast lines also carry hex
 
-3. Add explicit runtime fingerprint + color trace logs
-- Add a build/version constant at top (e.g. `GEN_IMAGE_BUILD = "hex-v3-2026-03-02T..."`).
-- Log it at function start and in prompt construction.
-- Add per-component trace logs in all relevant builders:
-  - input `{color,colorHex}`
-  - resolved output `Name (#HEX)`
+2. **Remove all `getColorDescription()` calls** (~15 call sites) and just use `.color` directly, since it already contains the hex inline.
 
-Why: immediately proves whether the live runtime is the updated one and where hex might be dropped.
+3. **Bump build fingerprint** to `hex-inline-v1-2026-03-02` to verify deployment.
 
-4. Persist override/original payload in generated image settings
-- In the completed row update, store:
-  - `settings.componentOverrides`
-  - `settings.originalComponents`
-  - `settings.references.componentOverrides`
-  - `settings.references.originalComponents`
-  - optional `settings.runtimeBuild` with the build fingerprint
+4. **Keep metadata persistence** (`componentOverrides`/`originalComponents` in settings) from the previous change.
 
-Why: regenerate and audit paths can reconstruct exact color intent (including hex) later.
+## Why This Works
+- Zero chance of hex being dropped -- it's part of the color string itself
+- The `PRODUCT COMPONENTS` section will naturally output `UPPER: Natural Leather (grained) in Dark Slate Gray (#005477)`
+- The `PRODUCT IDENTITY` section will naturally include it too
+- Remix brief contrast lines will include it
+- Toe-post sync lines will include it
+- No special formatter to forget to call
 
-5. Force a real backend function rollout
-- Make a substantive code-path change (not only a top comment) in `generate-image/index.ts`.
-- This ensures the runtime actually picks up the new behavior.
-- Verify rollout by checking logs for the new runtime fingerprint string.
+## Technical Details
 
-Verification checklist (must pass):
-1) Trigger generation with a custom color override (example upper `#005477`).
-2) Confirm backend logs show runtime fingerprint + color trace entries.
-3) Confirm `=== PRODUCT COMPONENTS ===` includes:
-- `UPPER: ... in Dark Slate Gray (#005477)`
-4) Confirm final crafted prompt still contains `Dark Slate Gray (#005477)` (not stripped or renamed).
-5) Confirm saved row `settings` includes `componentOverrides` with `colorHex`.
+The ingress normalizer (called once, right after `req.json()`):
 
-Expected result:
-- Yes, once we enforce canonical `Name (#HEX)` at backend assembly and persist normalized overrides, the hex will be carried through and used in the final prompt consistently.
+```text
+function bakeHexIntoColors(overrides) {
+  for each component in overrides:
+    if component.colorHex exists:
+      name = component.color || deriveNameFromHex(component.colorHex)
+      component.color = "Name (#HEX)"
+      delete component.colorHex
+}
+```
+
+Then every existing line like:
+```text
+componentLines.push(`${type.toUpperCase()}: ${comp.material} in ${color}`);
+```
+...just works, because `color` already is `"Dark Slate Gray (#005477)"`.
+
+## Verification
+After deploy, check logs for:
+1. `[BUILD] hex-inline-v1-2026-03-02` -- confirms new runtime
+2. `PRODUCT COMPONENTS` section shows `UPPER: ... in Dark Slate Gray (#005477)`
+3. Final prompt preserves the hex token
