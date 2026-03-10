@@ -50,7 +50,6 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
 
-  // Use stable userId string instead of user object to prevent unnecessary refetches
   const userId = user?.id ?? null;
 
   const fetchBrands = useCallback(async () => {
@@ -63,8 +62,6 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Only show global loading on initial load or user change
-    // Don't show loading on background refreshes
     const isInitialLoad = !hasLoadedOnceRef.current || loadedUserId !== userId;
     if (isInitialLoad) {
       setIsLoading(true);
@@ -78,7 +75,6 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) {
       console.error("Error fetching brands:", error);
-      // On error, keep existing brands and mark as loaded to prevent redirect loops
       hasLoadedOnceRef.current = true;
       setLoadedUserId(userId);
       setIsLoading(false);
@@ -95,12 +91,10 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
 
     setBrands(typedBrands);
 
-    // Set current brand to first one if not set, or update existing with fresh data
     setCurrentBrand(prev => {
       if (!prev && typedBrands.length > 0) {
         return typedBrands[0];
       }
-      // If currentBrand exists, find its updated version in the fresh data
       if (prev) {
         const updated = typedBrands.find(b => b.id === prev.id);
         return updated || (typedBrands.length > 0 ? typedBrands[0] : null);
@@ -115,7 +109,7 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchBrands();
-  }, [userId]); // Only refetch when userId changes, not on every fetchBrands recreation
+  }, [userId]);
 
   const createBrand = async (data: Partial<Brand>) => {
     if (!user) return { data: null, error: new Error("Not authenticated") };
@@ -162,7 +156,6 @@ export const BrandsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateBrand = async (id: string, data: Partial<Brand>) => {
-    // Cast to any to avoid type conflicts between Brand and database types
     const updateData: any = { ...data };
     const { error } = await supabase
       .from("brands")

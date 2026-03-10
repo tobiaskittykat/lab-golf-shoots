@@ -12,8 +12,6 @@ const ProtectedRoute = ({ children, requireBrand = true }: ProtectedRouteProps) 
   const { brands, currentBrand, isLoading: brandsLoading } = useBrands();
   const location = useLocation();
 
-  // Only show loading on TRUE initial load
-  // If we have a user and brands/currentBrand already, render children even during background refreshes
   const hasExistingBrandData = brands.length > 0 || currentBrand !== null;
   const isInitialAuthLoad = authLoading;
   const isInitialBrandLoad = brandsLoading && !hasExistingBrandData;
@@ -29,13 +27,10 @@ const ProtectedRoute = ({ children, requireBrand = true }: ProtectedRouteProps) 
     );
   }
 
-  // Not logged in - redirect to login
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Logged in but no brands and on a page that requires a brand
-  // Only redirect if we're certain there are no brands (not still loading)
   if (requireBrand && !brandsLoading && brands.length === 0 && location.pathname !== "/brand-setup") {
     return <Navigate to="/brand-setup" replace />;
   }

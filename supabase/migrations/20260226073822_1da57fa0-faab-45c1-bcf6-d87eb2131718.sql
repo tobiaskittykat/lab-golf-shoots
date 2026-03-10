@@ -1,1 +1,0 @@
-CREATE POLICY "Users can update own samples" ON public.color_samples FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

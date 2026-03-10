@@ -8,16 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      overlay: false,
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Prevent duplicate React instances
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
-  },
-  optimizeDeps: {
-    include: ["@tanstack/react-query"],
   },
 }));
