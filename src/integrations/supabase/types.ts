@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      brands: {
+        Row: {
+          assets: Json | null
+          brand_context: Json | null
+          created_at: string
+          id: string
+          industry: string | null
+          markets: string[] | null
+          name: string
+          personality: string | null
+          social_connections: Json | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          assets?: Json | null
+          brand_context?: Json | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          markets?: string[] | null
+          name?: string
+          personality?: string | null
+          social_connections?: Json | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          assets?: Json | null
+          brand_context?: Json | null
+          created_at?: string
+          id?: string
+          industry?: string | null
+          markets?: string[] | null
+          name?: string
+          personality?: string | null
+          social_connections?: Json | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
