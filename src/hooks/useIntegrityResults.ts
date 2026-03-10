@@ -16,10 +16,6 @@ export interface IntegrityResult {
   details: IntegrityDetails;
 }
 
-/**
- * Hook to fetch and poll for integrity analysis results for a set of images.
- * Polls every 5 seconds until all images have been analyzed.
- */
 export function useIntegrityResults(imageIds: string[]) {
   const [results, setResults] = useState<Record<string, IntegrityResult>>({});
   const [isPolling, setIsPolling] = useState(false);
@@ -27,10 +23,10 @@ export function useIntegrityResults(imageIds: string[]) {
   const fetchResults = useCallback(async () => {
     if (imageIds.length === 0) return;
 
-    const { data, error } = await supabase
-      .from('generated_images')
+    const { data, error } = await (supabase
+      .from('generated_images' as any)
       .select('id, integrity_analysis')
-      .in('id', imageIds);
+      .in('id', imageIds) as any);
 
     if (error) {
       console.error('[useIntegrityResults] Error fetching results:', error);
@@ -40,7 +36,7 @@ export function useIntegrityResults(imageIds: string[]) {
     const resultsMap: Record<string, IntegrityResult> = {};
     let allAnalyzed = true;
 
-    data?.forEach((img) => {
+    (data as any[])?.forEach((img: any) => {
       if (img.integrity_analysis) {
         resultsMap[img.id] = img.integrity_analysis as unknown as IntegrityResult;
       } else {
@@ -50,7 +46,6 @@ export function useIntegrityResults(imageIds: string[]) {
 
     setResults(resultsMap);
 
-    // Stop polling if all images are analyzed
     if (allAnalyzed && imageIds.length > 0) {
       setIsPolling(false);
     }
@@ -65,15 +60,12 @@ export function useIntegrityResults(imageIds: string[]) {
       return;
     }
 
-    // Initial fetch
     fetchResults().then((allAnalyzed) => {
-      // Start polling if not all analyzed
       if (!allAnalyzed) {
         setIsPolling(true);
       }
     });
 
-    // Set up polling interval
     let interval: NodeJS.Timeout | null = null;
 
     if (imageIds.length > 0) {
@@ -83,7 +75,7 @@ export function useIntegrityResults(imageIds: string[]) {
           if (interval) clearInterval(interval);
           setIsPolling(false);
         }
-      }, 5000); // Poll every 5 seconds
+      }, 5000);
     }
 
     return () => {
@@ -94,10 +86,6 @@ export function useIntegrityResults(imageIds: string[]) {
   return { results, isPolling };
 }
 
-/**
- * Trigger integrity analysis for a single image.
- * This is a fire-and-forget function - results will appear via polling.
- */
 export async function triggerIntegrityAnalysis(
   imageId: string,
   generatedImageUrl: string,
