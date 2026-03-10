@@ -84,7 +84,7 @@ export function useBrandImages() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setImages((data || []) as BrandImage[]);
+      setImages((data || []) as unknown as BrandImage[]);
     } catch (err) {
       console.error("Error fetching brand images:", err);
       toast({
