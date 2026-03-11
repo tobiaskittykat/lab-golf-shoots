@@ -439,23 +439,32 @@ export function useImageGeneration() {
 
           for (let i = batchStart; i < batchEnd; i++) {
             // Build variant-aware remix prompt
-            let remixPrompt = 'Remix: swap the golf club/putter with the selected product';
+            let remixPrompt = state.productShoot.remixCustomPrompt || '';
             const variantRefs: string[] = [];
 
-            const variantColorId = state.productShoot.selectedVariantColor;
-            const variantMarkId = state.productShoot.selectedVariantMark;
-            const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
-            const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
+            if (!remixPrompt) {
+              const variantColorId = state.productShoot.selectedVariantColor;
+              const variantMarkId = state.productShoot.selectedVariantMark;
+              const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
+              const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
 
-            if (selectedColor || selectedMark) {
-              const parts = ['Replace the golf putter/club in this image with the L.A.B. Golf DF3i putter'];
-              if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
-              if (selectedMark) {
-                parts.push(`with ${selectedMark.promptDescription}`);
-                variantRefs.push(selectedMark.publicUrl);
+              if (selectedColor || selectedMark) {
+                const parts = ['Replace the golf putter/club in this image with the L.A.B. Golf DF3i putter'];
+                if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
+                if (selectedMark) {
+                  parts.push(`with ${selectedMark.promptDescription}`);
+                  variantRefs.push(selectedMark.publicUrl);
+                }
+                parts.push('Keep exact composition, lighting, and background unchanged.');
+                remixPrompt = parts.join(' ');
+              } else {
+                remixPrompt = 'Remix: swap the golf club/putter with the selected product';
               }
-              parts.push('Keep exact composition, lighting, and background unchanged.');
-              remixPrompt = parts.join(' ');
+            } else {
+              // Still attach mark reference even with custom prompt
+              const variantMarkId = state.productShoot.selectedVariantMark;
+              const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
+              if (selectedMark) variantRefs.push(selectedMark.publicUrl);
             }
 
             // Add DF3i reference images
