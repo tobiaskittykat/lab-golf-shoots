@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { df3iColors, df3iAlignmentMarks, df3iReferenceImages } from '@/lib/labGolfVariants';
-import { supabase } from '@/integrations/supabase/client';
 import {
   CreativeStudioState,
   GeneratedImage,
