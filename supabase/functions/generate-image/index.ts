@@ -40,6 +40,7 @@ serve(async (req) => {
       artisticStyle, lightingStyle, cameraAngle,
       productShootConfig, attachReferenceImages,
       variantReferenceUrls,
+      parentImageId, generationStep,
     } = body;
 
     // Build the image generation prompt
