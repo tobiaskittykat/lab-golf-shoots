@@ -713,7 +713,7 @@ export const ProductShootStep2 = ({
       <CreateSKUModal
         open={showCreateSKUModal}
         onClose={() => setShowCreateSKUModal(false)}
-        onCreated={handleSkuCreated}
+        onCreated={() => {}}
       />
 
       {/* Edit SKU Modal */}
