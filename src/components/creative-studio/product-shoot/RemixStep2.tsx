@@ -460,7 +460,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 2: Product Selection (reuses same pattern as ProductShootStep2) */}
-      <Collapsible open={openSections.product}>
+      <Collapsible open={openSections.product} onOpenChange={() => toggleSection('product')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Package}
