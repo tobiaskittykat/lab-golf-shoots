@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { BackgroundSelector } from "./BackgroundSelector";
-import { ProductSKU } from "./ProductSKUPicker";
+import { type ProductSKU } from "./ProductSKUPicker";
 import { ProductPickerModal } from "./ProductPickerModal";
 import { SmartUploadModal } from "./SmartUploadModal";
 import { CreateSKUModal } from "./CreateSKUModal";
