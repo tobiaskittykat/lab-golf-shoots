@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,20 +9,30 @@ import {
   Download,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
+import { useToast } from "@/hooks/use-toast";
+import { pollForPendingImages } from "@/lib/imagePolling";
 
 interface BatchItem {
   id: string;
   prompt: string;
   status: "pending" | "generating" | "complete" | "error";
   result?: string;
+  error?: string;
 }
 
 const BatchGenerate = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { currentBrand } = useBrands();
+  const { toast } = useToast();
   const [items, setItems] = useState<BatchItem[]>([
-    { id: "1", prompt: "", status: "pending" }
+    { id: "1", prompt: "", status: "pending" },
   ]);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -32,42 +42,110 @@ const BatchGenerate = () => {
 
   const removeItem = (id: string) => {
     if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+      setItems(items.filter((item) => item.id !== id));
     }
   };
 
   const updatePrompt = (id: string, prompt: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, prompt } : item));
+    setItems(items.map((item) => (item.id === id ? { ...item, prompt } : item)));
   };
 
-  const runBatch = async () => {
+  const runBatch = useCallback(async () => {
+    if (!user) return;
     setIsRunning(true);
-    for (let i = 0; i < items.length; i++) {
-      if (!items[i].prompt.trim()) continue;
 
-      setItems(prev => prev.map((item, idx) =>
-        idx === i ? { ...item, status: "generating" } : item
-      ));
+    const validItems = items.filter((item) => item.prompt.trim());
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    for (let i = 0; i < validItems.length; i++) {
+      const item = validItems[i];
 
-      setItems(prev => prev.map((item, idx) =>
-        idx === i ? { ...item, status: "complete", result: "/placeholder.svg" } : item
-      ));
+      setItems((prev) =>
+        prev.map((it) => (it.id === item.id ? { ...it, status: "generating" } : it))
+      );
+
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-image", {
+          body: {
+            prompt: item.prompt,
+            imageCount: 1,
+            resolution: "1024",
+            aspectRatio: "1:1",
+            aiModel: "auto",
+            brandId: currentBrand?.id || null,
+          },
+        });
+
+        if (error) throw error;
+
+        const pendingIds = data?.pendingIds || [];
+        if (pendingIds.length === 0) throw new Error("No jobs created");
+
+        const rows = await pollForPendingImages(pendingIds, {
+          maxWaitMs: 300000,
+          intervalMs: 3000,
+        });
+
+        const completed = rows.find((r) => r.status === "completed");
+        if (completed?.image_url) {
+          setItems((prev) =>
+            prev.map((it) =>
+              it.id === item.id ? { ...it, status: "complete", result: completed.image_url } : it
+            )
+          );
+        } else {
+          setItems((prev) =>
+            prev.map((it) =>
+              it.id === item.id
+                ? { ...it, status: "error", error: rows[0]?.error_message || "Failed" }
+                : it
+            )
+          );
+        }
+      } catch (err) {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? { ...it, status: "error", error: err instanceof Error ? err.message : "Failed" }
+              : it
+          )
+        );
+      }
     }
+
     setIsRunning(false);
+    const successCount = items.filter((i) => i.status === "complete").length;
+    toast({
+      title: "Batch complete",
+      description: `Generated ${successCount} of ${validItems.length} images`,
+    });
+  }, [items, user, currentBrand, toast]);
+
+  const handleDownloadAll = async () => {
+    const completed = items.filter((i) => i.result);
+    for (const item of completed) {
+      try {
+        const response = await fetch(item.result!);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `kittykat-batch-${item.id}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch { /* skip */ }
+    }
   };
 
   const getStatusIcon = (status: BatchItem["status"]) => {
     switch (status) {
       case "complete": return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case "generating": return <Clock className="w-5 h-5 text-primary animate-pulse" />;
+      case "generating": return <Loader2 className="w-5 h-5 text-primary animate-spin" />;
       case "error": return <AlertCircle className="w-5 h-5 text-destructive" />;
       default: return <div className="w-5 h-5 rounded-full border-2 border-border" />;
     }
   };
 
-  const validItems = items.filter(item => item.prompt.trim());
+  const validItems = items.filter((item) => item.prompt.trim());
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -89,42 +167,18 @@ const BatchGenerate = () => {
               <span className="font-display text-lg font-bold">Batch Generate</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{validItems.length} items</span>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/25">
-              K
-            </div>
-          </div>
+          <span className="text-sm text-muted-foreground">{validItems.length} items</span>
         </div>
       </header>
 
       <main className="relative z-10 flex-1 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card p-4 mb-6 flex items-center gap-3 animate-fade-in">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-400/20 flex items-center justify-center">
-              <Layers className="w-5 h-5 text-violet-500" />
-            </div>
-            <div>
-              <p className="font-medium">Generate multiple images at once</p>
-              <p className="text-sm text-muted-foreground">Add prompts below and run them all in a single batch</p>
-            </div>
-          </div>
-
           <div className="space-y-3 mb-6">
             {items.map((item, index) => (
-              <div
-                key={item.id}
-                className="glass-card p-4 animate-fade-in flex gap-4"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className="flex items-center">
-                  {getStatusIcon(item.status)}
-                </div>
-
+              <div key={item.id} className="glass-card p-4 animate-fade-in flex gap-4" style={{ animationDelay: `${index * 0.05}s` }}>
+                <div className="flex items-center">{getStatusIcon(item.status)}</div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">#{index + 1}</span>
-                  </div>
+                  <span className="text-sm font-medium text-muted-foreground mb-2 block">#{index + 1}</span>
                   <textarea
                     value={item.prompt}
                     onChange={(e) => updatePrompt(item.id, e.target.value)}
@@ -133,14 +187,13 @@ const BatchGenerate = () => {
                     disabled={isRunning}
                     className="w-full bg-secondary/50 border border-border rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
                   />
+                  {item.error && <p className="text-xs text-destructive mt-1">{item.error}</p>}
                 </div>
-
                 {item.result && (
                   <div className="w-20 h-20 rounded-xl overflow-hidden bg-secondary flex-shrink-0">
                     <img src={item.result} alt="Result" className="w-full h-full object-cover" />
                   </div>
                 )}
-
                 <button
                   onClick={() => removeItem(item.id)}
                   disabled={items.length === 1 || isRunning}
@@ -161,12 +214,10 @@ const BatchGenerate = () => {
               <Plus className="w-4 h-4" />
               Add another prompt
             </button>
-
             <div className="flex gap-3">
-              {items.some(i => i.status === "complete") && (
-                <button className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:bg-secondary transition-colors">
-                  <Download className="w-4 h-4" />
-                  Download All
+              {items.some((i) => i.status === "complete") && (
+                <button onClick={handleDownloadAll} className="flex items-center gap-2 px-5 py-3 rounded-xl border border-border hover:bg-secondary transition-colors">
+                  <Download className="w-4 h-4" />Download All
                 </button>
               )}
               <button
@@ -174,7 +225,7 @@ const BatchGenerate = () => {
                 disabled={validItems.length === 0 || isRunning}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-400 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-violet-500/25"
               >
-                <Play className="w-4 h-4" />
+                {isRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 {isRunning ? "Generating..." : `Generate ${validItems.length} Images`}
               </button>
             </div>
