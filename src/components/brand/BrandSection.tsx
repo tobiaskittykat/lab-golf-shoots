@@ -32,7 +32,7 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
   );
 
   const brandBrain = getBrandBrain();
-  const visualDna = brandBrain?.visualDna;
+  const visualDna = brandBrain?.visualDNA;
 
   return (
     <section ref={brandRef} className="px-8 py-16 border-t border-border">
