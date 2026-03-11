@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Cat,
   ArrowLeft,
   Upload,
   Sparkles,
   Image,
   Wand2,
   Download,
-  RefreshCw
+  RefreshCw,
+  X,
+  Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useBrands } from "@/hooks/useBrands";
+import { useToast } from "@/hooks/use-toast";
+import { pollForPendingImages } from "@/lib/imagePolling";
+import { Button } from "@/components/ui/button";
 
 const styleOptions = [
   { id: "lifestyle", label: "Lifestyle", description: "Natural, everyday settings" },
@@ -29,20 +36,124 @@ const CreateImage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const initialPrompt = location.state?.prompt || "";
+  const { user } = useAuth();
+  const { currentBrand } = useBrands();
+  const { toast } = useToast();
 
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedStyle, setSelectedStyle] = useState("lifestyle");
   const [selectedRatio, setSelectedRatio] = useState("1:1");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedImageId, setGeneratedImageId] = useState<string | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReferenceFile(file);
+      setReferencePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const clearReference = () => {
+    if (referencePreview) URL.revokeObjectURL(referencePreview);
+    setReferenceFile(null);
+    setReferencePreview(null);
+  };
+
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || !user) return;
     setIsGenerating(true);
-    setTimeout(() => {
+    setGeneratedImage(null);
+
+    try {
+      let referenceUrl: string | undefined;
+
+      // Upload reference image if provided
+      if (referenceFile) {
+        const ext = referenceFile.name.split(".").pop() || "png";
+        const path = `${user.id}/references/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("brand-assets")
+          .upload(path, referenceFile, { upsert: true });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("brand-assets")
+            .getPublicUrl(path);
+          referenceUrl = publicUrl;
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: {
+          prompt: `${selectedStyle} style: ${prompt}`,
+          imageCount: 1,
+          aspectRatio: selectedRatio,
+          resolution: "1024",
+          aiModel: "auto",
+          brandId: currentBrand?.id || null,
+          brandName: currentBrand?.name,
+          ...(referenceUrl ? { productReferenceUrls: [referenceUrl] } : {}),
+        },
+      });
+
+      if (error) throw error;
+
+      const pendingIds = data?.pendingIds || [];
+      if (pendingIds.length === 0) {
+        toast({ title: "Generation failed", description: "No image jobs created", variant: "destructive" });
+        return;
+      }
+
+      const rows = await pollForPendingImages(pendingIds, {
+        maxWaitMs: 300000,
+        intervalMs: 3000,
+        onRowReady: (row) => {
+          if (row.status === "completed" && row.image_url) {
+            setGeneratedImage(row.image_url);
+            setGeneratedImageId(row.id);
+          }
+        },
+      });
+
+      const completed = rows.find(r => r.status === "completed");
+      if (completed?.image_url) {
+        setGeneratedImage(completed.image_url);
+        setGeneratedImageId(completed.id);
+        toast({ title: "Image generated!", description: "Your image is ready" });
+      } else {
+        toast({ title: "Generation failed", description: rows[0]?.error_message || "Please try again", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Generation error:", err);
+      toast({ title: "Generation failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
       setIsGenerating(false);
-      setGeneratedImage("/placeholder.svg");
-    }, 2000);
+    }
+  }, [prompt, selectedStyle, selectedRatio, user, currentBrand, referenceFile, toast]);
+
+  const handleDownload = async () => {
+    if (!generatedImage) return;
+    try {
+      const response = await fetch(generatedImage);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kittykat-${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Download failed", variant: "destructive" });
+    }
+  };
+
+  const handleRegenerate = () => {
+    setGeneratedImage(null);
+    setGeneratedImageId(null);
+    handleGenerate();
   };
 
   return (
@@ -63,11 +174,6 @@ const CreateImage = () => {
                 <Image className="w-4 h-4 text-white" />
               </div>
               <span className="font-display text-lg font-bold">Create Image</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-lg shadow-primary/25">
-              K
             </div>
           </div>
         </div>
@@ -130,10 +236,20 @@ const CreateImage = () => {
 
               <div className="glass-card p-6 animate-fade-in" style={{ animationDelay: "0.3s" }}>
                 <label className="block text-sm font-semibold mb-3">Reference Image (Optional)</label>
-                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/30 transition-colors cursor-pointer">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Drop an image or click to upload</p>
-                </div>
+                {referencePreview ? (
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-secondary">
+                    <img src={referencePreview} alt="Reference" className="w-full h-full object-contain" />
+                    <button onClick={clearReference} className="absolute top-2 right-2 w-8 h-8 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/30 transition-colors cursor-pointer block">
+                    <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Drop an image or click to upload</p>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                  </label>
+                )}
               </div>
 
               <button
@@ -142,15 +258,9 @@ const CreateImage = () => {
                 className="w-full py-4 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-pink-500/25"
               >
                 {isGenerating ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    Generating...
-                  </>
+                  <><Loader2 className="w-5 h-5 animate-spin" />Generating...</>
                 ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    Generate Image
-                  </>
+                  <><Sparkles className="w-5 h-5" />Generate Image</>
                 )}
               </button>
             </div>
@@ -161,10 +271,10 @@ const CreateImage = () => {
                   <h3 className="font-semibold">Preview</h3>
                   {generatedImage && (
                     <div className="flex gap-2">
-                      <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
+                      <button onClick={handleRegenerate} className="p-2 rounded-lg hover:bg-secondary transition-colors" title="Regenerate">
                         <RefreshCw className="w-4 h-4" />
                       </button>
-                      <button className="p-2 rounded-lg hover:bg-secondary transition-colors">
+                      <button onClick={handleDownload} className="p-2 rounded-lg hover:bg-secondary transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                       </button>
                     </div>
