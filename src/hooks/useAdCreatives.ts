@@ -27,7 +27,7 @@ export function useAdCreatives() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(100);
-
+      
       if (currentBrand?.id) {
         query = query.or(`brand_id.eq.${currentBrand.id},brand_id.is.null`);
       }
@@ -49,7 +49,7 @@ export function useAdCreatives() {
 
   const saveCreative = useCallback(async (imageUrl: string, name?: string) => {
     if (!user?.id) return null;
-
+    
     const { data, error } = await supabase
       .from('ad_creatives' as any)
       .insert({
@@ -75,7 +75,7 @@ export function useAdCreatives() {
       .from('ad_creatives' as any)
       .delete()
       .eq('id', id);
-
+    
     if (!error) {
       setCreatives(prev => prev.filter(c => c.id !== id));
     }

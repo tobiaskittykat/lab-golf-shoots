@@ -240,6 +240,7 @@ export type Database = {
           brand_id: string | null
           created_at: string
           description: string | null
+          file_path: string | null
           id: string
           name: string
           thumbnail_url: string | null
@@ -251,6 +252,7 @@ export type Database = {
           brand_id?: string | null
           created_at?: string
           description?: string | null
+          file_path?: string | null
           id?: string
           name?: string
           thumbnail_url?: string | null
@@ -262,6 +264,7 @@ export type Database = {
           brand_id?: string | null
           created_at?: string
           description?: string | null
+          file_path?: string | null
           id?: string
           name?: string
           thumbnail_url?: string | null
@@ -284,6 +287,7 @@ export type Database = {
           brand_id: string | null
           concept_id: string | null
           concept_title: string | null
+          context_reference_url: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -302,6 +306,7 @@ export type Database = {
           brand_id?: string | null
           concept_id?: string | null
           concept_title?: string | null
+          context_reference_url?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -320,6 +325,7 @@ export type Database = {
           brand_id?: string | null
           concept_id?: string | null
           concept_title?: string | null
+          context_reference_url?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -397,6 +403,95 @@ export type Database = {
           },
         ]
       }
+      saved_concepts: {
+        Row: {
+          artistic_style: string | null
+          aspect_ratio: string | null
+          brand_id: string | null
+          camera_angle: string | null
+          consumer_insight: string | null
+          content_pillars: Json | null
+          core_idea: string | null
+          created_at: string
+          description: string
+          extra_keywords: string[] | null
+          id: string
+          lighting_style: string | null
+          moodboard_id: string | null
+          product_focus: Json | null
+          product_reference_ids: string[] | null
+          taglines: string[] | null
+          tags: string[] | null
+          target_audience: Json | null
+          title: string
+          tonality: Json | null
+          updated_at: string
+          use_case: string | null
+          user_id: string
+          visual_world: Json | null
+        }
+        Insert: {
+          artistic_style?: string | null
+          aspect_ratio?: string | null
+          brand_id?: string | null
+          camera_angle?: string | null
+          consumer_insight?: string | null
+          content_pillars?: Json | null
+          core_idea?: string | null
+          created_at?: string
+          description?: string
+          extra_keywords?: string[] | null
+          id?: string
+          lighting_style?: string | null
+          moodboard_id?: string | null
+          product_focus?: Json | null
+          product_reference_ids?: string[] | null
+          taglines?: string[] | null
+          tags?: string[] | null
+          target_audience?: Json | null
+          title?: string
+          tonality?: Json | null
+          updated_at?: string
+          use_case?: string | null
+          user_id: string
+          visual_world?: Json | null
+        }
+        Update: {
+          artistic_style?: string | null
+          aspect_ratio?: string | null
+          brand_id?: string | null
+          camera_angle?: string | null
+          consumer_insight?: string | null
+          content_pillars?: Json | null
+          core_idea?: string | null
+          created_at?: string
+          description?: string
+          extra_keywords?: string[] | null
+          id?: string
+          lighting_style?: string | null
+          moodboard_id?: string | null
+          product_focus?: Json | null
+          product_reference_ids?: string[] | null
+          taglines?: string[] | null
+          tags?: string[] | null
+          target_audience?: Json | null
+          title?: string
+          tonality?: Json | null
+          updated_at?: string
+          use_case?: string | null
+          user_id?: string
+          visual_world?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_concepts_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scene_images: {
         Row: {
           brand_id: string
@@ -442,7 +537,11 @@ export type Database = {
         Row: {
           angle: string | null
           brand_id: string | null
+          category: string | null
+          collection: string | null
           created_at: string
+          description: Json | null
+          external_id: string | null
           full_url: string | null
           id: string
           name: string | null
@@ -454,7 +553,11 @@ export type Database = {
         Insert: {
           angle?: string | null
           brand_id?: string | null
+          category?: string | null
+          collection?: string | null
           created_at?: string
+          description?: Json | null
+          external_id?: string | null
           full_url?: string | null
           id?: string
           name?: string | null
@@ -466,7 +569,11 @@ export type Database = {
         Update: {
           angle?: string | null
           brand_id?: string | null
+          category?: string | null
+          collection?: string | null
           created_at?: string
+          description?: Json | null
+          external_id?: string | null
           full_url?: string | null
           id?: string
           name?: string | null

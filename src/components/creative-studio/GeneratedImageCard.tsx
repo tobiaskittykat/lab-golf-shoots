@@ -1,117 +1,321 @@
-import { GeneratedImage } from "./types";
-import { Download, RefreshCw, Heart, Loader2, AlertTriangle } from "lucide-react";
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { useState, DragEvent } from 'react';
+import { Download, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Check, GripVertical } from 'lucide-react';
+import { GeneratedImage } from './types';
+import { cn } from '@/lib/utils';
+import { ProductIntegrityBadge } from './product-shoot/ProductIntegrityBadge';
+import { ProductIntegrityResult } from './product-shoot/types';
 
 interface GeneratedImageCardProps {
   image: GeneratedImage;
-  onVariation?: (image: GeneratedImage) => void;
-  onEdit?: (image: GeneratedImage) => void;
-  onDelete?: (image: GeneratedImage) => void;
+  onVariation: (image: GeneratedImage) => void;
+  onEdit: (image: GeneratedImage) => void;
+  onDelete: (image: GeneratedImage) => void;
   onSelect?: (image: GeneratedImage) => void;
+  onToggleSelect?: (image: GeneratedImage) => void;
+  isSelected?: boolean;
+  enableDrag?: boolean;
+  integrityResult?: ProductIntegrityResult;
+  isAnalyzingIntegrity?: boolean;
 }
 
-export const GeneratedImageCard = ({ image, onVariation, onSelect }: GeneratedImageCardProps) => {
+export const GeneratedImageCard = ({ 
+  image, 
+  onVariation, 
+  onEdit, 
+  onDelete,
+  onSelect,
+  onToggleSelect,
+  isSelected = false,
+  enableDrag = false,
+  integrityResult,
+  isAnalyzingIntegrity = false,
+}: GeneratedImageCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
+    if (!enableDrag || image.status !== 'completed') {
+      e.preventDefault();
+      return;
+    }
+    
+    e.dataTransfer.setData('application/json', JSON.stringify(image));
+    e.dataTransfer.effectAllowed = 'copy';
+    setIsDragging(true);
+    
+    const dragImage = document.createElement('div');
+    dragImage.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleDownload = async () => {
     if (!image.imageUrl) return;
+    
+    setIsDownloading(true);
     try {
       const response = await fetch(image.imageUrl);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `kittykat-${image.id.slice(0, 8)}.png`;
+      a.download = `generated-image-${image.id}.png`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
-    } catch { /* ignore */ }
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const handleVariation = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onVariation?.(image);
+  const getStatusBadge = () => {
+    switch (image.status) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary text-muted-foreground text-xs">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Generating...
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/10 text-green-600 text-xs">
+            <Check className="w-3 h-3" />
+            Done
+          </span>
+        );
+      case 'failed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/10 text-destructive text-xs">
+            <AlertTriangle className="w-3 h-3" />
+            Failed
+          </span>
+        );
+      case 'nsfw':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/10 text-orange-600 text-xs">
+            <AlertTriangle className="w-3 h-3" />
+            NSFW
+          </span>
+        );
+      default:
+        return null;
+    }
   };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    
+    // Click card body = open detail/maximize modal
+    if (onSelect && image.status === 'completed') {
+      onSelect(image);
+    }
+  };
+
+  const canDrag = enableDrag && image.status === 'completed';
+  const isFailed = image.status === 'failed' || image.status === 'nsfw';
 
   return (
-    <div
+    <div 
       className={cn(
-        "rounded-lg overflow-hidden border border-border bg-card cursor-pointer transition-all group",
-        "hover:border-accent/40 hover:shadow-md"
+        "group relative rounded-xl overflow-hidden border bg-card shadow-sm hover:shadow-md transition-all",
+        isSelected 
+          ? 'border-accent ring-2 ring-accent/30' 
+          : 'border-border',
+        (onToggleSelect || onSelect) && image.status === 'completed' && 'cursor-pointer',
+        isDragging && 'opacity-50 scale-95',
+        canDrag && !isSelected && 'cursor-grab active:cursor-grabbing'
       )}
-      onClick={() => onSelect?.(image)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
+      draggable={canDrag}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
-      <div className="relative aspect-square">
-        {image.imageUrl ? (
-          <img
-            src={image.imageUrl}
-            alt={image.conceptTitle || "Generated"}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+      {/* Selection Checkmark */}
+      {isSelected && (
+        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-md">
+          <Check className="w-3.5 h-3.5" />
+        </div>
+      )}
+
+      {/* Image Container */}
+      <div className="aspect-square relative bg-secondary/30">
+        {image.status === 'pending' ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
+              <span className="text-sm text-muted-foreground">Generating...</span>
+            </div>
+          </div>
+        ) : image.status === 'failed' ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 text-center px-4">
+              <AlertTriangle className="w-8 h-8 text-destructive" />
+              <span className="text-sm text-muted-foreground">
+                {image.error || 'Generation failed'}
+              </span>
+            </div>
+          </div>
+        ) : image.status === 'nsfw' ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-secondary/80 backdrop-blur-md">
+            <div className="flex flex-col items-center gap-2 text-center px-4">
+              <AlertTriangle className="w-8 h-8 text-orange-500" />
+              <span className="text-sm text-muted-foreground">Content filtered</span>
+            </div>
+          </div>
         ) : (
-          <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
-            {image.status === "pending" ? (
-              <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="text-xs">Generating...</span>
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="w-6 h-6" />
-                <span className="text-xs">Failed</span>
-              </>
+          <>
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
             )}
+            <img
+              src={image.imageUrl}
+              alt={image.prompt}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => setImageLoaded(true)}
+            />
+          </>
+        )}
+
+        {/* Drag Handle Indicator */}
+        {canDrag && isHovered && !isSelected && (
+          <div className="absolute top-2 left-2 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <GripVertical className="w-3 h-3" />
           </div>
         )}
 
-        {/* Hover overlay with actions */}
-        {image.imageUrl && isHovered && (
-          <div className="absolute inset-0 bg-black/40 flex items-end justify-end p-2 gap-1.5 transition-opacity">
+        {/* Hover Overlay with Actions - for completed images */}
+        {isHovered && image.status === 'completed' && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-2 transition-opacity">
             <button
-              onClick={handleDownload}
-              className="w-8 h-8 rounded-lg bg-white/90 text-foreground flex items-center justify-center hover:bg-white transition-colors"
-              title="Download"
+              onClick={(e) => { e.stopPropagation(); onVariation(image); }}
+              className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
+              title="Regenerate"
             >
-              <Download className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" />
             </button>
-            {onVariation && (
-              <button
-                onClick={handleVariation}
-                className="w-8 h-8 rounded-lg bg-white/90 text-foreground flex items-center justify-center hover:bg-white transition-colors"
-                title="Variation"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+              className="p-2.5 rounded-full bg-white/90 hover:bg-white text-foreground transition-colors"
+              title="Download"
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(image); }}
+              className="p-2.5 rounded-full bg-white/90 hover:bg-white text-destructive transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         )}
 
-        {/* NSFW badge */}
-        {image.status === "nsfw" && (
-          <div className="absolute inset-0 bg-muted/90 flex items-center justify-center">
-            <span className="text-xs text-muted-foreground">Content filtered</span>
+        {/* Selection Checkbox - bottom-right corner */}
+        {onToggleSelect && image.status === 'completed' && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleSelect(image); }}
+            className={cn(
+              "absolute bottom-2 right-2 z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all",
+              isSelected
+                ? "bg-accent text-accent-foreground shadow-md"
+                : "bg-black/40 text-white opacity-0 group-hover:opacity-100"
+            )}
+            title={isSelected ? "Deselect" : "Select"}
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Hover Overlay for failed/NSFW - just delete button */}
+        {isHovered && isFailed && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(image); }}
+              className="p-2.5 rounded-full bg-white/90 hover:bg-white text-destructive transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
 
-      {image.conceptTitle && (
-        <div className="p-2">
-          <p className="text-xs text-muted-foreground truncate">{image.conceptTitle}</p>
+      {/* Card Footer */}
+      <div className="p-3 space-y-2">
+        <p className="text-sm text-foreground font-medium line-clamp-1">
+          {image.conceptTitle || 'Generated Image'}
+        </p>
+        <p className="text-xs text-muted-foreground line-clamp-1">
+          {image.prompt}
+        </p>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {getStatusBadge()}
+            
+            {(integrityResult || isAnalyzingIntegrity) && image.status === 'completed' && (
+              <ProductIntegrityBadge
+                result={integrityResult}
+                isAnalyzing={isAnalyzingIntegrity}
+                onRegenerate={() => onVariation(image)}
+                compact
+              />
+            )}
+          </div>
+          
+          {(image.productReferenceUrl || image.contextReferenceUrl) && (
+            <div className="flex items-center gap-1">
+              {image.productReferenceUrl && (
+                <div 
+                  className="w-5 h-5 rounded border border-border bg-secondary/50"
+                  title="Product reference"
+                />
+              )}
+              {image.contextReferenceUrl && (
+                <div 
+                  className="w-5 h-5 rounded border border-border bg-secondary/50"
+                  title="Context reference"
+                />
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
+// Skeleton card for loading state
 export const GeneratedImageCardSkeleton = () => (
-  <div className="rounded-lg overflow-hidden border border-border bg-card animate-pulse">
-    <div className="w-full aspect-square bg-muted" />
-    <div className="p-2">
-      <div className="h-3 bg-muted rounded w-3/4" />
+  <div className="rounded-xl overflow-hidden border border-border bg-card animate-pulse">
+    <div className="aspect-square bg-secondary/50 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-accent" />
+    </div>
+    <div className="p-3 space-y-2">
+      <div className="h-4 bg-secondary rounded w-3/4" />
+      <div className="h-4 bg-secondary rounded w-1/2" />
     </div>
   </div>
 );
