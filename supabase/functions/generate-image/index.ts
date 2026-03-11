@@ -131,111 +131,113 @@ serve(async (req) => {
     };
     const selectedModel = modelMap[aiModel] || modelMap.auto;
 
-    // Process each image in background
-    (async () => {
-      for (const pendingId of pendingIds) {
-        try {
-          const messages: any[] = [];
-          const content: any[] = [{ type: "text", text: finalPrompt }];
+    // Process each image synchronously before returning
+    for (const pendingId of pendingIds) {
+      try {
+        const messages: any[] = [];
+        const content: any[] = [{ type: "text", text: finalPrompt }];
 
-          // Attach product reference images
-          if (attachReferenceImages !== false && productReferenceUrls?.length > 0) {
-            for (const refUrl of productReferenceUrls.slice(0, 4)) {
-              content.push({ type: "image_url", image_url: { url: refUrl } });
-            }
+        // Attach product reference images
+        if (attachReferenceImages !== false && productReferenceUrls?.length > 0) {
+          for (const refUrl of productReferenceUrls.slice(0, 4)) {
+            content.push({ type: "image_url", image_url: { url: refUrl } });
           }
+        }
 
-          // Attach variant reference images (e.g. alignment mark thumbnails)
-          if (variantReferenceUrls?.length > 0) {
-            for (const varUrl of variantReferenceUrls.slice(0, 3)) {
-              content.push({ type: "image_url", image_url: { url: varUrl } });
-            }
+        // Attach variant reference images (e.g. alignment mark thumbnails)
+        if (variantReferenceUrls?.length > 0) {
+          for (const varUrl of variantReferenceUrls.slice(0, 3)) {
+            content.push({ type: "image_url", image_url: { url: varUrl } });
           }
+        }
 
-          // Attach moodboard
-          if (moodboardUrl) {
-            content.push({ type: "image_url", image_url: { url: moodboardUrl } });
-          }
+        // Attach moodboard
+        if (moodboardUrl) {
+          content.push({ type: "image_url", image_url: { url: moodboardUrl } });
+        }
 
-          // For edit/remix mode, attach source image
-          if ((editMode || remixMode) && sourceImageUrl) {
-            content.push({ type: "image_url", image_url: { url: sourceImageUrl } });
-          }
+        // For edit/remix mode, attach source image
+        if ((editMode || remixMode) && sourceImageUrl) {
+          content.push({ type: "image_url", image_url: { url: sourceImageUrl } });
+        }
 
-          messages.push({ role: "user", content });
+        messages.push({ role: "user", content });
 
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: selectedModel,
-              messages,
-              modalities: ["image", "text"],
-            }),
-          });
+        console.log(`[generate-image] Calling AI for ${pendingId} with ${content.length} content parts`);
 
-          if (!aiResponse.ok) {
-            const errText = await aiResponse.text();
-            console.error(`AI error for ${pendingId}:`, aiResponse.status, errText);
-            await supabase.from("generated_images").update({
-              status: "failed",
-              error_message: `AI error: ${aiResponse.status}`,
-            }).eq("id", pendingId);
-            continue;
-          }
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: selectedModel,
+            messages,
+            modalities: ["image", "text"],
+          }),
+        });
 
-          const aiData = await aiResponse.json();
-          const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          const refinedPrompt = aiData.choices?.[0]?.message?.content || null;
-
-          if (!imageData) {
-            await supabase.from("generated_images").update({
-              status: "failed",
-              error_message: "No image returned from AI",
-            }).eq("id", pendingId);
-            continue;
-          }
-
-          // Upload base64 image to storage
-          const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-          const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-          const storagePath = `generated/${pendingId}.png`;
-
-          const { error: uploadErr } = await supabase.storage
-            .from("brand-assets")
-            .upload(storagePath, imageBytes, { contentType: "image/png", upsert: true });
-
-          if (uploadErr) {
-            console.error("Upload error:", uploadErr);
-            // Fall back to storing the data URL directly (not ideal but functional)
-            await supabase.from("generated_images").update({
-              status: "completed",
-              image_url: imageData,
-              refined_prompt: refinedPrompt,
-            }).eq("id", pendingId);
-            continue;
-          }
-
-          const { data: urlData } = supabase.storage.from("brand-assets").getPublicUrl(storagePath);
-
-          await supabase.from("generated_images").update({
-            status: "completed",
-            image_url: urlData.publicUrl,
-            refined_prompt: refinedPrompt,
-          }).eq("id", pendingId);
-
-        } catch (err) {
-          console.error(`Error generating image ${pendingId}:`, err);
+        if (!aiResponse.ok) {
+          const errText = await aiResponse.text();
+          console.error(`AI error for ${pendingId}:`, aiResponse.status, errText);
           await supabase.from("generated_images").update({
             status: "failed",
-            error_message: err instanceof Error ? err.message : "Unknown error",
+            error_message: `AI error: ${aiResponse.status}`,
           }).eq("id", pendingId);
+          continue;
         }
+
+        const aiData = await aiResponse.json();
+        const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        const refinedPrompt = aiData.choices?.[0]?.message?.content || null;
+
+        if (!imageData) {
+          console.error(`No image in AI response for ${pendingId}:`, JSON.stringify(aiData).slice(0, 500));
+          await supabase.from("generated_images").update({
+            status: "failed",
+            error_message: "No image returned from AI",
+          }).eq("id", pendingId);
+          continue;
+        }
+
+        // Upload base64 image to storage
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
+        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        const storagePath = `generated/${pendingId}.png`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("brand-assets")
+          .upload(storagePath, imageBytes, { contentType: "image/png", upsert: true });
+
+        if (uploadErr) {
+          console.error("Upload error:", uploadErr);
+          await supabase.from("generated_images").update({
+            status: "completed",
+            image_url: imageData,
+            refined_prompt: refinedPrompt,
+          }).eq("id", pendingId);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage.from("brand-assets").getPublicUrl(storagePath);
+
+        await supabase.from("generated_images").update({
+          status: "completed",
+          image_url: urlData.publicUrl,
+          refined_prompt: refinedPrompt,
+        }).eq("id", pendingId);
+
+        console.log(`[generate-image] Completed ${pendingId}`);
+
+      } catch (err) {
+        console.error(`Error generating image ${pendingId}:`, err);
+        await supabase.from("generated_images").update({
+          status: "failed",
+          error_message: err instanceof Error ? err.message : "Unknown error",
+        }).eq("id", pendingId);
       }
-    })();
+    }
 
     return new Response(JSON.stringify({ pendingIds }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

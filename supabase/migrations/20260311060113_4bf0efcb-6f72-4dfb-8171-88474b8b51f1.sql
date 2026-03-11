@@ -1,0 +1,1 @@
+UPDATE generated_images SET status = 'failed', error_message = 'Runtime shutdown before processing completed' WHERE status = 'pending' AND created_at < now() - interval '5 minutes';
