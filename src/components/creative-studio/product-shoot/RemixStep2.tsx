@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ChevronDown, ChevronRight, Upload, Package, Settings2, Clock, Check, X, ImageIcon, Trash2, Expand, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Upload, Package, Settings2, Clock, Check, X, ImageIcon, Trash2, Expand, FolderOpen, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
