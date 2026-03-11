@@ -123,13 +123,13 @@ export function buildDF3iMarkPrompt(opts: {
   return `TASK: ADD ALIGNMENT MARK TO PUTTER HEAD — NOTHING ELSE CHANGES
 
 You are given TWO images:
-1. A photograph of a L.A.B. Golf DF3i putter (the FIRST/MAIN image) — this is the image you will edit.
-2. A REFERENCE image showing the exact alignment mark design to apply (the SECOND image).
+1. The FIRST image is a reference showing the exact alignment mark design to apply.
+2. The SECOND image is the photograph of the putter — this is the image you will edit.
 
 ${colorContext}
 
 YOUR ONLY JOB:
-Add the alignment mark shown in the reference image onto the flat top surface of the putter head in the main image. That is the ONLY change.
+Add the alignment mark shown in the FIRST (reference) image onto the flat top surface of the putter head in the SECOND (photograph) image. That is the ONLY change.
 
 MARK SPECIFICATION:
 • The mark is: ${selectedMark.promptDescription}.
