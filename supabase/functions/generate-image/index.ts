@@ -39,6 +39,7 @@ serve(async (req) => {
       extraKeywords, negativePrompt, textOnImage,
       artisticStyle, lightingStyle, cameraAngle,
       productShootConfig, attachReferenceImages,
+      variantReferenceUrls,
     } = body;
 
     // Build the image generation prompt
@@ -141,6 +142,13 @@ serve(async (req) => {
           if (attachReferenceImages !== false && productReferenceUrls?.length > 0) {
             for (const refUrl of productReferenceUrls.slice(0, 4)) {
               content.push({ type: "image_url", image_url: { url: refUrl } });
+            }
+          }
+
+          // Attach variant reference images (e.g. alignment mark thumbnails)
+          if (variantReferenceUrls?.length > 0) {
+            for (const varUrl of variantReferenceUrls.slice(0, 3)) {
+              content.push({ type: "image_url", image_url: { url: varUrl } });
             }
           }
 
