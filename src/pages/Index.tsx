@@ -1,84 +1,635 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import kittykatLogo from "@/assets/kittykat-logo-transparent.png";
 import { useNavigate } from "react-router-dom";
+import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
+import { useBrandDrafts } from "@/hooks/useBrandDrafts";
+import { useToast } from "@/hooks/use-toast";
+import BrandSelector from "@/components/BrandSelector";
+import BrandSection from "@/components/brand/BrandSection";
+import { CreativeStudioWizard } from "@/components/creative-studio/CreativeStudioWizard";
+import { MoodboardBuilder } from "@/components/creative-studio/MoodboardBuilder";
+import { MoodboardModal } from "@/components/creative-studio/MoodboardModal";
 import {
   Image,
+  Megaphone,
   Wand2,
   Layers,
-  Settings2,
+  Send,
+  Home,
+  Bell,
+  PenTool,
   GalleryHorizontal,
-  Package,
-  LogOut,
+  ListTodo,
+  Users,
+  Settings2,
+  ChevronDown,
+  ChevronRight,
+  Upload,
+  Palette,
+  Building2,
   Sparkles,
+  Play,
+  RefreshCw,
+  Copy,
+  Star,
+  Plus,
+  Calendar,
+  MapPin,
+  UserCircle2,
+  ImageIcon,
+  HelpCircle,
+  LogOut,
+  Check,
+  PanelRightOpen,
+  PanelRightClose,
+  MessageSquare,
+  ChevronUp,
+  X,
+  FileText,
+  Package
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const navItems = [
-  { id: "create-image", label: "Create Image", icon: Image, path: "/create-image" },
-  { id: "edit-image", label: "Edit Image", icon: Wand2, path: "/edit-image" },
-  { id: "batch", label: "Batch Generate", icon: Layers, path: "/batch-generate" },
-  { id: "gallery", label: "Gallery", icon: GalleryHorizontal, path: "/gallery" },
-  { id: "products", label: "Products", icon: Package, path: "/products" },
-  { id: "settings", label: "Settings", icon: Settings2, path: "/settings" },
+  { id: "home", label: "Home", icon: Home },
+  { id: "notifications", label: "Notifications", icon: Bell, badge: 9 },
+  { id: "visual-editor", label: "Visual Editor", icon: PenTool },
+  { id: "gallery", label: "Gallery", icon: GalleryHorizontal, href: "/gallery" },
+  { id: "products", label: "Products", icon: Package, href: "/products" },
+  { id: "task-lists", label: "Task Lists", icon: ListTodo },
+  { id: "users", label: "Users", icon: Users },
+  { id: "settings", label: "AI Settings", icon: Settings2, href: "/settings" },
 ];
+
+const quickActions = [
+  { id: "brand", label: "View brand", icon: Palette },
+  { id: "campaign", label: "Create campaign", icon: Megaphone },
+  { id: "moodboard", label: "Create moodboard", icon: Layers },
+  { id: "image", label: "Generate image", icon: Image },
+  { id: "video", label: "Generate video", icon: Play },
+  { id: "edit-video", label: "Edit video", icon: RefreshCw },
+  { id: "edit", label: "Edit image", icon: Wand2 },
+  { id: "gallery", label: "View gallery", icon: GalleryHorizontal },
+  { id: "ideas", label: "Get ideas", icon: Sparkles },
+  { id: "discover-audience", label: "Discover your audience", icon: Users },
+  { id: "define-audience", label: "Define your audience", icon: UserCircle2 },
+];
+
+const moodboardImages = [
+  "/placeholder.svg", "/placeholder.svg", "/placeholder.svg", "/placeholder.svg",
+  "/placeholder.svg", "/placeholder.svg", "/placeholder.svg", "/placeholder.svg",
+];
+
+type ActiveSection = "hero" | "brand" | "campaign" | "image";
+
+const sidebarContextConfig: Record<ActiveSection, {
+  title: string;
+  description: string;
+  starterPrompts: { label: string; prompt: string }[];
+}> = {
+  hero: {
+    title: "KittyKat",
+    description: "I can help you create stunning visuals, manage your brand, and run campaigns.",
+    starterPrompts: [
+      { label: "🎨 Generate a new image", prompt: "Help me generate a new product image" },
+      { label: "📢 Plan a campaign", prompt: "I want to create a new marketing campaign" },
+      { label: "🏷️ Update my brand", prompt: "Help me refine my brand guidelines" },
+    ],
+  },
+  brand: {
+    title: "Brand Assistant",
+    description: "I can help you refine your brand identity, colors, typography, and personas.",
+    starterPrompts: [
+      { label: "🎨 Suggest new colors", prompt: "Suggest complementary colors for my brand palette" },
+      { label: "✍️ Improve tagline", prompt: "Help me improve my brand tagline" },
+      { label: "👤 Create a persona", prompt: "Help me create a new target audience persona" },
+      { label: "📝 Refine mission", prompt: "Help me refine my brand mission statement" },
+    ],
+  },
+  campaign: {
+    title: "Campaign Assistant",
+    description: "I can help you plan campaigns, select moodboards, and craft messaging.",
+    starterPrompts: [
+      { label: "📅 Plan launch", prompt: "Help me plan a product launch campaign" },
+      { label: "💡 Generate ideas", prompt: "Give me creative campaign ideas for this brand" },
+      { label: "🎯 Target audience", prompt: "Help me define the target audience for this campaign" },
+      { label: "📊 Campaign strategy", prompt: "Suggest a multi-channel campaign strategy" },
+    ],
+  },
+  image: {
+    title: "Image Assistant",
+    description: "I can help you generate, edit, and refine images for your brand.",
+    starterPrompts: [
+      { label: "✨ Enhance prompt", prompt: "Help me improve this image prompt" },
+      { label: "🔄 Create variations", prompt: "Suggest variations of my current image concept" },
+      { label: "📐 Adjust composition", prompt: "How can I improve the composition of this image?" },
+      { label: "🎭 Style transfer", prompt: "Apply a different visual style to my image" },
+    ],
+  },
+};
 
 const Index = () => {
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
+  const { user, signOut } = useAuth();
   const { currentBrand } = useBrands();
+  const { drafts, deleteDraft } = useBrandDrafts();
+  const [prompt, setPrompt] = useState("");
+  const [chatMessage, setChatMessage] = useState("");
+  const [activeNav, setActiveNav] = useState("home");
+
+  const brandRef = useRef<HTMLDivElement>(null);
+  const campaignRef = useRef<HTMLDivElement>(null);
+  const moodboardRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  const [activeSection, setActiveSection] = useState<ActiveSection>("hero");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCampaignOpen, setIsCampaignOpen] = useState(true);
+  const [isMoodboardOpen, setIsMoodboardOpen] = useState(true);
+  const [isImageOpen, setIsImageOpen] = useState(true);
+  const [selectedMoodboard, setSelectedMoodboard] = useState<string | null>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isBuildingMoodboard, setIsBuildingMoodboard] = useState(false);
+  const [showMoodboardModal, setShowMoodboardModal] = useState(false);
+  const [createdMoodboard, setCreatedMoodboard] = useState<{ id: string; name: string } | null>(null);
+  const { toast } = useToast();
+
+  const handleMoodboardComplete = (moodboardId: string) => {
+    setIsBuildingMoodboard(false);
+    setCreatedMoodboard({ id: moodboardId, name: 'AI-Built Moodboard' });
+    toast({ title: 'Moodboard created!', description: 'Your moodboard is ready to use.' });
+  };
+
+  const updateActiveSection = useCallback(() => {
+    const mainContent = mainContentRef.current;
+    const isMainScrollable = !!mainContent && mainContent.scrollHeight > mainContent.clientHeight + 1;
+    const scrollTop = isMainScrollable ? mainContent!.scrollTop : window.scrollY;
+    const offset = 200;
+    setShowBackToTop(scrollTop > 0);
+
+    const sections = [
+      { ref: imageRef, id: "image" as ActiveSection },
+      { ref: campaignRef, id: "campaign" as ActiveSection },
+      { ref: brandRef, id: "brand" as ActiveSection },
+      { ref: heroRef, id: "hero" as ActiveSection },
+    ];
+
+    for (const section of sections) {
+      if (section.ref.current) {
+        const rect = section.ref.current.getBoundingClientRect();
+        const mainRectTop = isMainScrollable && mainContent ? mainContent.getBoundingClientRect().top : 0;
+        const relativeTop = rect.top - mainRectTop;
+        if (relativeTop <= offset) {
+          setActiveSection(section.id);
+          return;
+        }
+      }
+    }
+    setActiveSection("hero");
+  }, []);
+
+  useEffect(() => {
+    const mainContent = mainContentRef.current;
+    updateActiveSection();
+    mainContent?.addEventListener("scroll", updateActiveSection, { passive: true } as AddEventListenerOptions);
+    window.addEventListener("scroll", updateActiveSection, { passive: true });
+    return () => {
+      mainContent?.removeEventListener("scroll", updateActiveSection as EventListener);
+      window.removeEventListener("scroll", updateActiveSection as EventListener);
+    };
+  }, [updateActiveSection]);
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
+      brand: brandRef, campaign: campaignRef, moodboard: moodboardRef, image: imageRef, edit: imageRef, batch: imageRef, video: imageRef, "edit-video": imageRef,
+    };
+    refs[sectionId]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const { messages: chatMessages, isLoading: isChatLoading, sendMessage, addWelcomeMessage } = useChat(scrollToSection);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleStarterPrompt = (promptText: string) => { sendMessage(promptText, activeSection); };
+  const handleSendMessage = () => {
+    if (chatMessage.trim() && !isChatLoading) {
+      sendMessage(chatMessage.trim(), activeSection);
+      setChatMessage("");
+    }
+  };
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
+  };
+
+  useEffect(() => {
+    if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+  }, [chatMessages]);
+
+  const handleQuickAction = (actionId: string) => {
+    const chatActionMessages: Record<string, string> = {
+      "ideas": "Let's brainstorm some creative ideas!",
+      "discover-audience": "I can help you discover your target audience.",
+      "define-audience": "Let's define your ideal audience together.",
+      "brand": "I see you want to work on your brand.",
+      "campaign": "Great choice! Let's create a campaign.",
+    };
+    if (actionId in chatActionMessages) {
+      if (chatMessages.length === 0) addWelcomeMessage();
+      setIsSidebarOpen(true);
+      setTimeout(() => sendMessage(`I want to ${actionId.replace("-", " ")}`, activeSection), 100);
+    }
+    scrollToSection(actionId);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (prompt.trim() && !isChatLoading) {
+      if (chatMessages.length === 0) addWelcomeMessage();
+      setIsSidebarOpen(true);
+      sendMessage(prompt.trim(), activeSection);
+      setPrompt("");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">KittyKat</span>
-            {currentBrand && (
-              <span className="text-sm text-muted-foreground ml-2">· {currentBrand.name}</span>
-            )}
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Top Navigation */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm px-6 py-3">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <img src={kittykatLogo} alt="KittyKat" className="h-16" />
           </div>
+          <nav className="flex items-center gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if ((item as any).href) navigate((item as any).href);
+                    else setActiveNav(item.id);
+                  }}
+                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors relative ${
+                    activeNav === item.id ? "text-accent" : "text-foreground hover:text-accent/80 hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className="w-5 h-5" />
+                    {(item as any).badge && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary text-[10px] text-white rounded-full flex items-center justify-center font-medium">
+                        {(item as any).badge}+
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <button
-              onClick={signOut}
-              className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <span>957</span><span className="text-primary">💎</span>
+            </div>
+            <button className="p-2 rounded-lg hover:bg-secondary"><Settings2 className="w-5 h-5 text-muted-foreground" /></button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white font-semibold text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2">
+                  {user?.email?.charAt(0).toUpperCase() || "U"}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 bg-popover border border-border shadow-lg z-50">
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">{user?.user_metadata?.name || user?.email?.split("@")[0] || "User"}</p>
+                    <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer">
+                  <HelpCircle className="w-4 h-4 text-muted-foreground" /><span>Help</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-3 px-3 py-2 cursor-pointer" onClick={async () => { await signOut(); navigate("/login"); }}>
+                  <LogOut className="w-4 h-4 text-muted-foreground" /><span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        <div className="text-center mb-12">
-          <h1 className="font-display text-4xl font-bold mb-3">
-            What would you like to <span className="text-gradient">create</span>?
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Choose a tool to get started with your creative workflow
-          </p>
+      {/* Main Layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Floating buttons */}
+        <div className={`fixed bottom-4 z-50 flex flex-col gap-2 transition-all duration-300 ${isSidebarOpen ? 'right-[416px]' : 'right-4'}`}>
+          {showBackToTop && (
+            <button onClick={() => { const mc = mainContentRef.current; if (mc && mc.scrollHeight > mc.clientHeight + 1) mc.scrollTo({ top: 0, behavior: "smooth" }); else window.scrollTo({ top: 0, behavior: "smooth" }); }} className="p-3 rounded-full bg-secondary border border-border text-foreground shadow-lg hover:bg-secondary/80 transition-all hover:scale-105" title="Back to top">
+              <ChevronUp className="w-5 h-5" />
+            </button>
+          )}
+          {!isSidebarOpen && (
+            <button onClick={() => setIsSidebarOpen(true)} className="p-3 rounded-full bg-accent text-white shadow-lg hover:opacity-90 transition-all hover:scale-105" title="Open chat">
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                className="glass-card p-6 text-left hover:border-primary/30 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Icon className="w-6 h-6 text-primary" />
+        {/* Main Content Area */}
+        <main ref={mainContentRef} className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarOpen ? 'pr-[400px]' : 'pr-0'}`}>
+          {/* Hero Section */}
+          <section ref={heroRef} className="min-h-[calc(100vh-73px)] flex flex-col justify-center px-8 py-16 max-w-4xl mx-auto relative">
+            <div className="flex-1 flex flex-col justify-center">
+              <div className="text-center mb-10 animate-fade-in">
+                <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
+                  How can <span className="text-gradient">KittyKat</span> help you with{" "}
+                  <BrandSelector variant="inline" />
+                  {" "}today?
+                </h1>
+                <p className="text-muted-foreground text-lg">Describe your vision and let us bring it to life</p>
+              </div>
+
+              {/* Resume Draft Dropdown */}
+              {drafts.length > 0 && (
+                <div className="mb-6 flex justify-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl text-sm font-medium text-primary transition-colors">
+                        <Building2 className="w-4 h-4" />Continue brand setup
+                        <span className="px-1.5 py-0.5 bg-primary/20 rounded text-xs">{drafts.length}</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-72 bg-popover border border-border shadow-lg z-50">
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">In-progress brands</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {drafts.map((draft) => (
+                        <DropdownMenuItem key={draft.id} className="flex items-center justify-between gap-3 p-3 cursor-pointer focus:bg-secondary hover:bg-secondary" onClick={() => navigate(`/brand-setup?draft=${draft.id}`)}>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`p-1.5 rounded-md ${draft.mode === "agent" ? "bg-accent/20 text-accent" : "bg-muted text-muted-foreground"}`}>
+                              {draft.mode === "agent" ? <MessageSquare className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {draft.mode === "agent" ? (draft.agentState?.extractedData?.name || "Untitled Brand") : (draft.basics.name || "Untitled Brand")}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {draft.mode === "agent" ? `Chat setup • ${draft.agentState?.phase === "complete" ? "Ready to save" : "In progress"}` : `Form setup • Step ${draft.currentStep} of 4`}
+                              </p>
+                            </div>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); deleteDraft(draft.id); }} className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Delete draft">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <h3 className="font-semibold mb-1">{item.label}</h3>
-              </button>
-            );
-          })}
-        </div>
-      </main>
+              )}
+
+              {/* Main Prompt Input */}
+              <form onSubmit={handleSubmit} className="relative mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-blue-500/20 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (prompt.trim() && !isChatLoading) handleSubmit(e as unknown as React.FormEvent); } }}
+                    placeholder="Describe your ad creative..." rows={3} className="relative command-input resize-none pr-16" />
+                </div>
+                <button type="submit" className="absolute right-4 bottom-4 w-11 h-11 rounded-xl bg-accent hover:opacity-90 flex items-center justify-center transition-all disabled:opacity-50 shadow-lg shadow-accent/25" disabled={!prompt.trim()}>
+                  <Send className="w-5 h-5 text-white" />
+                </button>
+              </form>
+
+              {/* Quick Actions */}
+              <div className="flex flex-wrap justify-center gap-3 mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button key={action.id} onClick={() => handleQuickAction(action.id)} className="action-chip group hover:scale-105 transition-all">
+                      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                        <Icon className="w-3.5 h-3.5 text-primary-foreground" />
+                      </div>
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button onClick={() => brandRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer hover:text-accent transition-colors">
+              <ChevronDown className="w-8 h-8 text-muted-foreground" />
+            </button>
+          </section>
+
+          {/* Brand Section */}
+          <BrandSection brandRef={brandRef} />
+
+          {/* Campaign Section */}
+          <section ref={campaignRef} className="px-8 py-16 border-t border-border bg-secondary/20">
+            <div className="max-w-5xl mx-auto">
+              <Collapsible open={isCampaignOpen} onOpenChange={setIsCampaignOpen}>
+                <div className="flex items-center gap-3 mb-6">
+                  <CollapsibleTrigger asChild>
+                    <button className="w-8 h-8 rounded-lg border border-border bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
+                      {isCampaignOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                  </CollapsibleTrigger>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                    <Megaphone className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Campaign</p>
+                    <h2 className="font-display text-2xl font-bold">Summer Collection 2026</h2>
+                  </div>
+                </div>
+                <CollapsibleContent>
+                  <div className="space-y-6">
+                    <div className="glass-card p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold">Reference Moodboard</h3>
+                          <p className="text-sm text-muted-foreground">Select a moodboard for your campaign</p>
+                        </div>
+                        <input type="text" placeholder="🔍 Select Moodboard" className="input-field w-48 text-sm" />
+                      </div>
+                      <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+                        {moodboardImages.map((img, idx) => (
+                          <div key={idx} onClick={() => setSelectedMoodboard(img)}
+                            className={`aspect-square rounded-lg bg-secondary overflow-hidden cursor-pointer border-2 transition-all ${selectedMoodboard === img ? "border-primary" : "border-transparent hover:border-primary/30"}`}>
+                            <img src={img} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="glass-card p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold">Prompts</span>
+                          <select className="bg-secondary border border-border rounded-lg px-3 py-1.5 text-sm"><option>3</option><option>5</option><option>10</option></select>
+                        </div>
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-colors">
+                          <Sparkles className="w-4 h-4" />Generate Prompts
+                        </button>
+                      </div>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="p-4 rounded-xl bg-secondary/50 border border-border">
+                            <p className="text-sm text-muted-foreground line-clamp-3">A young woman in her late twenties with luminous fair skin stands confidently in an urban setting...</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          </section>
+
+          {/* Moodboard Section */}
+          <section ref={moodboardRef} className="px-8 py-16 border-t border-border">
+            <div className="max-w-5xl mx-auto">
+              <Collapsible open={isMoodboardOpen} onOpenChange={setIsMoodboardOpen}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <CollapsibleTrigger asChild>
+                      <button className="w-8 h-8 rounded-lg border border-border bg-secondary/50 hover:bg-secondary flex items-center justify-center transition-colors">
+                        {isMoodboardOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                      </button>
+                    </CollapsibleTrigger>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-coral to-primary flex items-center justify-center">
+                      <Layers className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Moodboard</p>
+                      <h2 className="font-display text-2xl font-bold">Sunlit Steps: Begin Your Yellow Diamond Story</h2>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setIsBuildingMoodboard(true)} className="p-2.5 rounded-xl border border-border hover:bg-secondary transition-colors" title="Create new moodboard">
+                      <Plus className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
+                </div>
+                <CollapsibleContent>
+                  <div className="space-y-4">
+                    {!isBuildingMoodboard && !createdMoodboard && (
+                      <div className="glass-card p-8 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-coral/20 to-primary/20 flex items-center justify-center mx-auto mb-4">
+                          <Layers className="w-8 h-8 text-accent" />
+                        </div>
+                        <h3 className="font-semibold text-lg mb-2">Create Your Moodboard</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">Build an AI-curated moodboard from your mood description, or browse your existing gallery.</p>
+                        <div className="flex items-center justify-center gap-3">
+                          <button onClick={() => setIsBuildingMoodboard(true)} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-accent-foreground font-medium hover:opacity-90 transition-colors">
+                            <Wand2 className="w-4 h-4" />Build with AI
+                          </button>
+                          <button onClick={() => setShowMoodboardModal(true)} className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border bg-secondary/50 text-foreground font-medium hover:bg-secondary transition-colors">
+                            <GalleryHorizontal className="w-4 h-4" />Browse Gallery
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {isBuildingMoodboard && (
+                      <div className="glass-card p-6">
+                        <MoodboardBuilder onComplete={handleMoodboardComplete} onCancel={() => setIsBuildingMoodboard(false)} />
+                      </div>
+                    )}
+                    {createdMoodboard && !isBuildingMoodboard && (
+                      <div className="glass-card p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center"><Check className="w-5 h-5 text-emerald-600" /></div>
+                          <div><h3 className="font-semibold">Moodboard Created!</h3><p className="text-sm text-muted-foreground">{createdMoodboard.name}</p></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { setCreatedMoodboard(null); setIsBuildingMoodboard(true); }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent font-medium hover:bg-accent/20 transition-colors"><Plus className="w-4 h-4" />Create Another</button>
+                          <button onClick={() => setShowMoodboardModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-secondary/50 text-foreground font-medium hover:bg-secondary transition-colors"><GalleryHorizontal className="w-4 h-4" />Browse Gallery</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+                <MoodboardModal isOpen={showMoodboardModal} onClose={() => setShowMoodboardModal(false)} selectedMoodboard={selectedMoodboard} onSelect={(moodboardId, _fromGallery) => { setSelectedMoodboard(moodboardId); setShowMoodboardModal(false); toast({ title: 'Moodboard selected', description: 'Ready to use in your campaign.' }); }} />
+              </Collapsible>
+            </div>
+          </section>
+
+          {/* Creative Studio */}
+          <div ref={imageRef}>
+            <CreativeStudioWizard isOpen={isImageOpen} onOpenChange={setIsImageOpen} />
+          </div>
+        </main>
+
+        {/* Right Chat Sidebar */}
+        <aside className={`fixed right-0 top-[73px] w-[400px] h-[calc(100vh-73px)] border-l border-border bg-card flex flex-col overflow-hidden z-40 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-4 pt-6 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center"><Sparkles className="w-4 h-4" /></div>
+              <span className="font-semibold text-sm">KittyKat Assistant</span>
+            </div>
+            <p className="text-xs text-muted-foreground">I can help you create stunning visuals, manage your brand, and run campaigns.</p>
+          </div>
+          <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatMessages.length === 0 ? (
+              <div className="p-4 rounded-xl bg-accent/10 text-sm"><p>Hi! I'm here to help with your creative work. What would you like to do today?</p></div>
+            ) : (
+              chatMessages.map((msg, index) => (
+                <div key={index} className={`p-4 rounded-xl text-sm ${msg.role === "user" ? "bg-secondary ml-8" : "bg-accent/10 mr-8"}`}>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                </div>
+              ))
+            )}
+            {isChatLoading && chatMessages[chatMessages.length - 1]?.role === "user" && (
+              <div className="p-4 rounded-xl bg-accent/10 text-sm mr-8">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse delay-100" />
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse delay-200" />
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="p-4 border-t border-border">
+            {chatMessages.length === 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[
+                  { label: "🎨 Generate an image", prompt: "Help me generate a new product image" },
+                  { label: "📢 Plan a campaign", prompt: "I want to create a new marketing campaign" },
+                  { label: "🏷️ Update my brand", prompt: "Help me refine my brand guidelines" },
+                  { label: "💡 Get ideas", prompt: "Give me creative campaign ideas" },
+                ].map((starter, index) => (
+                  <button key={index} onClick={() => handleStarterPrompt(starter.prompt)} className="px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/80 text-xs transition-colors border border-border hover:border-accent/30">
+                    {starter.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="space-y-3">
+              <textarea value={chatMessage} onChange={(e) => setChatMessage(e.target.value)} onKeyDown={handleKeyDown} placeholder="Ask me anything..." rows={2} disabled={isChatLoading} className="w-full bg-secondary border border-border rounded-xl p-3 resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-50" />
+              <div className="flex items-center justify-between">
+                <button onClick={() => setIsSidebarOpen(false)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <PanelRightClose className="w-3.5 h-3.5" /><span>Close</span>
+                </button>
+                <button onClick={handleSendMessage} disabled={!chatMessage.trim() || isChatLoading} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-accent text-white text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
+                  <span>Send</span><Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 };
