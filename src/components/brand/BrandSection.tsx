@@ -92,11 +92,11 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                     <h3 className="font-semibold">Visual DNA</h3>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {visualDna.colorPalette?.primaryColors && (
+                    {visualDna.primaryColors && visualDna.primaryColors.length > 0 && (
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-2">Color Palette</p>
                         <div className="flex gap-2">
-                          {(visualDna.primaryColors || []).map((color: string, i: number) => (
+                          {visualDna.primaryColors.map((color: string, i: number) => (
                             <div key={i} className="w-8 h-8 rounded-lg border border-border" style={{ backgroundColor: color }} title={color} />
                           ))}
                         </div>
