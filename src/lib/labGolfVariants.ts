@@ -80,7 +80,6 @@ WHAT MUST CHANGE:
 • The putter head is replaced with the DF3i head from the reference images.
 • The DF3i head must match the EXACT silhouette, proportions, cavity architecture, milling texture, hosel geometry, and construction visible in the references.
 ${selectedColor ? `• Apply a ${selectedColor.promptDescription} to the entire putter head (approximate hex: ${selectedColor.hex}). The finish must be uniform, smooth, and photorealistic on CNC-milled metal.` : '• Keep the putter head in its original/default color as shown in the references.'}
-• REMOVE all alignment marks, lines, dots, crosshairs, or any aiming aids from the top surface. The top surface must be completely clean, smooth, and unmarked — bare metal/color finish with natural milling texture only. No marks whatsoever.
 
 WHAT MUST NOT CHANGE (PIXEL-IDENTICAL):
 • The position, angle, and orientation of the club in the scene — the new head sits exactly where the old one was, at the same tilt and rotation.
