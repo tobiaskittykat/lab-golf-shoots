@@ -432,67 +432,104 @@ export function useImageGeneration() {
 
       if (state.useCase === 'product' && state.productShoot?.shootMode === 'remix' && state.productShoot.remixSourceImages.length > 0) {
         const sourceImages = state.productShoot.remixSourceImages;
-        const BATCH_SIZE = 2;
-        for (let batchStart = 0; batchStart < sourceImages.length; batchStart += BATCH_SIZE) {
-          const batchEnd = Math.min(batchStart + BATCH_SIZE, sourceImages.length);
-          const batchPromises: Promise<any>[] = [];
 
-          for (let i = batchStart; i < batchEnd; i++) {
-            // Build variant-aware remix prompt
-            let remixPrompt = state.productShoot.remixCustomPrompt || '';
-            const variantRefs: string[] = [];
+        // Resolve variant selections once
+        const variantColorId = state.productShoot.selectedVariantColor;
+        const variantMarkId = state.productShoot.selectedVariantMark;
+        const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
+        const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
+        const customPrompt = state.productShoot.remixCustomPrompt || '';
 
-            if (!remixPrompt) {
-              const variantColorId = state.productShoot.selectedVariantColor;
-              const variantMarkId = state.productShoot.selectedVariantMark;
-              const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
-              const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
+        // Build DF3i reference URLs
+        const allProductRefs = [...(productReferenceUrls || [])];
+        for (const refImg of df3iReferenceImages) {
+          if (!allProductRefs.includes(refImg)) allProductRefs.push(refImg);
+        }
 
-              remixPrompt = buildDF3iRemixPrompt({ selectedColor, selectedMark });
+        // --- TWO-STEP PIPELINE: Process each source image sequentially ---
+        for (const sourceUrl of sourceImages) {
+          // ========== STEP 1: Color swap + remove marks ==========
+          const step1Prompt = customPrompt || buildDF3iRemixPrompt({ selectedColor });
 
-              if (selectedMark) {
-                variantRefs.push(selectedMark.publicUrl);
+          const step1Body = {
+            ...buildRequestBody(null, 1),
+            remixMode: true,
+            editMode: true,
+            sourceImageUrl: sourceUrl,
+            prompt: step1Prompt,
+            conceptDescription: null,
+            coreIdea: null,
+            conceptTitle: `${productNames[0] || 'DF3i'} — Step 1 Color`,
+            productReferenceUrls: allProductRefs,
+            generationStep: 'color-swap',
+            imageCount: 1,
+          };
+
+          const step1Result = await supabase.functions.invoke('generate-image', { body: step1Body });
+
+          if (step1Result.error || !step1Result.data?.pendingIds?.length) {
+            console.error('Step 1 failed to start:', step1Result.error);
+            continue;
+          }
+
+          const step1PendingId = step1Result.data.pendingIds[0];
+          allPendingIds.push(step1PendingId);
+
+          // Poll until Step 1 completes
+          const step1Rows = await pollForPendingImages([step1PendingId], {
+            maxWaitMs: 480000,
+            intervalMs: 4000,
+            onRowReady: (row) => {
+              if (row.status === 'completed' && onImageReady) {
+                const image: GeneratedImage = {
+                  id: row.id,
+                  imageUrl: row.image_url || '',
+                  status: 'completed',
+                  prompt: row.prompt || step1Prompt,
+                  refinedPrompt: row.refined_prompt,
+                  conceptTitle: row.concept_title,
+                  index: 0,
+                  settings: row.settings as Record<string, unknown> || undefined,
+                };
+                onImageReady(image);
               }
-            } else {
-              // Still attach mark reference even with custom prompt
-              const variantMarkId = state.productShoot.selectedVariantMark;
-              const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
-              if (selectedMark) variantRefs.push(selectedMark.publicUrl);
-            }
+            },
+          });
 
-            // Add DF3i reference images
-            const allProductRefs = [...(productReferenceUrls || [])];
-            for (const refImg of df3iReferenceImages) {
-              if (!allProductRefs.includes(refImg)) allProductRefs.push(refImg);
-            }
-
-            const remixBody = {
-              ...buildRequestBody(null, state.imageCount),
-              remixMode: true,
-              remixRemoveText: state.productShoot.remixRemoveText ?? false,
-              editMode: true,
-              sourceImageUrl: sourceImages[i],
-              prompt: remixPrompt,
-              // Clear concept fields so they don't pollute the structured remix prompt
-              conceptDescription: null,
-              coreIdea: null,
-              conceptTitle: productNames[0] || 'DF3i Remix',
-              productReferenceUrls: allProductRefs,
-              variantReferenceUrls: variantRefs.length > 0 ? variantRefs : undefined,
-            };
-            batchPromises.push(
-              supabase.functions.invoke('generate-image', { body: remixBody })
-            );
+          const step1Completed = step1Rows.find(r => r.status === 'completed');
+          if (!step1Completed?.image_url) {
+            console.error('Step 1 did not produce an image, skipping Step 2');
+            continue;
           }
 
-          const batchResults = await Promise.all(batchPromises);
-          for (const result of batchResults) {
-            if (result.data?.pendingIds) {
-              allPendingIds.push(...result.data.pendingIds);
-            } else if (result.error) {
-              console.error('Remix request failed:', result.error);
-            }
+          // ========== STEP 2: Apply alignment mark ==========
+          const step2Mark = selectedMark || df3iAlignmentMarks[0]; // default to Mark A if none selected
+          const step2Prompt = buildDF3iMarkPrompt({ selectedMark: step2Mark, selectedColor });
+
+          const step2Body = {
+            ...buildRequestBody(null, 1),
+            remixMode: true,
+            editMode: true,
+            sourceImageUrl: step1Completed.image_url,
+            prompt: step2Prompt,
+            conceptDescription: null,
+            coreIdea: null,
+            conceptTitle: `${productNames[0] || 'DF3i'} — Step 2 Marks`,
+            productReferenceUrls: [], // no product refs needed for mark step
+            variantReferenceUrls: [step2Mark.publicUrl],
+            parentImageId: step1PendingId,
+            generationStep: 'mark-apply',
+            imageCount: 1,
+          };
+
+          const step2Result = await supabase.functions.invoke('generate-image', { body: step2Body });
+
+          if (step2Result.error || !step2Result.data?.pendingIds?.length) {
+            console.error('Step 2 failed to start:', step2Result.error);
+            continue;
           }
+
+          allPendingIds.push(...step2Result.data.pendingIds);
         }
       }
       else if (state.sequentialGeneration && state.useCase === 'product' && state.imageCount > 1) {
