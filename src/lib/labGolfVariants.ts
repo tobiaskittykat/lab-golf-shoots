@@ -51,84 +51,65 @@ export const df3iReferenceImages: string[] = [
 ];
 
 /**
- * STEP 1 prompt: Color swap with explicit mark removal.
- * Produces a clean, mark-free putter head in the selected color.
+ * STEP 1 — Color swap with 1:1 replacement.
+ *
+ * The AI receives:
+ *   - The SOURCE image (the photo containing the current club)
+ *   - 6 DF3i REFERENCE images showing the club from every angle
+ *
+ * Goal: Replace ONLY the putter head in the source image with the DF3i
+ * in the selected color. Everything else stays pixel-identical:
+ * background, hands, shaft alignment, camera angle, lighting, shadows.
+ * All alignment marks must be removed — clean, unmarked head.
  */
 export function buildDF3iRemixPrompt(opts: {
   selectedColor?: PutterColor | null;
 }): string {
   const { selectedColor } = opts;
 
-  const productBlock = `PRODUCT IDENTITY — L.A.B. Golf DF3i Putter (LOCKED)
-The product is the L.A.B. Golf DF3i putter, a premium Lie Angle Balance (LAB)
-mallet-style putter. Key physical characteristics that MUST be preserved exactly:
-  • Blade shape: wide, rounded mallet head with a smooth, flowing top-line and
-    a distinctive rear cavity/channel running along the back of the head.
-  • Face: flat, precision-milled striking face with fine horizontal milling lines.
-  • Hosel: a short, minimal plumber-neck hosel connecting the shaft to the heel
-    of the blade at an upright lie angle.
-  • Shaft: a straight steel shaft entering the hosel from above.
-  • Sole: flat sole with subtle beveled edges; the sole plate is flush-mounted.
-  • Overall proportions: the head is wider than it is deep (front-to-back),
-    with a low profile when viewed from the side.
-  • Weight distribution: the mass is spread toward the perimeter of the head,
-    giving the blade a substantial, balanced visual weight.
+  return `TASK: 1-to-1 PUTTER HEAD REPLACEMENT
 
-The reference images attached show the DF3i from 6 angles (front, side, top,
-detail, angled, back). The generated putter MUST match the exact silhouette,
-proportions, construction, hosel geometry, and cavity architecture visible in
-those references. Do not redesign, simplify, or reinterpret the putter shape.`;
+You are given TWO types of images:
+1. A SOURCE photograph — this is the scene you must preserve.
+2. Multiple REFERENCE images of the L.A.B. Golf DF3i putter — these show the exact putter head you must place into the scene.
 
-  const changeLines: string[] = [];
+YOUR JOB:
+Replace the putter head visible in the SOURCE photograph with the L.A.B. Golf DF3i putter head shown in the REFERENCE images. This is a surgical swap — a 1:1 replacement of the club head only.
 
-  if (selectedColor) {
-    changeLines.push(`COLOR CHANGE (REQUIRED):
-Apply a ${selectedColor.promptDescription} to the entire putter head.
-  • The finish should be uniform, smooth, and photorealistic.
-  • Approximate hex reference: ${selectedColor.hex}
-  • The color replaces the original head color but does NOT alter geometry,
-    milling pattern, cavity shape, or any structural feature.
-  • Reflections and specular highlights should be consistent with the new color
-    on a milled-metal surface.`);
-  }
+WHAT MUST CHANGE:
+• The putter head is replaced with the DF3i head from the reference images.
+• The DF3i head must match the EXACT silhouette, proportions, cavity architecture, milling texture, hosel geometry, and construction visible in the references.
+${selectedColor ? `• Apply a ${selectedColor.promptDescription} to the entire putter head (approximate hex: ${selectedColor.hex}). The finish must be uniform, smooth, and photorealistic on CNC-milled metal.` : '• Keep the putter head in its original/default color as shown in the references.'}
+• REMOVE all alignment marks, lines, dots, crosshairs, or any aiming aids from the top surface. The top surface must be completely clean, smooth, and unmarked — bare metal/color finish with natural milling texture only. No marks whatsoever.
 
-  // Always remove marks in Step 1
-  changeLines.push(`ALIGNMENT MARKS — REMOVE (REQUIRED):
-Remove ALL alignment marks, lines, dots, crosshairs, or any aiming aids from the
-top surface of the putter head. The top surface must be completely clean, smooth,
-and unmarked — showing only the bare metal/color finish with natural milling texture.
-Do NOT add any new marks. The result must be a pristine, mark-free putter head.`);
+WHAT MUST NOT CHANGE (PIXEL-IDENTICAL):
+• The position, angle, and orientation of the club in the scene — the new head sits exactly where the old one was, at the same tilt and rotation.
+• The shaft — same position, angle, length visible.
+• Hands, grip, golfer body (if present) — completely unchanged.
+• Background, environment, surface, props — completely unchanged.
+• Lighting direction, intensity, color temperature — unchanged.
+• Camera angle, focal length, depth of field — unchanged.
+• Shadows — re-rendered naturally for the new head shape but matching the existing light direction.
 
-  const changesBlock = `VARIANT MODIFICATIONS\n${changeLines.join('\n\n')}`;
+TECHNICAL QUALITY:
+• Photorealistic result indistinguishable from a real photograph.
+• Metal surfaces must show realistic reflections, specular highlights, and micro-texture consistent with CNC-milled stainless steel.
+• Sharp, clean edges on the putter geometry — no painterly softness or AI artifacts.
+• Color accuracy is critical under the scene's existing lighting.
 
-  const sceneBlock = `SCENE PRESERVATION (MANDATORY)
-Everything in the source image EXCEPT the putter/golf club must remain
-pixel-identical or as close as possible:
-  • Background, environment, props, surfaces — unchanged.
-  • Lighting direction, intensity, color temperature — unchanged.
-  • Camera angle, focal length, depth of field — unchanged.
-  • Shadows cast by the putter should be re-rendered to match the new
-    putter's geometry and the existing light sources.
-  • If the source image contains a golfer or hands holding the club,
-    the grip, hand position, and body remain unchanged — only the
-    putter head (and optionally shaft) are swapped.`;
-
-  const techBlock = `TECHNICAL QUALITY
-  • The final image must be photorealistic, indistinguishable from an actual
-    photograph of the DF3i putter in the scene.
-  • Metal surfaces should exhibit realistic reflections, specular highlights,
-    and micro-texture consistent with CNC-milled stainless steel.
-  • Edges should be sharp and clean — no painterly softness or AI artifacts
-    on the putter geometry.
-  • Color accuracy is critical — the finish color must read true under the
-    scene's existing lighting conditions.`;
-
-  return [productBlock, changesBlock, sceneBlock, techBlock].join('\n\n');
+The SOURCE image is the LAST image attached. All other attached images are REFERENCE images of the DF3i putter from various angles.`;
 }
 
 /**
- * STEP 2 prompt: Apply an alignment mark to a clean putter head.
- * Input image should already have a clean, mark-free putter from Step 1.
+ * STEP 2 — Apply alignment mark ONLY.
+ *
+ * The AI receives:
+ *   - The Step 1 RESULT image (clean putter head, no marks)
+ *   - ONE reference image of the alignment mark to apply
+ *
+ * Goal: Add the alignment mark to the putter head. Nothing else changes.
+ * The club, color, background, lighting — all stay identical.
+ * This step is ONLY about painting the mark onto the top surface.
  */
 export function buildDF3iMarkPrompt(opts: {
   selectedMark: AlignmentMark;
@@ -140,29 +121,32 @@ export function buildDF3iMarkPrompt(opts: {
     ? `The putter head has a ${selectedColor.promptDescription} (hex ~${selectedColor.hex}).`
     : 'The putter head color is as shown in the image.';
 
-  return `TASK: Add an alignment mark to the L.A.B. Golf DF3i putter head in this image.
+  return `TASK: ADD ALIGNMENT MARK TO PUTTER HEAD — NOTHING ELSE CHANGES
+
+You are given TWO images:
+1. A photograph of a L.A.B. Golf DF3i putter (the FIRST/MAIN image) — this is the image you will edit.
+2. A REFERENCE image showing the exact alignment mark design to apply (the SECOND image).
 
 ${colorContext}
 
+YOUR ONLY JOB:
+Add the alignment mark shown in the reference image onto the flat top surface of the putter head in the main image. That is the ONLY change.
+
 MARK SPECIFICATION:
-Apply ${selectedMark.promptDescription}.
-  • Use the attached alignment mark reference image as the EXACT template for the mark shape and style.
-  • The mark sits on the flat top surface of the putter blade, centered along the aiming axis (front-to-back center line).
-  • The mark must contrast with the head color — use white or light-colored marking on a dark head, dark marking on a light head.
-  • The mark must be clean, crisp, and precisely positioned — it is a functional aiming aid, not a decorative element.
-  • The mark should appear as if it was factory-applied: perfectly aligned, uniform line weight, no smudging or bleeding.
+• The mark is: ${selectedMark.promptDescription}.
+• Copy the EXACT shape, line weight, and style from the reference image.
+• Position the mark centered on the flat top surface of the putter blade, along the front-to-back center line (the aiming axis).
+• The mark must contrast with the head color — use white or light-colored marking on a dark head, dark marking on a light head.
+• The mark must appear factory-applied: perfectly aligned, uniform line weight, crisp edges, no smudging.
+• The mark should interact with existing lighting — slight specular highlights on mark edges are expected.
 
-PRESERVATION (MANDATORY):
-Everything in the image MUST remain pixel-identical or as close as possible:
-  • The putter head shape, color, finish, geometry — all unchanged.
-  • Background, environment, props, surfaces — unchanged.
-  • Lighting direction, intensity, color temperature — unchanged.
-  • Camera angle, focal length, depth of field — unchanged.
-  • Shadows — unchanged.
-  • The ONLY change is adding the alignment mark to the top surface of the putter head.
+ABSOLUTELY DO NOT CHANGE ANYTHING ELSE:
+• The putter head shape, color, finish, geometry — UNCHANGED.
+• The shaft, hands, grip, golfer — UNCHANGED.
+• Background, environment, surfaces, props — UNCHANGED.
+• Lighting, camera angle, depth of field — UNCHANGED.
+• Shadows — UNCHANGED.
+• The ONLY modification is painting the alignment mark onto the top surface of the putter head.
 
-TECHNICAL QUALITY:
-  • The mark must look photorealistic, as if engraved or painted onto the metal surface.
-  • The mark should interact correctly with the existing lighting — slight specular highlights on the mark edges are expected.
-  • No other modifications to the image whatsoever.`;
+If you change anything other than adding the mark, the result is a failure.`;
 }
