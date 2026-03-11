@@ -25,7 +25,7 @@ import { ProductShootState, initialProductShootState } from "./types";
 import { aspectRatios, resolutions } from "../types";
 import { AdGalleryModal } from "./AdGalleryModal";
 import { useAdCreatives } from "@/hooks/useAdCreatives";
-import { df3iColors, df3iAlignmentMarks, df3iReferenceImages } from "@/lib/labGolfVariants";
+import { df3iColors, df3iAlignmentMarks, df3iReferenceImages, buildDF3iRemixPrompt } from "@/lib/labGolfVariants";
 import { Textarea } from "@/components/ui/textarea";
 
 interface RemixStep2Props {
@@ -299,14 +299,7 @@ export const RemixStep2 = ({
     const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
     const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
 
-    if (selectedColor || selectedMark) {
-      const parts = ['Replace the golf putter/club in this image with the L.A.B. Golf DF3i putter'];
-      if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
-      if (selectedMark) parts.push(`with ${selectedMark.promptDescription}`);
-      parts.push('Keep exact composition, lighting, and background unchanged.');
-      return parts.join(' ');
-    }
-    return 'Remix: swap the golf club/putter with the selected product';
+    return buildDF3iRemixPrompt({ selectedColor, selectedMark });
   }, [state.selectedVariantColor, state.selectedVariantMark]);
 
   // Collect all reference image URLs that will be attached
