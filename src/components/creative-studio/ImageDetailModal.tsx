@@ -177,8 +177,8 @@ export const ImageDetailModal = ({
     }
   };
 
-  const handleCopyPrompt = async () => {
-    const textToCopy = image.refinedPrompt || image.prompt;
+  const handleCopyPrompt = async (text?: string) => {
+    const textToCopy = text || image.prompt || image.refinedPrompt || '';
     await navigator.clipboard.writeText(textToCopy);
     setCopiedPrompt(true);
     setTimeout(() => setCopiedPrompt(false), 2000);
