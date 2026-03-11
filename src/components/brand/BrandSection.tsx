@@ -92,24 +92,20 @@ const BrandSection = ({ brandRef }: BrandSectionProps) => {
                     <h3 className="font-semibold">Visual DNA</h3>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {visualDna.colorPalette && (
+                    {visualDna.colorPalette?.primaryColors && (
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-2">Color Palette</p>
                         <div className="flex gap-2">
-                          {visualDna.colorPalette.map((color: string, i: number) => (
+                          {(visualDna.primaryColors || []).map((color: string, i: number) => (
                             <div key={i} className="w-8 h-8 rounded-lg border border-border" style={{ backgroundColor: color }} title={color} />
                           ))}
                         </div>
                       </div>
                     )}
-                    {visualDna.photographyStyles && (
+                    {visualDna.photographyStyle && (
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-2">Photography Styles</p>
-                        <div className="flex flex-wrap gap-1">
-                          {visualDna.photographyStyles.map((style: string, i: number) => (
-                            <span key={i} className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-xs">{style}</span>
-                          ))}
-                        </div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Photography Style</p>
+                        <span className="px-2 py-0.5 bg-accent/10 text-accent rounded-full text-xs">{visualDna.photographyStyle}</span>
                       </div>
                     )}
                   </div>
