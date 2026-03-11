@@ -439,13 +439,41 @@ export function useImageGeneration() {
           const batchPromises: Promise<any>[] = [];
 
           for (let i = batchStart; i < batchEnd; i++) {
+            // Build variant-aware remix prompt
+            let remixPrompt = 'Remix: swap the golf club/putter with the selected product';
+            const variantRefs: string[] = [];
+
+            const variantColorId = state.productShoot.selectedVariantColor;
+            const variantMarkId = state.productShoot.selectedVariantMark;
+            const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
+            const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
+
+            if (selectedColor || selectedMark) {
+              const parts = ['Replace the golf putter/club in this image with the L.A.B. Golf DF3i putter'];
+              if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
+              if (selectedMark) {
+                parts.push(`with ${selectedMark.promptDescription}`);
+                variantRefs.push(selectedMark.thumbnail);
+              }
+              parts.push('Keep exact composition, lighting, and background unchanged.');
+              remixPrompt = parts.join(' ');
+            }
+
+            // Add DF3i reference images
+            const allProductRefs = [...(productReferenceUrls || [])];
+            for (const refImg of df3iReferenceImages) {
+              if (!allProductRefs.includes(refImg)) allProductRefs.push(refImg);
+            }
+
             const remixBody = {
               ...buildRequestBody(null, state.imageCount),
               remixMode: true,
               remixRemoveText: state.productShoot.remixRemoveText ?? false,
               editMode: true,
               sourceImageUrl: sourceImages[i],
-              prompt: 'Remix: swap footwear with selected product',
+              prompt: remixPrompt,
+              productReferenceUrls: allProductRefs,
+              variantReferenceUrls: variantRefs.length > 0 ? variantRefs : undefined,
             };
             batchPromises.push(
               supabase.functions.invoke('generate-image', { body: remixBody })
