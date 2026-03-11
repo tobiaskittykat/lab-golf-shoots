@@ -25,8 +25,7 @@ import { ProductShootState, initialProductShootState } from "./types";
 import { aspectRatios, resolutions } from "../types";
 import { AdGalleryModal } from "./AdGalleryModal";
 import { useAdCreatives } from "@/hooks/useAdCreatives";
-import { df3iColors, df3iAlignmentMarks, df3iReferenceImages, buildDF3iRemixPrompt } from "@/lib/labGolfVariants";
-import { Textarea } from "@/components/ui/textarea";
+import { df3iColors, df3iAlignmentMarks, df3iReferenceImages } from "@/lib/labGolfVariants";
 
 interface RemixStep2Props {
   state: ProductShootState;
