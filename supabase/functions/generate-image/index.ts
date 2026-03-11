@@ -134,12 +134,12 @@ serve(async (req) => {
     // Build shared content array
     const content: any[] = [{ type: "text", text: finalPrompt }];
     if (attachReferenceImages !== false && productReferenceUrls?.length > 0) {
-      for (const refUrl of productReferenceUrls.slice(0, 4)) {
+      for (const refUrl of productReferenceUrls.slice(0, 8)) {
         content.push({ type: "image_url", image_url: { url: refUrl } });
       }
     }
     if (variantReferenceUrls?.length > 0) {
-      for (const varUrl of variantReferenceUrls.slice(0, 3)) {
+      for (const varUrl of variantReferenceUrls.slice(0, 4)) {
         content.push({ type: "image_url", image_url: { url: varUrl } });
       }
     }

@@ -681,7 +681,7 @@ export const RemixStep2 = ({
         </div>
       </Collapsible>
 
-      <Collapsible open={openSections.output}>
+      <Collapsible open={openSections.output} onOpenChange={() => toggleSection('output')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={ImageIcon}
