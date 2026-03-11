@@ -61,6 +61,7 @@ export const RemixStep2 = ({
   const [openSections, setOpenSections] = useState({
     source: true,
     product: true,
+    prompt: true,
     options: true,
     output: true,
   });

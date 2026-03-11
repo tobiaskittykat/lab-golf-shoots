@@ -95,6 +95,7 @@ export interface ProductShootState {
   attachReferenceImages: boolean;
   selectedVariantColor?: string;
   selectedVariantMark?: string;
+  remixCustomPrompt?: string;
 }
 
 export interface BackgroundPreset {
