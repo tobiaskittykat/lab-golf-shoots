@@ -274,6 +274,18 @@ export const GeneratedImageCard = ({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             {getStatusBadge()}
+
+            {/* Pipeline step badge */}
+            {image.settings && (image.settings as any).generationStep === 'color-swap' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                Step 1 / Color
+              </span>
+            )}
+            {image.settings && (image.settings as any).generationStep === 'mark-apply' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent/10 text-accent text-xs font-medium">
+                Step 2 / Final
+              </span>
+            )}
             
             {(integrityResult || isAnalyzingIntegrity) && image.status === 'completed' && (
               <ProductIntegrityBadge

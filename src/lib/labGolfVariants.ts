@@ -51,17 +51,14 @@ export const df3iReferenceImages: string[] = [
 ];
 
 /**
- * Build a highly detailed remix prompt for the L.A.B. Golf DF3i putter.
- * Mirrors the level of detail used in the product-shoot "new shoot" prompt builders
- * (e.g. buildOnFootPrompt) so the AI has clear, structured instructions.
+ * STEP 1 prompt: Color swap with explicit mark removal.
+ * Produces a clean, mark-free putter head in the selected color.
  */
 export function buildDF3iRemixPrompt(opts: {
   selectedColor?: PutterColor | null;
-  selectedMark?: AlignmentMark | null;
 }): string {
-  const { selectedColor, selectedMark } = opts;
+  const { selectedColor } = opts;
 
-  // ---------- PRODUCT IDENTITY (always included) ----------
   const productBlock = `PRODUCT IDENTITY — L.A.B. Golf DF3i Putter (LOCKED)
 The product is the L.A.B. Golf DF3i putter, a premium Lie Angle Balance (LAB)
 mallet-style putter. Key physical characteristics that MUST be preserved exactly:
@@ -82,7 +79,6 @@ detail, angled, back). The generated putter MUST match the exact silhouette,
 proportions, construction, hosel geometry, and cavity architecture visible in
 those references. Do not redesign, simplify, or reinterpret the putter shape.`;
 
-  // ---------- VARIANT CHANGES ----------
   const changeLines: string[] = [];
 
   if (selectedColor) {
@@ -96,24 +92,15 @@ Apply a ${selectedColor.promptDescription} to the entire putter head.
     on a milled-metal surface.`);
   }
 
-  if (selectedMark) {
-    changeLines.push(`ALIGNMENT MARK CHANGE (REQUIRED):
-Apply ${selectedMark.promptDescription}.
-  • Use the attached alignment mark reference image as the exact template.
-  • The mark sits on the flat top surface of the putter blade, centered
-    along the aiming axis.
-  • The mark color should contrast with the head color (typically white or
-    light-colored marking on a dark head, dark marking on a light head).
-  • The mark must be clean, crisp, and precisely positioned — it is a
-    functional aiming aid, not a decorative element.`);
-  }
+  // Always remove marks in Step 1
+  changeLines.push(`ALIGNMENT MARKS — REMOVE (REQUIRED):
+Remove ALL alignment marks, lines, dots, crosshairs, or any aiming aids from the
+top surface of the putter head. The top surface must be completely clean, smooth,
+and unmarked — showing only the bare metal/color finish with natural milling texture.
+Do NOT add any new marks. The result must be a pristine, mark-free putter head.`);
 
-  const changesBlock = changeLines.length > 0
-    ? `VARIANT MODIFICATIONS\n${changeLines.join('\n\n')}`
-    : `VARIANT MODIFICATIONS\nNo color or alignment mark changes requested — reproduce the putter
-exactly as shown in the reference images.`;
+  const changesBlock = `VARIANT MODIFICATIONS\n${changeLines.join('\n\n')}`;
 
-  // ---------- SCENE PRESERVATION ----------
   const sceneBlock = `SCENE PRESERVATION (MANDATORY)
 Everything in the source image EXCEPT the putter/golf club must remain
 pixel-identical or as close as possible:
@@ -126,7 +113,6 @@ pixel-identical or as close as possible:
     the grip, hand position, and body remain unchanged — only the
     putter head (and optionally shaft) are swapped.`;
 
-  // ---------- TECHNICAL QUALITY ----------
   const techBlock = `TECHNICAL QUALITY
   • The final image must be photorealistic, indistinguishable from an actual
     photograph of the DF3i putter in the scene.
@@ -138,4 +124,45 @@ pixel-identical or as close as possible:
     scene's existing lighting conditions.`;
 
   return [productBlock, changesBlock, sceneBlock, techBlock].join('\n\n');
+}
+
+/**
+ * STEP 2 prompt: Apply an alignment mark to a clean putter head.
+ * Input image should already have a clean, mark-free putter from Step 1.
+ */
+export function buildDF3iMarkPrompt(opts: {
+  selectedMark: AlignmentMark;
+  selectedColor?: PutterColor | null;
+}): string {
+  const { selectedMark, selectedColor } = opts;
+
+  const colorContext = selectedColor
+    ? `The putter head has a ${selectedColor.promptDescription} (hex ~${selectedColor.hex}).`
+    : 'The putter head color is as shown in the image.';
+
+  return `TASK: Add an alignment mark to the L.A.B. Golf DF3i putter head in this image.
+
+${colorContext}
+
+MARK SPECIFICATION:
+Apply ${selectedMark.promptDescription}.
+  • Use the attached alignment mark reference image as the EXACT template for the mark shape and style.
+  • The mark sits on the flat top surface of the putter blade, centered along the aiming axis (front-to-back center line).
+  • The mark must contrast with the head color — use white or light-colored marking on a dark head, dark marking on a light head.
+  • The mark must be clean, crisp, and precisely positioned — it is a functional aiming aid, not a decorative element.
+  • The mark should appear as if it was factory-applied: perfectly aligned, uniform line weight, no smudging or bleeding.
+
+PRESERVATION (MANDATORY):
+Everything in the image MUST remain pixel-identical or as close as possible:
+  • The putter head shape, color, finish, geometry — all unchanged.
+  • Background, environment, props, surfaces — unchanged.
+  • Lighting direction, intensity, color temperature — unchanged.
+  • Camera angle, focal length, depth of field — unchanged.
+  • Shadows — unchanged.
+  • The ONLY change is adding the alignment mark to the top surface of the putter head.
+
+TECHNICAL QUALITY:
+  • The mark must look photorealistic, as if engraved or painted onto the metal surface.
+  • The mark should interact correctly with the existing lighting — slight specular highlights on the mark edges are expected.
+  • No other modifications to the image whatsoever.`;
 }

@@ -40,6 +40,7 @@ serve(async (req) => {
       artisticStyle, lightingStyle, cameraAngle,
       productShootConfig, attachReferenceImages,
       variantReferenceUrls,
+      parentImageId, generationStep,
     } = body;
 
     // Build the image generation prompt
@@ -95,12 +96,16 @@ serve(async (req) => {
         prompt: finalPrompt,
         concept_title: conceptTitle || null,
         status: "pending",
+        parent_image_id: parentImageId || null,
+        generation_step: generationStep || null,
         settings: {
           aiModel, artisticStyle, lightingStyle, cameraAngle, aspectRatio,
-          brandId, productIdentity,
+          brandId, productIdentity, generationStep,
+          sourceImageUrl: sourceImageUrl || null,
           references: {
             productReferenceUrls, moodboardUrl, shotTypePrompt,
             componentOverrides, originalComponents,
+            variantReferenceUrls,
           },
         },
       };

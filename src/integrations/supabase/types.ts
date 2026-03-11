@@ -290,10 +290,12 @@ export type Database = {
           context_reference_url: string | null
           created_at: string
           error_message: string | null
+          generation_step: string | null
           id: string
           image_url: string | null
           integrity_analysis: Json | null
           moodboard_id: string | null
+          parent_image_id: string | null
           product_reference_url: string | null
           prompt: string | null
           refined_prompt: string | null
@@ -309,10 +311,12 @@ export type Database = {
           context_reference_url?: string | null
           created_at?: string
           error_message?: string | null
+          generation_step?: string | null
           id?: string
           image_url?: string | null
           integrity_analysis?: Json | null
           moodboard_id?: string | null
+          parent_image_id?: string | null
           product_reference_url?: string | null
           prompt?: string | null
           refined_prompt?: string | null
@@ -328,10 +332,12 @@ export type Database = {
           context_reference_url?: string | null
           created_at?: string
           error_message?: string | null
+          generation_step?: string | null
           id?: string
           image_url?: string | null
           integrity_analysis?: Json | null
           moodboard_id?: string | null
+          parent_image_id?: string | null
           product_reference_url?: string | null
           prompt?: string | null
           refined_prompt?: string | null
@@ -346,6 +352,13 @@ export type Database = {
             columns: ["brand_id"]
             isOneToOne: false
             referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_images_parent_image_id_fkey"
+            columns: ["parent_image_id"]
+            isOneToOne: false
+            referencedRelation: "generated_images"
             referencedColumns: ["id"]
           },
         ]
