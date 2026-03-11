@@ -403,6 +403,47 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          created_at: string | null
+          id: string
+          sku_id: string
+          sort_order: number | null
+          thumbnail_url: string | null
+          variant_name: string
+          variant_type: string
+          variant_value: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          sku_id: string
+          sort_order?: number | null
+          thumbnail_url?: string | null
+          variant_name: string
+          variant_type: string
+          variant_value?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          sku_id?: string
+          sort_order?: number | null
+          thumbnail_url?: string | null
+          variant_name?: string
+          variant_type?: string
+          variant_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_sku_id_fkey"
+            columns: ["sku_id"]
+            isOneToOne: false
+            referencedRelation: "product_skus"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_concepts: {
         Row: {
           artistic_style: string | null
