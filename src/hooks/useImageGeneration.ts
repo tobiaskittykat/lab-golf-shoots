@@ -473,6 +473,10 @@ export function useImageGeneration() {
               editMode: true,
               sourceImageUrl: sourceImages[i],
               prompt: remixPrompt,
+              // Clear concept fields so they don't pollute the structured remix prompt
+              conceptDescription: null,
+              coreIdea: null,
+              conceptTitle: productNames[0] || 'DF3i Remix',
               productReferenceUrls: allProductRefs,
               variantReferenceUrls: variantRefs.length > 0 ? variantRefs : undefined,
             };
