@@ -3,8 +3,25 @@ import { Grid3X3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProductFocusAngle, productFocusAngleOptions } from './shotTypeConfigs';
 
-// Thumbnail map - images not yet available, will use icon fallback
-const thumbnailMap: Record<string, string> = {};
+// Import angle thumbnails
+import angleHero from '@/assets/product-angles/angle-hero.jpg';
+import angleSideProfile from '@/assets/product-angles/angle-side-profile.jpg';
+import angleTopDown from '@/assets/product-angles/angle-top-down.jpg';
+import angleSole from '@/assets/product-angles/angle-sole.jpg';
+import angleDetail from '@/assets/product-angles/angle-detail.jpg';
+import anglePair from '@/assets/product-angles/angle-pair.jpg';
+import angleLifestyle from '@/assets/product-angles/angle-lifestyle.jpg';
+
+// Map thumbnail filenames to imports
+const thumbnailMap: Record<string, string> = {
+  'angle-hero.jpg': angleHero,
+  'angle-side-profile.jpg': angleSideProfile,
+  'angle-top-down.jpg': angleTopDown,
+  'angle-sole.jpg': angleSole,
+  'angle-detail.jpg': angleDetail,
+  'angle-pair.jpg': anglePair,
+  'angle-lifestyle.jpg': angleLifestyle,
+};
 
 interface CameraAngleSelectorProps {
   value: ProductFocusAngle;
