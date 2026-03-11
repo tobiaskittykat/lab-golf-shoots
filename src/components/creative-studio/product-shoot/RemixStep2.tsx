@@ -366,7 +366,7 @@ export const RemixStep2 = ({
   return (
     <div className="space-y-4 mt-8">
       {/* Section 1: Source Images */}
-      <Collapsible open={openSections.source}>
+      <Collapsible open={openSections.source} onOpenChange={() => toggleSection('source')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Upload}
@@ -460,7 +460,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 2: Product Selection (reuses same pattern as ProductShootStep2) */}
-      <Collapsible open={openSections.product}>
+      <Collapsible open={openSections.product} onOpenChange={() => toggleSection('product')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Package}
@@ -567,7 +567,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 3: Remix Options */}
-      <Collapsible open={openSections.options}>
+      <Collapsible open={openSections.options} onOpenChange={() => toggleSection('options')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Settings2}
@@ -594,7 +594,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 3.5: Prompt Preview */}
-      <Collapsible open={openSections.prompt}>
+      <Collapsible open={openSections.prompt} onOpenChange={() => toggleSection('prompt')}>
         <div className="rounded-2xl border border-accent/30 bg-card overflow-hidden">
           <SectionHeader
             icon={FileText}
@@ -681,7 +681,7 @@ export const RemixStep2 = ({
         </div>
       </Collapsible>
 
-      <Collapsible open={openSections.output}>
+      <Collapsible open={openSections.output} onOpenChange={() => toggleSection('output')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={ImageIcon}
