@@ -485,15 +485,15 @@ export const ImageDetailModal = ({
                 </div>
               )}
 
-              {image.refinedPrompt && (
+              {image.prompt && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Sparkles className="w-4 h-4" />
-                      Image Prompt
+                      Generation Prompt
                     </div>
                     <button
-                      onClick={handleCopyPrompt}
+                      onClick={() => handleCopyPrompt(image.prompt)}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {copiedPrompt ? (
@@ -509,9 +509,31 @@ export const ImageDetailModal = ({
                       )}
                     </button>
                   </div>
-                  
-                  <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-                    <p className="text-sm text-foreground/90 leading-relaxed">
+                  <div className="p-3 rounded-lg bg-secondary/50 border border-border max-h-60 overflow-y-auto">
+                    <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                      {image.prompt}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {image.refinedPrompt && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Sparkles className="w-4 h-4" />
+                      AI Response
+                    </div>
+                    <button
+                      onClick={() => handleCopyPrompt(image.refinedPrompt)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/50 border border-border max-h-40 overflow-y-auto">
+                    <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
                       {image.refinedPrompt}
                     </p>
                   </div>
