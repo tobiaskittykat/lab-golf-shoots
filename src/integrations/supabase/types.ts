@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_creatives: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          id: string
+          image_url: string
+          name: string | null
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          name?: string | null
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string | null
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_creatives_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_images: {
+        Row: {
+          brand_id: string
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          visual_analysis: Json | null
+        }
+        Insert: {
+          brand_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          visual_analysis?: Json | null
+        }
+        Update: {
+          brand_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          visual_analysis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_images_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brands: {
         Row: {
           assets: Json | null
@@ -58,6 +140,357 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      color_samples: {
+        Row: {
+          brand_id: string | null
+          color: string | null
+          color_hex: string | null
+          component_type: string | null
+          created_at: string
+          id: string
+          image_url: string
+          material: string | null
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          color?: string | null
+          color_hex?: string | null
+          component_type?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          material?: string | null
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          color?: string | null
+          color_hex?: string | null
+          component_type?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          material?: string | null
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "color_samples_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_backgrounds: {
+        Row: {
+          ai_analysis: Json | null
+          brand_id: string
+          created_at: string
+          id: string
+          name: string
+          prompt: string
+          reference_urls: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          brand_id: string
+          created_at?: string
+          id?: string
+          name: string
+          prompt: string
+          reference_urls?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          brand_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          prompt?: string
+          reference_urls?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_backgrounds_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_moodboards: {
+        Row: {
+          brand_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+          visual_analysis: Json | null
+        }
+        Insert: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+          visual_analysis?: Json | null
+        }
+        Update: {
+          brand_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+          visual_analysis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_moodboards_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_images: {
+        Row: {
+          brand_id: string | null
+          concept_id: string | null
+          concept_title: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          image_url: string | null
+          integrity_analysis: Json | null
+          moodboard_id: string | null
+          product_reference_url: string | null
+          prompt: string | null
+          refined_prompt: string | null
+          settings: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          concept_id?: string | null
+          concept_title?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          integrity_analysis?: Json | null
+          moodboard_id?: string | null
+          product_reference_url?: string | null
+          prompt?: string | null
+          refined_prompt?: string | null
+          settings?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          concept_id?: string | null
+          concept_title?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          integrity_analysis?: Json | null
+          moodboard_id?: string | null
+          product_reference_url?: string | null
+          prompt?: string | null
+          refined_prompt?: string | null
+          settings?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_images_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_skus: {
+        Row: {
+          brand_id: string | null
+          category: string | null
+          components: Json | null
+          composite_image_url: string | null
+          created_at: string
+          description: Json | null
+          id: string
+          last_used_at: string | null
+          name: string
+          sku_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand_id?: string | null
+          category?: string | null
+          components?: Json | null
+          composite_image_url?: string | null
+          created_at?: string
+          description?: Json | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          sku_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string | null
+          category?: string | null
+          components?: Json | null
+          composite_image_url?: string | null
+          created_at?: string
+          description?: Json | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          sku_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_skus_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scene_images: {
+        Row: {
+          brand_id: string
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          region: string
+          user_id: string
+        }
+        Insert: {
+          brand_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url: string
+          name?: string
+          region?: string
+          user_id: string
+        }
+        Update: {
+          brand_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          region?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scene_images_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scraped_products: {
+        Row: {
+          angle: string | null
+          brand_id: string | null
+          created_at: string
+          full_url: string | null
+          id: string
+          name: string | null
+          sku_id: string | null
+          storage_path: string | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          angle?: string | null
+          brand_id?: string | null
+          created_at?: string
+          full_url?: string | null
+          id?: string
+          name?: string | null
+          sku_id?: string | null
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          angle?: string | null
+          brand_id?: string | null
+          created_at?: string
+          full_url?: string | null
+          id?: string
+          name?: string | null
+          sku_id?: string | null
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scraped_products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scraped_products_sku_id_fkey"
+            columns: ["sku_id"]
+            isOneToOne: false
+            referencedRelation: "product_skus"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
