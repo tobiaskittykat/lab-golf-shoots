@@ -448,17 +448,10 @@ export function useImageGeneration() {
               const selectedColor = variantColorId ? df3iColors.find(c => c.id === variantColorId) : null;
               const selectedMark = variantMarkId ? df3iAlignmentMarks.find(m => m.id === variantMarkId) : null;
 
-              if (selectedColor || selectedMark) {
-                const parts = ['Replace the golf putter/club in this image with the L.A.B. Golf DF3i putter'];
-                if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
-                if (selectedMark) {
-                  parts.push(`with ${selectedMark.promptDescription}`);
-                  variantRefs.push(selectedMark.publicUrl);
-                }
-                parts.push('Keep exact composition, lighting, and background unchanged.');
-                remixPrompt = parts.join(' ');
-              } else {
-                remixPrompt = 'Remix: swap the golf club/putter with the selected product';
+              remixPrompt = buildDF3iRemixPrompt({ selectedColor, selectedMark });
+
+              if (selectedMark) {
+                variantRefs.push(selectedMark.publicUrl);
               }
             } else {
               // Still attach mark reference even with custom prompt
