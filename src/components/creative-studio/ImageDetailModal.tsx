@@ -14,7 +14,8 @@ import {
   Expand,
   ShieldCheck
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogContentClean } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+const DialogContentClean = DialogContent;
 import { GeneratedImage } from './types';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';

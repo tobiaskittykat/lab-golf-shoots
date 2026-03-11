@@ -537,6 +537,7 @@ export type Database = {
         Row: {
           angle: string | null
           brand_id: string | null
+          category: string | null
           collection: string | null
           created_at: string
           description: Json | null
@@ -552,6 +553,7 @@ export type Database = {
         Insert: {
           angle?: string | null
           brand_id?: string | null
+          category?: string | null
           collection?: string | null
           created_at?: string
           description?: Json | null
@@ -567,6 +569,7 @@ export type Database = {
         Update: {
           angle?: string | null
           brand_id?: string | null
+          category?: string | null
           collection?: string | null
           created_at?: string
           description?: Json | null
