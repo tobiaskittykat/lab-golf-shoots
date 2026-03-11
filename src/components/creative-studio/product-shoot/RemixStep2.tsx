@@ -14,6 +14,7 @@ import { SmartUploadModal } from "./SmartUploadModal";
 import { CreateSKUModal } from "./CreateSKUModal";
 import { EditSKUModal } from "./EditSKUModal";
 import { ShoeComponentsPanel } from "./ShoeComponentsPanel";
+import { PutterVariantSelector } from "./PutterVariantSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrands } from "@/hooks/useBrands";
@@ -491,6 +492,19 @@ export const RemixStep2 = ({
               >
                 Browse More Products
               </Button>
+
+              {/* SKU Variant Selector (DF3i colors + alignment marks) */}
+              {state.selectedProductId && (
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground">SKU Variant</span>
+                  <PutterVariantSelector
+                    selectedColor={state.selectedVariantColor}
+                    selectedAlignmentMark={state.selectedVariantMark}
+                    onColorChange={(colorId) => onStateChange({ selectedVariantColor: colorId })}
+                    onAlignmentMarkChange={(markId) => onStateChange({ selectedVariantMark: markId })}
+                  />
+                </div>
+              )}
 
               {/* Shoe Component Overrides */}
               {state.selectedProductId && (

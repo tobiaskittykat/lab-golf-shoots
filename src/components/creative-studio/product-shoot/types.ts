@@ -93,6 +93,8 @@ export interface ProductShootState {
   integrityResults?: Record<string, ProductIntegrityResult>;
   componentOverrides?: import('@/lib/birkenstockMaterials').ComponentOverrides;
   attachReferenceImages: boolean;
+  selectedVariantColor?: string;
+  selectedVariantMark?: string;
 }
 
 export interface BackgroundPreset {
