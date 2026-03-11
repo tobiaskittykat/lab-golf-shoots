@@ -567,7 +567,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 3: Remix Options */}
-      <Collapsible open={openSections.options}>
+      <Collapsible open={openSections.options} onOpenChange={() => toggleSection('options')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Settings2}
