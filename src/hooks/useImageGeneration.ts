@@ -452,7 +452,7 @@ export function useImageGeneration() {
               if (selectedColor) parts.push(`in ${selectedColor.name} color (${selectedColor.promptDescription})`);
               if (selectedMark) {
                 parts.push(`with ${selectedMark.promptDescription}`);
-                variantRefs.push(selectedMark.thumbnail);
+                variantRefs.push(selectedMark.publicUrl);
               }
               parts.push('Keep exact composition, lighting, and background unchanged.');
               remixPrompt = parts.join(' ');

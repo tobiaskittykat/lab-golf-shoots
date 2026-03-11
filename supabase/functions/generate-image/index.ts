@@ -39,6 +39,7 @@ serve(async (req) => {
       extraKeywords, negativePrompt, textOnImage,
       artisticStyle, lightingStyle, cameraAngle,
       productShootConfig, attachReferenceImages,
+      variantReferenceUrls,
     } = body;
 
     // Build the image generation prompt

@@ -1,16 +1,13 @@
 // L.A.B. Golf DF3i putter variant configuration
 // Colors and alignment marks available for the DF3i putter
+// Images hosted in brand-assets storage bucket for server-side access
 
+// Keep local imports for UI thumbnails (PutterVariantSelector)
 import alignmentMarkA from '@/assets/lab-golf/alignment_mark_a.png';
 import alignmentMarkB from '@/assets/lab-golf/alignment_mark_b.png';
 import alignmentMarkC from '@/assets/lab-golf/alignment_mark_c.png';
 
-import df3i_0 from '@/assets/lab-golf/df3i_0.png';
-import df3i_1 from '@/assets/lab-golf/df3i_1.png';
-import df3i_2 from '@/assets/lab-golf/df3i_2.png';
-import df3i_3 from '@/assets/lab-golf/df3i_3.png';
-import df3i_4 from '@/assets/lab-golf/df3i_4.png';
-import df3i_5 from '@/assets/lab-golf/df3i_5.png';
+const STORAGE_BASE = 'https://zhevvyyxrjusxuyqxoxj.supabase.co/storage/v1/object/public/brand-assets/lab-golf';
 
 export interface PutterColor {
   id: string;
@@ -22,7 +19,8 @@ export interface PutterColor {
 export interface AlignmentMark {
   id: string;
   name: string;
-  thumbnail: string;
+  thumbnail: string;        // local asset for UI display
+  publicUrl: string;         // public storage URL for AI model
   promptDescription: string;
 }
 
@@ -38,9 +36,16 @@ export const df3iColors: PutterColor[] = [
 ];
 
 export const df3iAlignmentMarks: AlignmentMark[] = [
-  { id: 'mark-a', name: 'Mark A', thumbnail: alignmentMarkA, promptDescription: 'alignment mark style A — a single thin line marking on the top of the putter blade' },
-  { id: 'mark-b', name: 'Mark B', thumbnail: alignmentMarkB, promptDescription: 'alignment mark style B — a crosshair/plus-sign alignment marking on the top of the putter blade' },
-  { id: 'mark-c', name: 'Mark C', thumbnail: alignmentMarkC, promptDescription: 'alignment mark style C — a dot-pattern alignment marking on the top of the putter blade' },
+  { id: 'mark-a', name: 'Mark A', thumbnail: alignmentMarkA, publicUrl: `${STORAGE_BASE}/alignment_mark_a.png`, promptDescription: 'alignment mark style A — a single thin line marking on the top of the putter blade' },
+  { id: 'mark-b', name: 'Mark B', thumbnail: alignmentMarkB, publicUrl: `${STORAGE_BASE}/alignment_mark_b.png`, promptDescription: 'alignment mark style B — a crosshair/plus-sign alignment marking on the top of the putter blade' },
+  { id: 'mark-c', name: 'Mark C', thumbnail: alignmentMarkC, publicUrl: `${STORAGE_BASE}/alignment_mark_c.png`, promptDescription: 'alignment mark style C — a dot-pattern alignment marking on the top of the putter blade' },
 ];
 
-export const df3iReferenceImages = [df3i_0, df3i_1, df3i_2, df3i_3, df3i_4, df3i_5];
+export const df3iReferenceImages: string[] = [
+  `${STORAGE_BASE}/df3i_0.png`,
+  `${STORAGE_BASE}/df3i_1.png`,
+  `${STORAGE_BASE}/df3i_2.png`,
+  `${STORAGE_BASE}/df3i_3.png`,
+  `${STORAGE_BASE}/df3i_4.png`,
+  `${STORAGE_BASE}/df3i_5.png`,
+];
