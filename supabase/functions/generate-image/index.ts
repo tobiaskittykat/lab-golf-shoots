@@ -145,6 +145,13 @@ serve(async (req) => {
             }
           }
 
+          // Attach variant reference images (e.g. alignment mark thumbnails)
+          if (variantReferenceUrls?.length > 0) {
+            for (const varUrl of variantReferenceUrls.slice(0, 3)) {
+              content.push({ type: "image_url", image_url: { url: varUrl } });
+            }
+          }
+
           // Attach moodboard
           if (moodboardUrl) {
             content.push({ type: "image_url", image_url: { url: moodboardUrl } });
