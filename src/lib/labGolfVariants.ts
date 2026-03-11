@@ -80,7 +80,6 @@ WHAT MUST CHANGE:
 • The putter head is replaced with the DF3i head from the reference images.
 • The DF3i head must match the EXACT silhouette, proportions, cavity architecture, milling texture, hosel geometry, and construction visible in the references.
 ${selectedColor ? `• Apply a ${selectedColor.promptDescription} to the entire putter head (approximate hex: ${selectedColor.hex}). The finish must be uniform, smooth, and photorealistic on CNC-milled metal.` : '• Keep the putter head in its original/default color as shown in the references.'}
-• REMOVE all alignment marks, lines, dots, crosshairs, or any aiming aids from the top surface. The top surface must be completely clean, smooth, and unmarked — bare metal/color finish with natural milling texture only. No marks whatsoever.
 
 WHAT MUST NOT CHANGE (PIXEL-IDENTICAL):
 • The position, angle, and orientation of the club in the scene — the new head sits exactly where the old one was, at the same tilt and rotation.
@@ -124,13 +123,13 @@ export function buildDF3iMarkPrompt(opts: {
   return `TASK: ADD ALIGNMENT MARK TO PUTTER HEAD — NOTHING ELSE CHANGES
 
 You are given TWO images:
-1. A photograph of a L.A.B. Golf DF3i putter (the FIRST/MAIN image) — this is the image you will edit.
-2. A REFERENCE image showing the exact alignment mark design to apply (the SECOND image).
+1. The FIRST image is a reference showing the exact alignment mark design to apply.
+2. The SECOND image is the photograph of the putter — this is the image you will edit.
 
 ${colorContext}
 
 YOUR ONLY JOB:
-Add the alignment mark shown in the reference image onto the flat top surface of the putter head in the main image. That is the ONLY change.
+Add the alignment mark shown in the FIRST (reference) image onto the flat top surface of the putter head in the SECOND (photograph) image. That is the ONLY change.
 
 MARK SPECIFICATION:
 • The mark is: ${selectedMark.promptDescription}.
