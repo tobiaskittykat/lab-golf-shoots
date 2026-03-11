@@ -43,7 +43,7 @@ export function parseSkuDisplayInfo(
 ): SKUDisplayInfo {
   const words = name.split(/\s+/);
   const lowerWords = words.map(w => w.toLowerCase());
-
+  
   // Default result using full name
   const result: SKUDisplayInfo = {
     brandName: '',
@@ -53,32 +53,32 @@ export function parseSkuDisplayInfo(
     productType: '',
     fullName: name,
   };
-
+  
   if (words.length < 2) {
     return result;
   }
-
+  
   // Try to identify brand (first word if it's a known brand)
   const firstWordLower = lowerWords[0];
-  const isKnownBrand = KNOWN_BRANDS.some(brand =>
+  const isKnownBrand = KNOWN_BRANDS.some(brand => 
     firstWordLower === brand || firstWordLower.startsWith(brand)
   );
-
+  
   if (isKnownBrand) {
     result.brandName = words[0];
   }
-
+  
   // Try to identify product type (usually last word)
   const lastWordLower = lowerWords[lowerWords.length - 1];
   if (PRODUCT_TYPES.includes(lastWordLower)) {
     result.productType = words[words.length - 1];
   }
-
+  
   // Model name is typically the second word if we have a brand
   if (result.brandName && words.length >= 2) {
     result.modelName = words[1];
   }
-
+  
   // Extract color and material from description JSONB if available
   if (description) {
     if (description.colors && description.colors.length > 0) {
@@ -94,14 +94,14 @@ export function parseSkuDisplayInfo(
       result.summary = description.summary;
     }
   }
-
+  
   // Fallback: try to extract color and material from name if not found in description
   if (!result.color || !result.material) {
     const middleWords = words.slice(
-      result.brandName ? 2 : 1,
+      result.brandName ? 2 : 1, 
       result.productType ? -1 : undefined
     );
-
+    
     for (const word of middleWords) {
       const lower = word.toLowerCase();
       if (!result.color && COLORS.includes(lower)) {
@@ -111,7 +111,7 @@ export function parseSkuDisplayInfo(
       }
     }
   }
-
+  
   return result;
 }
 
@@ -121,19 +121,19 @@ export function parseSkuDisplayInfo(
  */
 export function formatSkuSubtitle(info: SKUDisplayInfo): string {
   const parts: string[] = [];
-
+  
   if (info.brandName) {
     parts.push(info.brandName);
   }
-
+  
   const attributes: string[] = [];
   if (info.color) attributes.push(info.color);
   if (info.material) attributes.push(info.material);
-
+  
   if (attributes.length > 0) {
     parts.push(attributes.join(' '));
   }
-
+  
   return parts.join(' • ');
 }
 

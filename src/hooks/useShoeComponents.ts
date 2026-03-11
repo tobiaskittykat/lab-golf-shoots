@@ -4,7 +4,7 @@ import { ShoeComponents, ComponentOverrides } from '@/lib/birkenstockMaterials';
 
 interface UseShoeComponentsOptions {
   skuId: string | undefined;
-  pollInterval?: number;
+  pollInterval?: number; // ms, default 3000
 }
 
 interface UseShoeComponentsReturn {
@@ -32,11 +32,11 @@ export function useShoeComponents({
     }
 
     try {
-      const { data, error: fetchError } = await (supabase
-        .from('product_skus' as any)
+      const { data, error: fetchError } = await supabase
+        .from('product_skus')
         .select('components')
         .eq('id', skuId)
-        .single() as any);
+        .single();
 
       if (fetchError) throw fetchError;
 
@@ -52,6 +52,7 @@ export function useShoeComponents({
     }
   }, [skuId]);
 
+  // Initial fetch
   useEffect(() => {
     if (skuId) {
       setIsLoading(true);
@@ -63,6 +64,7 @@ export function useShoeComponents({
     }
   }, [skuId, fetchComponents]);
 
+  // Poll for updates if analyzing
   useEffect(() => {
     if (!skuId || !isAnalyzing) return;
 
@@ -88,6 +90,7 @@ export function useShoeComponents({
         throw invokeError;
       }
 
+      // Fetch updated components after a short delay
       setTimeout(fetchComponents, 1000);
     } catch (err) {
       console.error('Error triggering component analysis:', err);
@@ -106,13 +109,16 @@ export function useShoeComponents({
   };
 }
 
+// Hook for managing component overrides state
 export function useComponentOverrides(initialComponents: ShoeComponents | null) {
   const [overrides, setOverrides] = useState<ComponentOverrides>({});
 
+  // Reset overrides when initial components change
   useEffect(() => {
     setOverrides({});
   }, [initialComponents?.analyzedAt]);
 
+  // Auto-sync color-matched buckles when upper color changes
   useEffect(() => {
     if (overrides.buckles?.material === 'Matte Plastic (Coordinated)' || overrides.buckles?.material === 'Metal (Coordinated)' || overrides.buckles?.material === 'Translucent (Coordinated)') {
       const upperColor = overrides.upper?.color || initialComponents?.upper?.color;
@@ -129,13 +135,16 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
     }
   }, [overrides.upper, overrides.buckles?.material, initialComponents?.upper]);
 
+  // Auto-sync heelstrap with upper (e.g. Tokyo: heelstrap is same piece as upper)
   useEffect(() => {
+    // Only sync if the shoe actually has a heelstrap component
     if (!initialComponents?.heelstrap) return;
 
     const upperOverride = overrides.upper;
     const heelstrapOverride = overrides.heelstrap;
 
     if (upperOverride) {
+      // Upper is overridden → mirror to heelstrap
       if (
         heelstrapOverride?.material !== upperOverride.material ||
         heelstrapOverride?.color !== upperOverride.color
@@ -149,6 +158,7 @@ export function useComponentOverrides(initialComponents: ShoeComponents | null) 
         }));
       }
     } else if (heelstrapOverride) {
+      // Upper override removed → also remove heelstrap override
       setOverrides(prev => {
         const next = { ...prev };
         delete next.heelstrap;
