@@ -366,7 +366,7 @@ export const RemixStep2 = ({
   return (
     <div className="space-y-4 mt-8">
       {/* Section 1: Source Images */}
-      <Collapsible open={openSections.source}>
+      <Collapsible open={openSections.source} onOpenChange={() => toggleSection('source')}>
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           <SectionHeader
             icon={Upload}
