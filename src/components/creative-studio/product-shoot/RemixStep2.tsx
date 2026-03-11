@@ -594,7 +594,7 @@ export const RemixStep2 = ({
       </Collapsible>
 
       {/* Section 3.5: Prompt Preview */}
-      <Collapsible open={openSections.prompt}>
+      <Collapsible open={openSections.prompt} onOpenChange={() => toggleSection('prompt')}>
         <div className="rounded-2xl border border-accent/30 bg-card overflow-hidden">
           <SectionHeader
             icon={FileText}
